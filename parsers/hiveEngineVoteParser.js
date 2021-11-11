@@ -3,8 +3,10 @@ const {
   Post, Wobj, User, UserWobjects,
 } = require('models');
 const { commentRefGetter } = require('utilities/commentRefService');
-const { ENGINE_TOKENS } = require('constants/hiveEngine');
+const { ENGINE_TOKENS, CACHE_POOL_KEY } = require('constants/hiveEngine');
 const moment = require('moment');
+const redisGetter = require('utilities/redis/redisGetter');
+const { lastBlockClient } = require('utilities/redis/redis');
 const _ = require('lodash');
 
 exports.parse = async (votes) => {
@@ -106,11 +108,15 @@ const addRharesToPostsAndVotes = async ({
 }) => {
   for (const vote of votes) {
     if (!vote.type) continue;
+    const { rewards } = await redisGetter.getHashAll(
+      `${CACHE_POOL_KEY}:${tokenSymbol}`,
+      lastBlockClient,
+    );
     const balance = _.find(balances, (el) => el.account === vote.voter);
     const powerBalance = _.find(votingPowers, (el) => el.account === vote.voter);
     const post = _.find(posts, (p) => (p.author === vote.author || p.author === vote.guest_author) && p.permlink === vote.permlink);
     const createdOverAWeek = moment().diff(moment(_.get(post, 'createdAt')), 'day') > 7;
-    if (!balance || !powerBalance || !post || createdOverAWeek) continue;
+    if (!balance || !powerBalance || !post) continue;
     const decreasedPercent = (((vote.weight / 100) * 2) / 100);
     const { stake, delegationsIn } = balance;
     const { votingPower } = powerBalance;
@@ -119,8 +125,15 @@ const addRharesToPostsAndVotes = async ({
     const finalRshares = parseFloat(stake) + parseFloat(delegationsIn);
     const power = (previousVotingPower * vote.weight) / 10000;
 
-    const rshares = (power * finalRshares) / 10000;
-    post[`net_rshares_${tokenSymbol}`] = parseFloat(_.get(post, `net_rshares_${tokenSymbol}`, 0)) + rshares;
+    const rshares = !createdOverAWeek
+      ? (power * finalRshares) / 10000
+      : 1;
+
+    if (!createdOverAWeek) {
+      post[`net_rshares_${tokenSymbol}`] = _.get(post, `net_rshares_${tokenSymbol}`, 0) + rshares;
+      post[`total_payout_${tokenSymbol}`] = post[`net_rshares_${tokenSymbol}`] * parseFloat(rewards);
+    }
+
     const voteInPost = _.find(post.active_votes, (v) => v.voter === vote.voter);
     voteInPost
       ? voteInPost[`rshares${tokenSymbol}`] = rshares
@@ -140,6 +153,7 @@ const updatePostsRshares = async ({ posts, tokenSymbol }) => {
       {
         [`net_rshares_${tokenSymbol}`]: post[`net_rshares_${tokenSymbol}`],
         active_votes: post.active_votes,
+        [`total_payout_${tokenSymbol}`]: post[`total_payout_${tokenSymbol}`],
       },
     );
   }

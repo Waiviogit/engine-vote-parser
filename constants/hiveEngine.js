@@ -5,3 +5,5 @@ exports.TOKEN_WAIV = {
 };
 
 exports.ENGINE_TOKENS = [this.TOKEN_WAIV];
+
+exports.CACHE_POOL_KEY = 'smt_pool';

@@ -13,6 +13,7 @@
     "@hiveio/dhive": "^1.1.1",
     "axios": "^0.24.0",
     "bluebird": "^3.7.2",
+    "cron": "^1.8.2",
     "express": "^4.17.1",
     "lodash": "^4.17.21",
     "moment": "^2.29.1",
