@@ -29,3 +29,5 @@ exports.addObjectType = async (path, name) => {
   await postRefsClient.hsetAsync(path, 'type', COMMENT_REF_TYPES.wobjType);
   await postRefsClient.hsetAsync(path, 'name', name);
 };
+
+exports.hmsetAsync = async (key, data, client = lastBlockClient) => client.hmsetAsync(key, data);
