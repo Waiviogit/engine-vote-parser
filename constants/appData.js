@@ -95,6 +95,14 @@ const HIVE_MIND_NODES = [
   ...COMMON_RPC_NODES,
 ];
 
+const HIVE_ENGINE_NODES = [
+  'https://api.hive-engine.com/rpc',
+  'https://api2.hive-engine.com/rpc',
+  'https://herpc.dtools.dev',
+  'https://us.engine.rishipanthee.com',
+  'https://ha.herpc.dtools.dev',
+];
+
 const REFERRAL_TYPES = {
   REWARDS: 'rewards',
   REVIEWS: 'reviews',
@@ -111,7 +119,6 @@ const telegramApi = {
   HOST: 'https://waiviodev.com',
   BASE_URL: '/telegram-api',
   SENTRY_ERROR: '/sentry',
-
 };
 
 const BLOCK_REQ_MAX_TIME = 1000;
@@ -127,4 +134,5 @@ module.exports = {
   BLOCK_REQ_MAX_TIME,
   HIVED_NODES,
   HIVE_MIND_NODES,
+  HIVE_ENGINE_NODES,
 };
