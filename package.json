@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "start": "node ./bin/service.js"
+    "start": "node ./bin/service.js",
+    "setWaivReward": "NODE_PATH=. node ./utilities/tasks/setWaivReward/run.js"
   },
   "keywords": [],
   "author": "",

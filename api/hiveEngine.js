@@ -1,9 +1,9 @@
 const { redisGetter, redisSetter } = require('utilities/redis');
-const blocksUtil = require('utilities/hiveApi/blocksUtil');
-const { HIVED_NODES } = require('constants/appData');
-const { Client } = require('@hiveio/dhive');
+const blockchain = require('utilities/hiveEngine/blockchain');
+const { HIVE_ENGINE_NODES } = require('constants/appData');
+const _ = require('lodash');
 
-let CURRENT_NODE = HIVED_NODES[0];
+let CURRENT_NODE = HIVE_ENGINE_NODES[0];
 
 /**
  * Base method for run stream, for side tasks pass to the key parameter key for save block
@@ -22,13 +22,12 @@ const getBlockNumberStream = async ({
   transactionsParserCallback,
 }) => {
   if (startFromCurrent) {
-    const hive = new Client(HIVED_NODES);
     await loadNextBlock(
       {
         key,
         finishBlock,
         transactionsParserCallback,
-        startBlock: (await hive.database.getDynamicGlobalProperties()).head_block_number,
+        startBlock: (await blockchain.getLatestBlockInfo()).blockNumber,
       },
     );
   } else if (startFromBlock && Number.isInteger(startFromBlock)) {
@@ -36,7 +35,7 @@ const getBlockNumberStream = async ({
       startBlock: startFromBlock, key, finishBlock, transactionsParserCallback,
     });
   } else {
-    await loadNextBlock({ transactionsParserCallback });
+    await loadNextBlock({ transactionsParserCallback, key });
   }
   return true;
 };
@@ -53,7 +52,7 @@ const loadNextBlock = async ({
       return;
     }
   } else {
-    lastBlockNum = await redisGetter.getLastBlockNum('last_block_vote_engine');
+    lastBlockNum = await redisGetter.getLastBlockNum(key);
   }
   const loadResult = await loadBlock(lastBlockNum, transactionsParserCallback);
 
@@ -72,17 +71,10 @@ const loadNextBlock = async ({
 
 // return true if block exist and parsed, else - false
 const loadBlock = async (blockNum, transactionsParserCallback) => {
-  /*
-    To prevent situation when vote parser went further than the main parser,
-    check the current block less than last handled on main parser
-     */
-  const lastBlockNumMainParse = await redisGetter.getLastBlockNum('last_block_num');
-  if (blockNum >= lastBlockNumMainParse - 1) return false;
+  const block = await blockchain.getBlockInfo(blockNum, CURRENT_NODE);
 
-  const { block, error } = await blocksUtil.getBlock(blockNum, CURRENT_NODE);
-
-  if (error) {
-    console.error(error);
+  if (_.has(block, 'error')) {
+    console.error(block.error.message);
     changeNodeUrl();
     return false;
   }
@@ -91,16 +83,18 @@ const loadBlock = async (blockNum, transactionsParserCallback) => {
     console.error(`EMPTY BLOCK: ${blockNum}`);
     return true;
   }
-  console.time(block.transactions[0].block_num);
-  await transactionsParserCallback(block.transactions);
-  console.timeEnd(block.transactions[0].block_num);
+  console.time(`engine ${block.blockNumber}`);
+  await transactionsParserCallback(block.transactions, block.blockNumber);
+  console.timeEnd(`engine ${block.blockNumber}`);
   return true;
 };
 
 const changeNodeUrl = () => {
-  const index = HIVED_NODES.indexOf(CURRENT_NODE);
+  const index = HIVE_ENGINE_NODES.indexOf(CURRENT_NODE);
 
-  CURRENT_NODE = index === HIVED_NODES.length - 1 ? HIVED_NODES[0] : HIVED_NODES[index + 1];
+  CURRENT_NODE = index === HIVE_ENGINE_NODES.length - 1
+    ? HIVE_ENGINE_NODES[0]
+    : HIVE_ENGINE_NODES[index + 1];
   console.error(`Node URL was changed to ${CURRENT_NODE}`);
 };
 

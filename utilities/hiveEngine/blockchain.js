@@ -1,9 +1,13 @@
 const engineQuery = require('utilities/hiveEngine/engineQuery');
 
-exports.getBlockInfo = async (blockNumber) => engineQuery({
+exports.getBlockInfo = async (blockNumber, hostUrl) => engineQuery({
   method: 'getBlockInfo',
   endpoint: '/blockchain',
-  params: {
-    blockNumber, //12099755
-  },
+  hostUrl,
+  params: { blockNumber },
+});
+
+exports.getLatestBlockInfo = async () => engineQuery({
+  method: 'getLatestBlockInfo',
+  endpoint: '/blockchain',
 });
