@@ -7,3 +7,13 @@ exports.TOKEN_WAIV = {
 exports.ENGINE_TOKENS = [this.TOKEN_WAIV];
 
 exports.CACHE_POOL_KEY = 'smt_pool';
+
+exports.ENGINE_CONTRACTS = {
+  MARKETPOOLS: 'marketpools',
+  AIRDROPS: 'airdrops',
+};
+
+exports.ENGINE_CONTRACT_ACTIONS = {
+  SWAP_TOKENS: 'swapTokens',
+  NEW_AIRDROP: 'newAirdrop',
+};
