@@ -1,6 +1,7 @@
-const airdropHistoryParser = require('parsers/airdropHistoryParser');
+// const airdropHistoryParser = require('parsers/airdropHistoryParser');
 const api = require('api/hiveEngine');
 const { runCustomStream } = require('utilities/helpers/customStreamHelper');
+const airdropHistoryHelper = require('./airdropHistoryHelper');
 
 (async () => {
   await runCustomStream(
@@ -8,7 +9,7 @@ const { runCustomStream } = require('utilities/helpers/customStreamHelper');
       key: process.argv[2],
       startBlock: process.argv[3],
       finishBlock: process.argv[4],
-      callback: airdropHistoryParser.parse,
+      callback: airdropHistoryHelper.helper,
       api,
     },
   );
