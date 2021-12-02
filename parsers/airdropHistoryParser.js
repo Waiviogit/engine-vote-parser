@@ -11,7 +11,7 @@ exports.parse = async (transaction, blockNumber, timestamps) => {
   if (_.isEmpty(payload)) return;
 
   /*
-    *    check to include only wive transactions
+    *    check to include only WAIV transactions
     * */
   if (payload.symbol !== 'WAIV') return;
 

@@ -14,11 +14,14 @@ exports.parse = async (transaction, blockNumber, timestamp) => {
   const swapFrom = _.find(log.events, (e) => e.event === 'transferToContract');
   const symbols = _.find(log.events, (e) => e.event === 'swapTokens');
 
-  /*
-  *    check to include only wive transactions
-  * */
-  if (!_.includes(symbols.data.symbolOut, 'WAIV') && !_.includes(symbols.data.symbolIn, 'WAIV')) return;
+  const symbolOut = _.get(symbols, 'data.symbolOut');
+  const symbolIn = _.get(symbols, 'data.symbolIn');
 
+  /*
+  *    check to include only WAIV transactions
+  * */
+
+  if (symbolOut !== 'WAIV' && symbolIn !== 'WAIV') return;
 
   if (!swapTo || !swapFrom || !symbols) return;
 
@@ -28,9 +31,9 @@ exports.parse = async (transaction, blockNumber, timestamp) => {
     account: transaction.sender,
     operation: transaction.action,
     refHiveBlockNumber: transaction.refHiveBlockNumber,
-    symbolOut: _.get(symbols, 'data.symbolOut'),
+    symbolOut,
+    symbolIn,
     symbolOutQuantity: _.get(swapTo, 'data.quantity'),
-    symbolIn: _.get(symbols, 'data.symbolIn'),
     symbolInQuantity: _.get(swapFrom, 'data.quantity'),
     timestamp: moment(timestamp).unix(),
 
