@@ -80,3 +80,7 @@ exports.REQUIRED_POSTING_AUTHS = 'required_posting_auths[0]';
 exports.MEMO_ID = {
   GUEST_TRANSFER: 'waivio_guest_transfer',
 };
+
+exports.REDIS_KEYS = {
+  PROCESSED_LIKES: 'processed_likes',
+};

@@ -3,6 +3,7 @@ const {
   Post, Wobj, User, UserWobjects,
 } = require('models');
 const { commentRefGetter } = require('utilities/commentRefService');
+const { REDIS_KEYS } = require('constants/parsersData');
 const { ENGINE_TOKENS, CACHE_POOL_KEY } = require('constants/hiveEngine');
 const moment = require('moment');
 const redisGetter = require('utilities/redis/redisGetter');
@@ -103,20 +104,36 @@ const getBalancesAndFilterVotes = async ({ TOKEN, posts, votes }) => {
   };
 };
 
+const getProcessedVotes = async (votes) => {
+  const votedPosts = await redisGetter
+    .zrevrange({ key: REDIS_KEYS.PROCESSED_LIKES, start: 0, end: -1 });
+  return _.filter(votes, (e) => _.some(_.map(votedPosts, (el) => ({
+    voter: el.split(':')[0],
+    author: el.split(':')[1],
+    permlink: el.split(':')[2],
+  })), (l) => l.voter === e.voter && l.author === e.author && l.permlink === e.permlink));
+};
+
 const addRharesToPostsAndVotes = async ({
   votes, posts, balances, votingPowers, tokenSymbol,
 }) => {
+  const votesProcessedOnApi = await getProcessedVotes(votes);
+  const { rewards } = await redisGetter.getHashAll(
+    `${CACHE_POOL_KEY}:${tokenSymbol}`,
+    lastBlockClient,
+  );
+
   for (const vote of votes) {
     if (!vote.type) continue;
-    const { rewards } = await redisGetter.getHashAll(
-      `${CACHE_POOL_KEY}:${tokenSymbol}`,
-      lastBlockClient,
-    );
+    const processed = _.find(votesProcessedOnApi, (el) => _.isEqual(vote, el));
+    if (processed) continue;
     const balance = _.find(balances, (el) => el.account === vote.voter);
     const powerBalance = _.find(votingPowers, (el) => el.account === vote.voter);
     const post = _.find(posts, (p) => (p.author === vote.author || p.author === vote.guest_author) && p.permlink === vote.permlink);
     const createdOverAWeek = moment().diff(moment(_.get(post, 'createdAt')), 'day') > 7;
+
     if (!balance || !powerBalance || !post) continue;
+
     const decreasedPercent = (((vote.weight / 100) * 2) / 100);
     const { stake, delegationsIn } = balance;
     const { votingPower } = powerBalance;
