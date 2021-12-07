@@ -23,7 +23,7 @@ const parseTransaction = ({
   const handler = {
     [ENGINE_CONTRACTS.AIRDROPS]: async () => airdropHistoryParser.parse(transaction, blockNumber, timestamps),
     [ENGINE_CONTRACTS.MARKETPOOLS]: async () => swapHistoryParser.parse(transaction, blockNumber, timestamps),
-    [ENGINE_CONTRACTS.TOKENS]: async () => transferParser.parse(transaction, blockNumber, timestamps),
+    [ENGINE_CONTRACTS.TOKENS]: async () => transferParser.parse(transaction, blockNumber),
     default: () => '',
   };
   return (handler[contract] || handler.default)();
