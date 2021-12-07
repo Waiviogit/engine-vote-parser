@@ -16,4 +16,5 @@ exports.ENGINE_CONTRACTS = {
 exports.ENGINE_CONTRACT_ACTIONS = {
   SWAP_TOKENS: 'swapTokens',
   NEW_AIRDROP: 'newAirdrop',
+  TOKENS: 'tokens',
 };
