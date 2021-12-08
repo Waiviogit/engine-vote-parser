@@ -84,7 +84,7 @@ const loadBlock = async (blockNum, transactionsParserCallback) => {
     return true;
   }
   console.time(`engine ${block.blockNumber}`);
-  await transactionsParserCallback(block.transactions, block.blockNumber);
+  await transactionsParserCallback(block.transactions, block.blockNumber, block.timestamp);
   console.timeEnd(`engine ${block.blockNumber}`);
   return true;
 };
