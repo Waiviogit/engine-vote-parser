@@ -11,6 +11,7 @@ exports.CACHE_POOL_KEY = 'smt_pool';
 exports.ENGINE_CONTRACTS = {
   MARKETPOOLS: 'marketpools',
   AIRDROPS: 'airdrops',
+  TOKENS: 'tokens',
 };
 
 exports.ENGINE_CONTRACT_ACTIONS = {
