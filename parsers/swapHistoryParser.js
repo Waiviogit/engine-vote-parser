@@ -24,7 +24,6 @@ exports.parse = async (transaction, blockNumber, timestamp) => {
   if (symbolOut !== 'WAIV' && symbolIn !== 'WAIV') return;
 
   if (!swapTo || !swapFrom || !symbols) return;
-  k;
   const data = {
     blockNumber,
     transactionId: transaction.transactionId,
