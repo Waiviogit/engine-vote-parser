@@ -6,8 +6,8 @@ const swapHistoryHelper = require('./swapHistoryHelper');
   await runCustomStream(
     {
       key: process.argv[2],
-      startBlock: process.argv[3],
-      finishBlock: process.argv[4],
+      startBlock: +process.argv[3],
+      finishBlock: +process.argv[4],
       callback: swapHistoryHelper.helper,
       api,
     },
