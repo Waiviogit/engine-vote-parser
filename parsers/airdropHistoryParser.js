@@ -21,7 +21,7 @@ exports.parse = async (transaction, blockNumber, timestamps) => {
       refHiveBlockNumber: transaction.refHiveBlockNumber,
       blockNumber,
       account: el[0],
-      operation: transaction.action,
+      operation: `${transaction.contract}_${transaction.action}`,
       transactionId: transaction.transactionId,
       quantity: el[1],
       tokenState: payload.type,

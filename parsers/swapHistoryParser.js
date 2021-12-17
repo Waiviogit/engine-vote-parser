@@ -17,13 +17,18 @@ exports.parse = async (transaction, blockNumber, timestamp) => {
   const symbolOut = _.get(symbols, 'data.symbolOut');
   const symbolIn = _.get(symbols, 'data.symbolIn');
 
-  if (!swapTo || !swapFrom || !symbols) return;
+  /*
+*    check to include only WAIV transactions
+* */
 
+  if (symbolOut !== 'WAIV' && symbolIn !== 'WAIV') return;
+
+  if (!swapTo || !swapFrom || !symbols) return;
   const data = {
     blockNumber,
     transactionId: transaction.transactionId,
     account: transaction.sender,
-    operation: transaction.action,
+    operation: `${transaction.contract}_${transaction.action}`,
     refHiveBlockNumber: transaction.refHiveBlockNumber,
     symbolOut,
     symbolIn,
