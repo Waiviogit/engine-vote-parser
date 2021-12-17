@@ -4,24 +4,111 @@ const {
 } = require('models');
 const { commentRefGetter } = require('utilities/commentRefService');
 const { REDIS_KEYS } = require('constants/parsersData');
-const { ENGINE_TOKENS, CACHE_POOL_KEY } = require('constants/hiveEngine');
+const {
+  ENGINE_TOKENS, CACHE_POOL_KEY, ENGINE_EVENTS, POST_REWARD_EVENTS,
+} = require('constants/hiveEngine');
+const EngineAccountHistoryModel = require('models/EngineAccountHistoryModel');
 const moment = require('moment');
 const redisGetter = require('utilities/redis/redisGetter');
 const { lastBlockClient } = require('utilities/redis/redis');
+const jsonHelper = require('utilities/helpers/jsonHelper');
 const _ = require('lodash');
+const BigNumber = require('bignumber.js');
 
-exports.parse = async (votes) => {
-  if (_.isEmpty(votes)) return console.log('Parsed votes: 0');
-  const formattedVotes = await votesFormat(votes);
-  const { posts = [] } = await Post.getManyPosts(
-    _.chain(formattedVotes)
-      .filter((v) => !!v.type)
-      .uniqWith((x, y) => x.author === y.author && x.permlink === y.permlink)
-      .map((v) => ({ author: v.guest_author || v.author, permlink: v.permlink }))
-      .value(),
-  );
-  await parseEngineVotes({ votes: formattedVotes, posts });
-  console.log(`Parsed votes: ${formattedVotes.length}`);
+exports.parse = async ({ transactions, blockNumber, timestamps }) => {
+  const { votes, rewards } = formatVotesAndRewards({ transactions, blockNumber, timestamps });
+
+  await processRewards(rewards, blockNumber);
+  // if (_.isEmpty(votes)) return console.log('Parsed votes: 0');
+  // const formattedVotes = await votesFormat(votes);
+  // const { posts = [] } = await Post.getManyPosts(
+  //   _.chain(formattedVotes)
+  //     .filter((v) => !!v.type)
+  //     .uniqWith((x, y) => x.author === y.author && x.permlink === y.permlink)
+  //     .map((v) => ({ author: v.guest_author || v.author, permlink: v.permlink }))
+  //     .value(),
+  // );
+  // await parseEngineVotes({ votes: formattedVotes, posts });
+  // console.log(`Parsed votes: ${formattedVotes.length}`);
+};
+
+const formatVotesAndRewards = ({ transactions, blockNumber, timestamps }) => _.reduce(
+  transactions, (acc, transaction) => {
+    const events = _.get(jsonHelper.parseJson(transaction.logs), 'events', []);
+    if (_.isEmpty(events)
+    && !_.some(events, (e) => _.includes(_.map(ENGINE_TOKENS, 'SYMBOL'), _.get(e, 'data.symbol')))
+    ) {
+      return acc;
+    }
+    for (const event of events) {
+      if (_.get(event, 'event') === ENGINE_EVENTS.NEW_VOTE
+      && _.includes(_.map(ENGINE_TOKENS, 'SYMBOL'), _.get(event, 'data.symbol'))
+      && parseFloat(_.get(event, 'data.rshares')) !== 0
+      ) {
+        acc.votes.push({
+          ...jsonHelper.parseJson(transaction.payload),
+          rshares: parseFloat(_.get(event, 'data.rshares')),
+          symbol: _.get(event, 'data.symbol'),
+        });
+      }
+      if (_.includes(POST_REWARD_EVENTS, _.get(event, 'event'))
+        && _.includes(_.map(ENGINE_TOKENS, 'SYMBOL'), _.get(event, 'data.symbol'))
+        && parseFloat(_.get(event, 'data.quantity')) !== 0
+      ) {
+        acc.rewards.push({
+          operation: `${transaction.contract}_${event.event}`,
+          ...event.data,
+          blockNumber,
+          refHiveBlockNumber: transaction.refHiveBlockNumber,
+          transactionId: transaction.transactionId,
+          timestamps: moment(timestamps).unix(),
+        });
+      }
+    }
+    return acc;
+  }, { votes: [], rewards: [] },
+);
+const kek = {};
+
+const processRewards = async (rewards, blockNumber) => {
+  if (_.isEmpty(rewards)) return;
+  // await EngineAccountHistoryModel.insertMany(rewards);
+  const rewardsOnPosts = _.reduce(rewards, (acc, reward) => {
+    if (!_.has(acc, `${reward.authorperm}`)) {
+      acc[reward.authorperm] = {
+        [reward.symbol]: BigNumber(reward.quantity).toNumber(),
+      };
+    } else {
+      _.has(acc[reward.authorperm], `${reward.symbol}`)
+        ? acc[reward.authorperm][reward.symbol] = BigNumber(acc[reward.authorperm][reward.symbol])
+          .plus(reward.quantity)
+          .toNumber()
+        : acc[reward.authorperm][reward.symbol] = BigNumber(reward.quantity).toNumber();
+    }
+    return acc;
+  }, {});
+  for (const test in rewardsOnPosts) {
+    if (_.has(kek, test)) {
+      console.log();
+    }
+  }
+  Object.assign(kek, rewardsOnPosts);
+
+  for (const rewardsOnPostsKey in rewardsOnPosts) {
+    const [author, permlink] = rewardsOnPostsKey.split('/');
+    // const rewardsUpdateData = _.reduce(rewardsOnPosts[rewardsOnPostsKey], (acc, el, index) => {
+    //   acc[`total_payout_${index}`] = el.toNumber();
+    //   return acc;
+    // }, {});
+    const rewardsUpdateData = rewardsOnPosts[rewardsOnPostsKey];
+    await Post.updateOne(
+      {
+        root_author: author.substring(1),
+        permlink,
+      },
+      rewardsUpdateData,
+    );
+  }
 };
 
 const votesFormat = async (votesOps) => {
