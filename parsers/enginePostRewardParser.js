@@ -5,7 +5,7 @@ exports.parse = async (transactions) => {
   const filtered = _.reduce(transactions, (acc, el) => {
     if (_.get(el, 'contract') !== 'comments') return acc;
     const logs = parseJson(_.get(el, 'logs'));
-    if (_.isEmpty(_.get(logs, 'events'))) return;
+    if (_.isEmpty(_.get(logs, 'events'))) return acc;
     for (const item of logs.events) {
       if (_.get(item, 'event') === 'authorReward' && _.get(item, 'data.rewardPoolId') === 13) {
         acc.push(item.data);
