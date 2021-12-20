@@ -1,4 +1,3 @@
-const { tokensContract, commentContract } = require('utilities/hiveEngine');
 const {
   Post, Wobj, User, UserWobjects,
 } = require('models');
@@ -18,18 +17,8 @@ const BigNumber = require('bignumber.js');
 exports.parse = async ({ transactions, blockNumber, timestamps }) => {
   const { votes, rewards } = formatVotesAndRewards({ transactions, blockNumber, timestamps });
 
-  await processRewards(rewards, blockNumber);
-  // if (_.isEmpty(votes)) return console.log('Parsed votes: 0');
-  // const formattedVotes = await votesFormat(votes);
-  // const { posts = [] } = await Post.getManyPosts(
-  //   _.chain(formattedVotes)
-  //     .filter((v) => !!v.type)
-  //     .uniqWith((x, y) => x.author === y.author && x.permlink === y.permlink)
-  //     .map((v) => ({ author: v.guest_author || v.author, permlink: v.permlink }))
-  //     .value(),
-  // );
-  // await parseEngineVotes({ votes: formattedVotes, posts });
-  // console.log(`Parsed votes: ${formattedVotes.length}`);
+  await processRewards(rewards);
+  await parseEngineVotes(votes);
 };
 
 const formatVotesAndRewards = ({ transactions, blockNumber, timestamps }) => _.reduce(
@@ -41,20 +30,21 @@ const formatVotesAndRewards = ({ transactions, blockNumber, timestamps }) => _.r
       return acc;
     }
     for (const event of events) {
-      if (_.get(event, 'event') === ENGINE_EVENTS.NEW_VOTE
-      && _.includes(_.map(ENGINE_TOKENS, 'SYMBOL'), _.get(event, 'data.symbol'))
-      && parseFloat(_.get(event, 'data.rshares')) !== 0
-      ) {
+      const parseVoteCondition = _.get(event, 'event') === ENGINE_EVENTS.NEW_VOTE
+        && _.includes(_.map(ENGINE_TOKENS, 'SYMBOL'), _.get(event, 'data.symbol'))
+        && parseFloat(_.get(event, 'data.rshares')) !== 0;
+      const parseRewardsCondition = _.includes(POST_REWARD_EVENTS, _.get(event, 'event'))
+        && _.includes(_.map(ENGINE_TOKENS, 'SYMBOL'), _.get(event, 'data.symbol'))
+        && parseFloat(_.get(event, 'data.quantity')) !== 0;
+
+      if (parseVoteCondition) {
         acc.votes.push({
           ...jsonHelper.parseJson(transaction.payload),
           rshares: parseFloat(_.get(event, 'data.rshares')),
           symbol: _.get(event, 'data.symbol'),
         });
       }
-      if (_.includes(POST_REWARD_EVENTS, _.get(event, 'event'))
-        && _.includes(_.map(ENGINE_TOKENS, 'SYMBOL'), _.get(event, 'data.symbol'))
-        && parseFloat(_.get(event, 'data.quantity')) !== 0
-      ) {
+      if (parseRewardsCondition) {
         acc.rewards.push({
           operation: `${transaction.contract}_${event.event}`,
           ...event.data,
@@ -68,48 +58,49 @@ const formatVotesAndRewards = ({ transactions, blockNumber, timestamps }) => _.r
     return acc;
   }, { votes: [], rewards: [] },
 );
-const kek = {};
 
-const processRewards = async (rewards, blockNumber) => {
+const processRewards = async (rewards) => {
   if (_.isEmpty(rewards)) return;
-  // await EngineAccountHistoryModel.insertMany(rewards);
-  const rewardsOnPosts = _.reduce(rewards, (acc, reward) => {
-    if (!_.has(acc, `${reward.authorperm}`)) {
-      acc[reward.authorperm] = {
-        [reward.symbol]: BigNumber(reward.quantity).toNumber(),
-      };
-    } else {
-      _.has(acc[reward.authorperm], `${reward.symbol}`)
-        ? acc[reward.authorperm][reward.symbol] = BigNumber(acc[reward.authorperm][reward.symbol])
-          .plus(reward.quantity)
-          .toNumber()
-        : acc[reward.authorperm][reward.symbol] = BigNumber(reward.quantity).toNumber();
-    }
-    return acc;
-  }, {});
-  for (const test in rewardsOnPosts) {
-    if (_.has(kek, test)) {
-      console.log();
-    }
-  }
-  Object.assign(kek, rewardsOnPosts);
 
-  for (const rewardsOnPostsKey in rewardsOnPosts) {
-    const [author, permlink] = rewardsOnPostsKey.split('/');
-    // const rewardsUpdateData = _.reduce(rewardsOnPosts[rewardsOnPostsKey], (acc, el, index) => {
-    //   acc[`total_payout_${index}`] = el.toNumber();
-    //   return acc;
-    // }, {});
-    const rewardsUpdateData = rewardsOnPosts[rewardsOnPostsKey];
+  const rewardsOnPosts = aggregateRewardsOnPosts(rewards);
+  const { posts = [] } = await Post.getManyPosts(getConditionFromRewards(rewardsOnPosts));
+  for (const post of posts) {
     await Post.updateOne(
-      {
-        root_author: author.substring(1),
-        permlink,
-      },
-      rewardsUpdateData,
+      { root_author: post.root_author, permlink: post.permlink },
+      getRewardsUpdateData({ post, rewardsOnPosts }),
     );
   }
+  await EngineAccountHistoryModel.insertMany(rewards);
 };
+
+const aggregateRewardsOnPosts = (rewards) => _.reduce(rewards, (acc, reward) => {
+  if (!_.has(acc, `${reward.authorperm}`)) {
+    acc[reward.authorperm] = {
+      [reward.symbol]: BigNumber(reward.quantity).toNumber(),
+    };
+  } else {
+    _.has(acc[reward.authorperm], `${reward.symbol}`)
+      ? acc[reward.authorperm][reward.symbol] = BigNumber(acc[reward.authorperm][reward.symbol])
+        .plus(reward.quantity)
+        .toNumber()
+      : acc[reward.authorperm][reward.symbol] = BigNumber(reward.quantity).toNumber();
+  }
+  return acc;
+}, {});
+
+const getConditionFromRewards = (rewardsOnPosts) => _.map(
+  Object.keys(rewardsOnPosts),
+  (p) => ({ root_author: p.split('/')[0].substring(1), permlink: p.split('/')[1] }),
+);
+
+const getRewardsUpdateData = ({ post, rewardsOnPosts }) => _.reduce(
+  rewardsOnPosts[`@${post.root_author}/${post.permlink}`], (acc, el, index) => {
+    acc[`total_rewards_${index}`] = BigNumber(_.get(post, `total_rewards_${index}`, 0))
+      .plus(el)
+      .toNumber();
+    return acc;
+  }, {},
+);
 
 const votesFormat = async (votesOps) => {
   let accounts = [];
@@ -137,58 +128,23 @@ const votesFormat = async (votesOps) => {
       voteOp.wobjects = wobjects;
     }
   }
-
   return votesOps;
 };
 
-const parseEngineVotes = async ({ votes, posts }) => {
-  for (const TOKEN of ENGINE_TOKENS) {
-    const {
-      filteredPosts, filteredVotes, balances, votingPowers,
-    } = await getBalancesAndFilterVotes({ TOKEN, posts, votes });
-    if (_.isEmpty(balances)) continue;
-    const { calcPosts, calcVotes } = await addRharesToPostsAndVotes({
-      votes: filteredVotes,
-      posts: filteredPosts,
-      balances,
-      votingPowers,
-      tokenSymbol: TOKEN.SYMBOL,
-    });
-    await updatePostsRshares({ posts: calcPosts, tokenSymbol: TOKEN.SYMBOL });
-    await distributeHiveEngineExpertise({ calcVotes, calcPosts, tokenSymbol: TOKEN.SYMBOL });
-  }
+const parseEngineVotes = async (votes) => {
+  if (_.isEmpty(votes)) return;
+  const votesWithAdditionalData = await votesFormat(votes);
+  const { posts = [] } = await Post.getManyPosts(getConditionFromVotes(votesWithAdditionalData));
+  const { processedPosts } = await addRsharesToPost({ votes: votesWithAdditionalData, posts });
+  await distributeHiveEngineExpertise({ votes: votesWithAdditionalData, posts: processedPosts });
 };
 
-const getBalancesAndFilterVotes = async ({ TOKEN, posts, votes }) => {
-  const filteredPosts = _.filter(
-    posts,
-    (el) => _.some(
-      _.map(el.wobjects, 'author_permlink'),
-      (item) => _.includes(TOKEN.TAGS, item),
-    ),
-  );
-  const filteredVotes = _.filter(
+const getConditionFromVotes = (votes) => {
+  const postReqData = _.map(
     votes,
-    (el) => _.some(
-      filteredPosts,
-      (item) => el.author === item.root_author && el.permlink === item.permlink,
-    ),
+    (v) => ({ root_author: v.author, permlink: v.permlink }),
   );
-  const balances = await tokensContract.getTokenBalances({
-    query: {
-      symbol: TOKEN.SYMBOL, account: { $in: _.map(filteredVotes, 'voter') },
-    },
-  });
-  // for some reason not work with operator $in
-  const votingPowers = await commentContract.getVotingPower({
-    query: {
-      rewardPoolId: TOKEN.POOL_ID, $or: _.map(filteredVotes, (v) => ({ account: v.voter })),
-    },
-  });
-
-  return {
-    filteredPosts, filteredVotes, balances, votingPowers,
-  };
+  return _.uniqWith(postReqData, _.isEqual);
 };
 
 const getProcessedVotes = async (votes) => {
@@ -201,112 +157,130 @@ const getProcessedVotes = async (votes) => {
   })), (l) => l.voter === e.voter && l.author === e.author && l.permlink === e.permlink));
 };
 
-const addRharesToPostsAndVotes = async ({
-  votes, posts, balances, votingPowers, tokenSymbol,
-}) => {
+const getCashedRewards = async () => {
+  const rewardsData = {};
+  for (const token of ENGINE_TOKENS) {
+    const { rewards } = await redisGetter.getHashAll(
+      `${CACHE_POOL_KEY}:${token.SYMBOL}`,
+      lastBlockClient,
+    );
+    rewardsData[token.SYMBOL] = rewards;
+  }
+  return rewardsData;
+};
+
+const addRsharesToPost = async ({ votes, posts }) => {
   const votesProcessedOnApi = await getProcessedVotes(votes);
-  const { rewards } = await redisGetter.getHashAll(
-    `${CACHE_POOL_KEY}:${tokenSymbol}`,
-    lastBlockClient,
-  );
+  const rewards = await getCashedRewards();
 
   for (const vote of votes) {
     if (!vote.type) continue;
     const processed = _.find(votesProcessedOnApi, (el) => _.isEqual(vote, el));
     if (processed) continue;
-    const balance = _.find(balances, (el) => el.account === vote.voter);
-    const powerBalance = _.find(votingPowers, (el) => el.account === vote.voter);
-    const post = _.find(posts, (p) => (p.author === vote.author || p.author === vote.guest_author) && p.permlink === vote.permlink);
+    const post = _.find(posts,
+      (p) => (p.author === vote.author || p.author === vote.guest_author)
+        && p.permlink === vote.permlink);
+    if (!post) continue;
     const createdOverAWeek = moment().diff(moment(_.get(post, 'createdAt')), 'day') > 7;
-
-    if (!balance || !powerBalance || !post) continue;
-
-    const decreasedPercent = (((vote.weight / 100) * 2) / 100);
-    const { stake, delegationsIn } = balance;
-    const { votingPower } = powerBalance;
-    const previousVotingPower = (100 * votingPower) / (100 - decreasedPercent);
-
-    const finalRshares = parseFloat(stake) + parseFloat(delegationsIn);
-    const power = (previousVotingPower * vote.weight) / 10000;
-
-    const rshares = !createdOverAWeek
-      ? (power * finalRshares) / 10000
-      : 1;
-
     if (!createdOverAWeek) {
-      post[`net_rshares_${tokenSymbol}`] = _.get(post, `net_rshares_${tokenSymbol}`, 0) + rshares;
-      post[`total_payout_${tokenSymbol}`] = post[`net_rshares_${tokenSymbol}`] * parseFloat(rewards);
+      post[`net_rshares_${vote.symbol}`] = BigNumber(_.get(post, `net_rshares_${vote.symbol}`, 0))
+        .plus(vote.rshares)
+        .toNumber();
+      post[`total_payout_${vote.symbol}`] = BigNumber(post[`net_rshares_${vote.symbol}`])
+        .times(rewards[vote.symbol])
+        .toNumber();
     }
-
     const voteInPost = _.find(post.active_votes, (v) => v.voter === vote.voter);
     voteInPost
-      ? voteInPost[`rshares${tokenSymbol}`] = rshares
+      ? voteInPost[`rshares${vote.symbol}`] = vote.rshares
       : post.active_votes.push({
         voter: vote.voter,
         percent: vote.weight,
-        [`rshares${tokenSymbol}`]: rshares,
+        [`rshares${vote.symbol}`]: vote.rshares,
       });
   }
-  return { calcPosts: posts, calcVotes: votes };
+  await updatePostsRshares(posts);
+  return { processedPosts: posts };
 };
 
-const updatePostsRshares = async ({ posts, tokenSymbol }) => {
+const updatePostsRshares = async (posts) => {
   for (const post of posts) {
+    const updateData = _.reduce(ENGINE_TOKENS, (acum, token) => {
+      if (_.has(post, `net_rshares_${token.SYMBOL}`)) {
+        acum[`net_rshares_${token.SYMBOL}`] = post[`net_rshares_${token.SYMBOL}`];
+      }
+      if (_.has(post, `total_payout_${token.SYMBOL}`)) {
+        acum[`total_payout_${token.SYMBOL}`] = post[`total_payout_${token.SYMBOL}`];
+      }
+      return acum;
+    }, {});
+    if (_.isEmpty(updateData)) continue;
     await Post.updateOne(
       { author: post.author, permlink: post.permlink },
       {
-        [`net_rshares_${tokenSymbol}`]: post[`net_rshares_${tokenSymbol}`],
         active_votes: post.active_votes,
-        [`total_payout_${tokenSymbol}`]: post[`total_payout_${tokenSymbol}`],
+        ...updateData,
       },
     );
   }
 };
 
-const distributeHiveEngineExpertise = async ({ calcVotes, calcPosts, tokenSymbol }) => {
-  for (const vote of calcVotes) {
-    const post = calcPosts.find(
+const distributeHiveEngineExpertise = async ({ votes, posts }) => {
+  for (const vote of votes) {
+    const post = posts.find(
       (p) => (p.author === vote.author || p.author === vote.guest_author)
         && p.permlink === vote.permlink,
     );
     if (!post) continue;
     const currentVote = post.active_votes.find((v) => v.voter === vote.voter);
-    if (!currentVote || !currentVote[`rshares${tokenSymbol}`]) continue;
-
+    if (!currentVote) continue;
     for (const wObject of _.get(post, 'wobjects', [])) {
-      const wobjectRshares = Number((currentVote[`rshares${tokenSymbol}`] * (wObject.percent / 100)).toFixed(3));
+      const wobjectRshares = _.reduce(ENGINE_TOKENS, (accum, token) => {
+        if (_.has(currentVote, `rshares${token.SYMBOL}`)) {
+          accum[token.SYMBOL] = Number((currentVote[`rshares${token.SYMBOL}`] * (wObject.percent / 100)).toFixed(3));
+        }
+        return accum;
+      }, {});
       await updateExpertiseInDb({
-        currentVote, wobjectRshares, post, tokenSymbol, wObject,
+        currentVote, wobjectRshares, post, wObject,
       });
     }
   }
 };
 
 const updateExpertiseInDb = async ({
-  currentVote, wobjectRshares, post, tokenSymbol, wObject,
+  currentVote, wobjectRshares, post, wObject,
 }) => {
   // object and voter expertise always positive
   await Wobj.update(
     { author_permlink: wObject.author_permlink },
-    { $inc: { [`expertise${tokenSymbol}`]: Math.abs(wobjectRshares) } },
+    { $inc: formExpertiseUpdateData({ wobjectRshares, isAbs: true, divideBy: 1 }) },
   );
   await User.updateOne(
     { name: currentVote.voter },
-    { $inc: { [`expertise${tokenSymbol}`]: Math.abs(wobjectRshares / 2) } },
+    { $inc: formExpertiseUpdateData({ wobjectRshares, isAbs: true, divideBy: 2 }) },
   );
   await UserWobjects.updateOne(
     { user_name: currentVote.voter, author_permlink: wObject.author_permlink },
-    { $inc: { [`expertise${tokenSymbol}`]: Math.abs(wobjectRshares / 2) } },
+    { $inc: formExpertiseUpdateData({ wobjectRshares, isAbs: true, divideBy: 2 }) },
     { upsert: true, setDefaultsOnInsert: true },
   );
   // post author can have negative expertise
   await User.updateOne(
     { name: post.author },
-    { $inc: { [`expertise${tokenSymbol}`]: wobjectRshares / 2 } },
+    { $inc: formExpertiseUpdateData({ wobjectRshares, isAbs: false, divideBy: 2 }) },
   );
   await UserWobjects.updateOne(
     { user_name: post.author, author_permlink: wObject.author_permlink },
-    { $inc: { [`expertise${tokenSymbol}`]: wobjectRshares / 2 } },
+    { $inc: formExpertiseUpdateData({ wobjectRshares, isAbs: false, divideBy: 2 }) },
     { upsert: true, setDefaultsOnInsert: true },
   );
 };
+
+const formExpertiseUpdateData = ({ wobjectRshares, divideBy, isAbs }) => _.reduce(
+  wobjectRshares, (accum, rshares, index) => {
+    const result = BigNumber(rshares).div(divideBy).toNumber();
+    accum[`expertise${index}`] = isAbs ? Math.abs(result) : result;
+    return accum;
+  }, {},
+);
