@@ -15,13 +15,35 @@ const _ = require('lodash');
 const BigNumber = require('bignumber.js');
 
 exports.parse = async ({ transactions, blockNumber, timestamps }) => {
-  const { votes, rewards } = formatVotesAndRewards({ transactions, blockNumber, timestamps });
+  const { votes, rewards } = this.formatVotesAndRewards({ transactions, blockNumber, timestamps });
 
-  await processRewards(rewards);
-  await parseEngineVotes(votes);
+  await this.processRewards(rewards);
+  await this.parseEngineVotes(votes);
 };
 
-const formatVotesAndRewards = ({ transactions, blockNumber, timestamps }) => _.reduce(
+exports.processRewards = async (rewards) => {
+  if (_.isEmpty(rewards)) return;
+
+  const rewardsOnPosts = aggregateRewardsOnPosts(rewards);
+  const { posts = [] } = await Post.getManyPosts(getConditionFromRewards(rewardsOnPosts));
+  for (const post of posts) {
+    await Post.updateOne(
+      { root_author: post.root_author, permlink: post.permlink },
+      getRewardsUpdateData({ post, rewardsOnPosts }),
+    );
+  }
+  await EngineAccountHistoryModel.insertMany(rewards);
+};
+
+exports.parseEngineVotes = async (votes) => {
+  if (_.isEmpty(votes)) return;
+  const votesWithAdditionalData = await votesFormat(votes);
+  const { posts = [] } = await Post.getManyPosts(getConditionFromVotes(votesWithAdditionalData));
+  const { processedPosts } = await addRsharesToPost({ votes: votesWithAdditionalData, posts });
+  await distributeHiveEngineExpertise({ votes: votesWithAdditionalData, posts: processedPosts });
+};
+
+exports.formatVotesAndRewards = ({ transactions, blockNumber, timestamps }) => _.reduce(
   transactions, (acc, transaction) => {
     const events = _.get(jsonHelper.parseJson(transaction.logs), 'events', []);
     if (_.isEmpty(events)
@@ -58,20 +80,6 @@ const formatVotesAndRewards = ({ transactions, blockNumber, timestamps }) => _.r
     return acc;
   }, { votes: [], rewards: [] },
 );
-
-const processRewards = async (rewards) => {
-  if (_.isEmpty(rewards)) return;
-
-  const rewardsOnPosts = aggregateRewardsOnPosts(rewards);
-  const { posts = [] } = await Post.getManyPosts(getConditionFromRewards(rewardsOnPosts));
-  for (const post of posts) {
-    await Post.updateOne(
-      { root_author: post.root_author, permlink: post.permlink },
-      getRewardsUpdateData({ post, rewardsOnPosts }),
-    );
-  }
-  await EngineAccountHistoryModel.insertMany(rewards);
-};
 
 const aggregateRewardsOnPosts = (rewards) => _.reduce(rewards, (acc, reward) => {
   if (!_.has(acc, `${reward.authorperm}`)) {
@@ -129,14 +137,6 @@ const votesFormat = async (votesOps) => {
     }
   }
   return votesOps;
-};
-
-const parseEngineVotes = async (votes) => {
-  if (_.isEmpty(votes)) return;
-  const votesWithAdditionalData = await votesFormat(votes);
-  const { posts = [] } = await Post.getManyPosts(getConditionFromVotes(votesWithAdditionalData));
-  const { processedPosts } = await addRsharesToPost({ votes: votesWithAdditionalData, posts });
-  await distributeHiveEngineExpertise({ votes: votesWithAdditionalData, posts: processedPosts });
 };
 
 const getConditionFromVotes = (votes) => {
@@ -241,6 +241,7 @@ const distributeHiveEngineExpertise = async ({ votes, posts }) => {
         }
         return accum;
       }, {});
+      if (_.isEmpty(wobjectRshares)) continue;
       await updateExpertiseInDb({
         currentVote, wobjectRshares, post, wObject,
       });
