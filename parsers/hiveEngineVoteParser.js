@@ -23,7 +23,7 @@ exports.parse = async ({ transactions, blockNumber, timestamps }) => {
 
 exports.processRewards = async (rewards) => {
   if (_.isEmpty(rewards)) return;
-
+  await EngineAccountHistoryModel.insertMany(rewards);
   const rewardsOnPosts = aggregateRewardsOnPosts(rewards);
   const { posts = [] } = await Post.getManyPosts(getConditionFromRewards(rewardsOnPosts));
   for (const post of posts) {
@@ -32,7 +32,6 @@ exports.processRewards = async (rewards) => {
       getRewardsUpdateData({ post, rewardsOnPosts }),
     );
   }
-  await EngineAccountHistoryModel.insertMany(rewards);
 };
 
 exports.parseEngineVotes = async (votes) => {
@@ -73,7 +72,7 @@ exports.formatVotesAndRewards = ({ transactions, blockNumber, timestamps }) => _
           blockNumber,
           refHiveBlockNumber: transaction.refHiveBlockNumber,
           transactionId: transaction.transactionId,
-          timestamps: moment(timestamps).unix(),
+          timestamp: moment(timestamps).unix(),
         });
       }
     }
