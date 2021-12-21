@@ -16,6 +16,8 @@ const EngineAccountHistorySchema = new Schema({
   quantity: { type: String },
   symbol: { type: String },
   tokenState: { type: String },
+  authorperm: { type: String },
+  rewardPoolId: { type: Number },
 });
 
 EngineAccountHistorySchema.index({ operation: 1, transactionId: 1, account: 1 }, { unique: true });

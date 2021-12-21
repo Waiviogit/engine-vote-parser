@@ -5,9 +5,10 @@
   "main": "index.js",
   "scripts": {
     "start": "node ./bin/service.js",
-    "setWaivReward": "NODE_PATH=. node ./utilities/tasks/setWaivReward/run.js",
     "setAirdropHistory": "NODE_PATH=. node ./utilities/tasks/setAccountHistory/setAirdropHistory.js",
-    "setSwapHistory": "NODE_PATH=. node ./utilities/tasks/setAccountHistory/setSwapHistory.js"
+    "setSwapHistory": "NODE_PATH=. node ./utilities/tasks/setAccountHistory/setSwapHistory.js",
+    "setRewardsHistory": "NODE_PATH=. node ./utilities/tasks/setAccountHistory/setRewardsHistory.js",
+    "parseEngineVotes": "NODE_PATH=. node ./utilities/tasks/parseVotes/run.js"
   },
   "keywords": [],
   "author": "",
@@ -15,6 +16,7 @@
   "dependencies": {
     "@hiveio/dhive": "^1.1.1",
     "axios": "^0.24.0",
+    "bignumber.js": "^9.0.1",
     "bluebird": "^3.7.2",
     "cron": "^1.8.2",
     "express": "^4.17.1",

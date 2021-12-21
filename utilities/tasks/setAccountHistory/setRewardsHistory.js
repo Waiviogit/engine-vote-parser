@@ -1,6 +1,6 @@
-const { runCustomStream } = require('utilities/helpers/customStreamHelper');
-const enginePostRewardParser = require('parsers/enginePostRewardParser');
 const api = require('api/hiveEngine');
+const { runCustomStream } = require('utilities/helpers/customStreamHelper');
+const setRewardsHelper = require('./setRewardsHelper');
 
 (async () => {
   await runCustomStream(
@@ -8,7 +8,7 @@ const api = require('api/hiveEngine');
       key: process.argv[2],
       startBlock: +process.argv[3],
       finishBlock: +process.argv[4],
-      callback: enginePostRewardParser.parse,
+      callback: setRewardsHelper.parse,
       api,
     },
   );

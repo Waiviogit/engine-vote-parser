@@ -10,4 +10,12 @@ const create = async (data) => {
   }
 };
 
-module.exports = { create };
+const insertMany = async (docs) => {
+  try {
+    return { engine_account_histories: await EngineAccountHistoryModel.insertMany(docs) };
+  } catch (error) {
+    return { error };
+  }
+};
+
+module.exports = { create, insertMany };
