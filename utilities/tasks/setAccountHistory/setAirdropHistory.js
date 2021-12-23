@@ -7,8 +7,8 @@ const airdropHistoryHelper = require('./airdropHistoryHelper');
   await runCustomStream(
     {
       key: process.argv[2],
-      startBlock: process.argv[3],
-      finishBlock: process.argv[4],
+      startBlock: 11087076,
+      finishBlock: 11087888,
       callback: airdropHistoryHelper.helper,
       api,
     },

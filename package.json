@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node ./bin/service.js",
     "setWaivReward": "NODE_PATH=. node ./utilities/tasks/setWaivReward/run.js",
-    "setAirdropHistory": "NODE_PATH=. node ./utilities/tasks/setAccountHistory/setAirdropHistory.js",
+    "setAirdropHistory": "node ./utilities/tasks/setAccountHistory/setAirdropHistory.js",
     "setSwapHistory": "NODE_PATH=. node ./utilities/tasks/setAccountHistory/setSwapHistory.js"
   },
   "keywords": [],

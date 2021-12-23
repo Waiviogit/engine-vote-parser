@@ -1,9 +1,10 @@
 const _ = require('lodash');
 const { parseJson } = require('utilities/helpers/jsonHelper');
+const { ENGINE_CONTRACT_ACTIONS } = require('constants/hiveEngine');
 const { sendNotification } = require('../utilities/notificationsApi/notificationsUtil');
 
 exports.parse = async (transaction, blockNumber) => {
-  if (_.get(transaction, 'action') !== 'transfer') return;
+  if (_.get(transaction, 'action') !== ENGINE_CONTRACT_ACTIONS.TRANSFER) return;
   const payload = parseJson(_.get(transaction, 'payload'));
   if (_.isEmpty(payload)) return;
 
