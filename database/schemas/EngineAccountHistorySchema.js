@@ -20,6 +20,9 @@ const EngineAccountHistorySchema = new Schema({
   rewardPoolId: { type: Number },
 });
 
+EngineAccountHistorySchema.index({ account: 1 });
+EngineAccountHistorySchema.index({ timestamp: -1 });
+EngineAccountHistorySchema.index({ symbol: 1, symbolOut: 1, symbolIn: 1 });
 EngineAccountHistorySchema.index({ operation: 1, transactionId: 1, account: 1 }, { unique: true });
 
 const EngineAccountHistoryModel = mongoose.model('engine_account_histories', EngineAccountHistorySchema);
