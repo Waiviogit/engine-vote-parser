@@ -12,10 +12,25 @@ exports.ENGINE_CONTRACTS = {
   MARKETPOOLS: 'marketpools',
   AIRDROPS: 'airdrops',
   TOKENS: 'tokens',
+  COMMENTS: 'comments',
 };
 
 exports.ENGINE_CONTRACT_ACTIONS = {
   SWAP_TOKENS: 'swapTokens',
   NEW_AIRDROP: 'newAirdrop',
   TRANSFER: 'transfer',
+  VOTE: 'vote',
 };
+
+exports.ENGINE_EVENTS = {
+  NEW_VOTE: 'newVote',
+  CURATION_REWARD: 'curationReward',
+  AUTHOR_REWARD: 'authorReward',
+  BENEFICIARY_REWARD: 'beneficiaryReward',
+};
+
+exports.POST_REWARD_EVENTS = [
+  this.ENGINE_EVENTS.CURATION_REWARD,
+  this.ENGINE_EVENTS.AUTHOR_REWARD,
+  this.ENGINE_EVENTS.BENEFICIARY_REWARD,
+];
