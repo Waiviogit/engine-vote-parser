@@ -4,7 +4,7 @@ const axios = require('axios');
 const URL = HOST + BASE_URL + SET_NOTIFICATION;
 
 const sendNotification = async (reqData) => {
-  const API_KEY  = process.env;
+  const { API_KEY } = process.env;
   try {
     await axios.post(URL, reqData, { headers: { API_KEY } });
   } catch (error) {
