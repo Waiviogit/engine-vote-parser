@@ -1,6 +1,6 @@
 const api = require('api/hiveEngine');
 const { runCustomStream } = require('utilities/helpers/customStreamHelper');
-const swapHistoryHelper = require('./swapHistoryHelper');
+const parseVotes = require('./parseVotes');
 
 (async () => {
   await runCustomStream(
@@ -8,7 +8,7 @@ const swapHistoryHelper = require('./swapHistoryHelper');
       key: process.argv[2],
       startBlock: +process.argv[3],
       finishBlock: +process.argv[4],
-      callback: swapHistoryHelper.helper,
+      callback: parseVotes.parse,
       api,
     },
   );
