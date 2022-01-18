@@ -193,9 +193,18 @@ const findOne = async (name) => {
   }
 };
 
-const find = async (condition) => {
+const find = async ({
+  condition, select, sort = {}, skip = 0, limit,
+}) => {
   try {
-    return { users: await UserModel.find(condition).lean() };
+    return {
+      result: await UserModel
+        .find(condition, select)
+        .sort(sort)
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+    };
   } catch (error) {
     return { error };
   }

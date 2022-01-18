@@ -13,6 +13,7 @@ const { lastBlockClient } = require('utilities/redis/redis');
 const jsonHelper = require('utilities/helpers/jsonHelper');
 const _ = require('lodash');
 const BigNumber = require('bignumber.js');
+const calculateEngineExpertise = require('utilities/helpers/calculateEngineExpertise');
 
 exports.parse = async ({ transactions, blockNumber, timestamps }) => {
   const { votes, rewards } = this.formatVotesAndRewards({ transactions, blockNumber, timestamps });
@@ -251,28 +252,62 @@ const distributeHiveEngineExpertise = async ({ votes, posts }) => {
 const updateExpertiseInDb = async ({
   currentVote, wobjectRshares, post, wObject,
 }) => {
-  // object and voter expertise always positive
+  const data = (await Wobj.getOne({
+    author_permlink: wObject.author_permlink,
+    select: { expertiseWAIV: 1 },
+  }));
+  const generalWAIVexpertise = _.get(data, 'wobject.expertiseWAIV');
+  if (!generalWAIVexpertise) return;
+  const formatedExpertise = (await calculateEngineExpertise(formExpertiseUpdateData({ wobjectRshares, isAbs: true, divideBy: 1 }).expertiseWAIV, generalWAIVexpertise));
+
   await Wobj.update(
     { author_permlink: wObject.author_permlink },
     { $inc: formExpertiseUpdateData({ wobjectRshares, isAbs: true, divideBy: 1 }) },
   );
+  await Wobj.update(
+    { author_permlink: wObject.author_permlink },
+    { $inc: formatedExpertise },
+  );
+
   await User.updateOne(
     { name: currentVote.voter },
     { $inc: formExpertiseUpdateData({ wobjectRshares, isAbs: true, divideBy: 2 }) },
   );
+
+  await User.updateOne(
+    { name: currentVote.voter },
+    { $inc: { wobjects_weight: formatedExpertise.weight } },
+  );
+
   await UserWobjects.updateOne(
     { user_name: currentVote.voter, author_permlink: wObject.author_permlink },
     { $inc: formExpertiseUpdateData({ wobjectRshares, isAbs: true, divideBy: 2 }) },
     { upsert: true, setDefaultsOnInsert: true },
   );
+  await UserWobjects.updateOne(
+    { user_name: currentVote.voter, author_permlink: wObject.author_permlink },
+    { $inc: formatedExpertise },
+    { upsert: true, setDefaultsOnInsert: true },
+  );
+
   // post author can have negative expertise
   await User.updateOne(
     { name: post.author },
     { $inc: formExpertiseUpdateData({ wobjectRshares, isAbs: false, divideBy: 2 }) },
   );
+  await User.updateOne(
+    { name: post.author },
+    { $inc: await calculateEngineExpertise(formExpertiseUpdateData({ wobjectRshares, isAbs: false, divideBy: 2 }), generalWAIVexpertise) },
+  );
+
   await UserWobjects.updateOne(
     { user_name: post.author, author_permlink: wObject.author_permlink },
     { $inc: formExpertiseUpdateData({ wobjectRshares, isAbs: false, divideBy: 2 }) },
+    { upsert: true, setDefaultsOnInsert: true },
+  );
+  await UserWobjects.updateOne(
+    { user_name: post.author, author_permlink: wObject.author_permlink },
+    { $inc: await calculateEngineExpertise(formExpertiseUpdateData({ wobjectRshares, isAbs: false, divideBy: 2 }), generalWAIVexpertise) },
     { upsert: true, setDefaultsOnInsert: true },
   );
 };
@@ -284,3 +319,7 @@ const formExpertiseUpdateData = ({ wobjectRshares, divideBy, isAbs }) => _.reduc
     return accum;
   }, {},
 );
+
+module.exports = {
+  formExpertiseUpdateData,
+};

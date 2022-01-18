@@ -8,6 +8,10 @@ exports.setLastBlockNum = async (blockNum, redisKey) => {
   }
 };
 
+exports.setQuotePrice = async ({ data, key }) => {
+  await lastBlockClient.setAsync(key, data);
+};
+
 exports.addWobjRef = async (path, rootWobj) => {
   await postRefsClient.hsetAsync(path, 'type', COMMENT_REF_TYPES.createWobj);
   await postRefsClient.hsetAsync(path, 'root_wobj', rootWobj); // root_wobj is author_permlink of wobject(just permlink)

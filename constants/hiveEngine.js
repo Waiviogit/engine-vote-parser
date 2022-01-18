@@ -8,6 +8,14 @@ exports.ENGINE_TOKENS = [this.TOKEN_WAIV];
 
 exports.CACHE_POOL_KEY = 'smt_pool';
 
+exports.CACH_QUOTE_PRICE_KEY = 'quote_price';
+
+exports.CACHE_KEY = {
+  CURRENT_PRICE_INFO: 'current_median_history_price',
+  REWARD_FUND: 'reward_fund',
+  HIVE_POOL_ID: 63,
+};
+
 exports.ENGINE_CONTRACTS = {
   MARKETPOOLS: 'marketpools',
   AIRDROPS: 'airdrops',
