@@ -18,5 +18,5 @@ exports.parse = async (transaction, blockNumber) => {
       memo: _.get(payload, 'memo'),
     },
   };
-  sendNotification(reqData);
+ await sendNotification(reqData);
 };
