@@ -11,12 +11,14 @@ exports.CACHE_POOL_KEY = 'smt_pool';
 exports.ENGINE_CONTRACTS = {
   MARKETPOOLS: 'marketpools',
   AIRDROPS: 'airdrops',
+  TOKENS: 'tokens',
   COMMENTS: 'comments',
 };
 
 exports.ENGINE_CONTRACT_ACTIONS = {
   SWAP_TOKENS: 'swapTokens',
   NEW_AIRDROP: 'newAirdrop',
+  TRANSFER: 'transfer',
   VOTE: 'vote',
 };
 
