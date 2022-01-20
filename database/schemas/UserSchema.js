@@ -95,6 +95,7 @@ const UserSchema = new Schema({
   followers_count: { type: Number, default: 0 },
   stage_version: { type: Number, default: 0, required: true },
   privateEmail: { type: String, default: null, select: false },
+  processed: { type: Boolean, default: false },
   referralStatus: {
     type: String,
     enum: Object.values(REFERRAL_STATUSES),
@@ -106,6 +107,7 @@ const UserSchema = new Schema({
 
 UserSchema.index({ wobjects_weight: -1 });
 UserSchema.index({ expertiseWAIV: -1 });
+UserSchema.index({ processed: 1 });
 
 const UserModel = mongoose.model('User', UserSchema);
 
