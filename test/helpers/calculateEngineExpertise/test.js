@@ -17,22 +17,22 @@ describe('Calculate Engine Expertise', async () => {
     const smt_pool = {
       rewards: _.random(0.00001, 0.00005),
     };
-    const quote_price = {
-      WAIV: _.random(0.1, 0.2),
+    const market_pool = {
+      quotePrice: _.random(0.1, 0.2),
     };
 
     const callback = sinon.stub(redisGetter, 'getHashAll');
     callback.onCall(0).returns(reward_fund);
     callback.onCall(1).returns(current_median_history);
     callback.onCall(2).returns(smt_pool);
-    callback.onCall(3).returns(quote_price);
+    callback.onCall(3).returns(market_pool);
 
     const WAIVExpertise = _.random(1000, 20000);
     const res = await calculateEngineExpertise(WAIVExpertise, 'expertiseWAIV');
 
     value = (res / reward_fund.recent_claims) * reward_fund.reward_balance.replace(' HIVE', '') * current_median_history.base.replace(' HBD', '') * 1000000;
 
-    const price = parseFloat(quote_price.WAIV) * parseFloat(current_median_history.base.replace(' HBD', ''));
+    const price = parseFloat(market_pool.quotePrice) * parseFloat(current_median_history.base.replace(' HBD', ''));
     check = WAIVExpertise * price * smt_pool.rewards;
   });
   it('should equal', () => {

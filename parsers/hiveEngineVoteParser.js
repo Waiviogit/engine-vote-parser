@@ -242,22 +242,33 @@ const distributeHiveEngineExpertise = async ({ votes, posts }) => {
         return accum;
       }, {});
       if (_.isEmpty(wobjectRshares)) continue;
+
+      const generalHiveExpertise = await calculateGeneralHiveExpertise(wobjectRshares);
+
       await updateExpertiseInDb({
-        currentVote, wobjectRshares, post, wObject,
+        currentVote, wobjectRshares, post, wObject, generalHiveExpertise,
       });
     }
   }
 };
-
+const calculateGeneralHiveExpertise = async (wobjectRshares) => {
+  let hiveExpertise = 0;
+  for (const key in wobjectRshares) {
+    hiveExpertise += await calculateEngineExpertise(wobjectRshares[key], key);
+  }
+  return hiveExpertise;
+};
 const updateExpertiseInDb = async ({
-  currentVote, wobjectRshares, post, wObject,
+  currentVote, wobjectRshares, post, wObject, generalHiveExpertise,
 }) => {
   await Wobj.update(
     { author_permlink: wObject.author_permlink },
     {
       $inc: {
-        ...(await formExpertiseUpdateData({ wobjectRshares, isAbs: true, divideBy: 1 })).formExpertise,
-        weight: (await formExpertiseUpdateData({ wobjectRshares, isAbs: true, divideBy: 1 })).hiveExpertise,
+        ...formExpertiseUpdateData({
+          wobjectRshares, isAbs: true, divideBy: 1, generalHiveExpertise,
+        }),
+        weight: generalHiveExpertise,
       },
     },
   );
@@ -266,8 +277,10 @@ const updateExpertiseInDb = async ({
     { name: currentVote.voter },
     {
       $inc: {
-        ...(await formExpertiseUpdateData({ wobjectRshares, isAbs: true, divideBy: 2 })).formExpertise,
-        wobjects_weight: (await formExpertiseUpdateData({ wobjectRshares, isAbs: true, divideBy: 2 })).hiveExpertise,
+        ...await formExpertiseUpdateData({
+          wobjectRshares, isAbs: true, divideBy: 2, generalHiveExpertise,
+        }),
+        wobjects_weight: generalHiveExpertise,
       },
     },
   );
@@ -276,8 +289,10 @@ const updateExpertiseInDb = async ({
     { user_name: currentVote.voter, author_permlink: wObject.author_permlink },
     {
       $inc: {
-        ...(await formExpertiseUpdateData({ wobjectRshares, isAbs: true, divideBy: 2 })).formExpertise,
-        weight: (await formExpertiseUpdateData({ wobjectRshares, isAbs: true, divideBy: 2 })).hiveExpertise,
+        ...await formExpertiseUpdateData({
+          wobjectRshares, isAbs: true, divideBy: 2, generalHiveExpertise,
+        }),
+        weight: generalHiveExpertise,
       },
     },
     { upsert: true, setDefaultsOnInsert: true },
@@ -288,8 +303,10 @@ const updateExpertiseInDb = async ({
     { name: post.author },
     {
       $inc: {
-        ...(await formExpertiseUpdateData({ wobjectRshares, isAbs: false, divideBy: 2 })).formExpertise,
-        wobjects_weight: (await formExpertiseUpdateData({ wobjectRshares, isAbs: false, divideBy: 2 })).hiveExpertise,
+        ...await formExpertiseUpdateData({
+          wobjectRshares, isAbs: false, divideBy: 2, generalHiveExpertise,
+        }),
+        wobjects_weight: generalHiveExpertise,
       },
     },
   );
@@ -298,25 +315,26 @@ const updateExpertiseInDb = async ({
     { user_name: post.author, author_permlink: wObject.author_permlink },
     {
       $inc: {
-        ...(await formExpertiseUpdateData({ wobjectRshares, isAbs: false, divideBy: 2 })).formExpertise,
-        weight: (await formExpertiseUpdateData({ wobjectRshares, isAbs: false, divideBy: 2 })).hiveExpertise,
+        ...await formExpertiseUpdateData({
+          wobjectRshares, isAbs: false, divideBy: 2, generalHiveExpertise,
+        }),
+        weight: generalHiveExpertise,
       },
     },
     { upsert: true, setDefaultsOnInsert: true },
   );
 };
 
-const formExpertiseUpdateData = async ({ wobjectRshares, divideBy, isAbs }) => {
-  const formExpertise = _.reduce(
-    wobjectRshares, (accum, rshares, index) => {
-      const result = BigNumber(rshares).div(divideBy).toNumber();
-      accum[`expertise${index}`] = isAbs ? Math.abs(result) : result;
-      return accum;
-    }, {},
-  );
-  let hiveExpertise = 0;
-  for (const key in formExpertise) {
-    hiveExpertise += await calculateEngineExpertise(formExpertise[key], key);
-  }
-  return { hiveExpertise, formExpertise };
-};
+const formExpertiseUpdateData = ({
+  wobjectRshares, divideBy, isAbs, initialKey, initialValue,
+}) => _.reduce(
+  wobjectRshares, (accum, rshares, index) => {
+    const result = BigNumber(rshares).div(divideBy).toNumber();
+    accum[`expertise${index}`] = isAbs ? Math.abs(result) : result;
+    return accum;
+  }, {
+    [initialKey]: isAbs
+      ? Math.abs(BigNumber(initialValue).div(divideBy).toNumber())
+      : BigNumber(initialValue).div(divideBy).toNumber(),
+  },
+);

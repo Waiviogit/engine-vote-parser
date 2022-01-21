@@ -9,7 +9,7 @@ exports.ENGINE_TOKENS = [this.TOKEN_WAIV];
 
 exports.CACHE_POOL_KEY = 'smt_pool';
 
-exports.CACH_QUOTE_PRICE_KEY = 'quote_price';
+exports.CACH_MARKET_POOL_KEY = 'market_pool';
 
 exports.ENGINE_CONTRACTS = {
   MARKETPOOLS: 'marketpools',

@@ -1,7 +1,3 @@
-const {
-  Wobj: WobjModel, App: AppModel, ObjectType: ObjectTypeModel, Post: PostModel, User: UserModel, CommentModel,
-  Subscriptions: SubscriptionModel, Campaign: CampaignModel,
-} = require('models');
 const chai = require('chai');
 const { ObjectID } = require('bson');
 const sinonChai = require('sinon-chai');
@@ -11,8 +7,8 @@ chai.use(chaiAsPromised);
 chai.use(sinonChai);
 const { expect } = chai;
 const faker = require('faker');
-const { Mongoose } = require('database');
 const config = require('config');
+const { Mongoose } = require('database');
 const moment = require('moment');
 
 faker.random.string = (length = 5) => faker.internet.password(length, false, /[a-z]/);
@@ -23,24 +19,15 @@ const dropDatabase = async () => {
     await models[model].deleteMany();
   }
 };
-
 module.exports = {
   ...require('utilities/redis'),
   sinon: require('sinon'),
-  SubscriptionModel,
-  ObjectTypeModel,
-  CampaignModel,
   ObjectID,
-  dropDatabase,
-  CommentModel,
-  WobjModel,
-  PostModel,
-  UserModel,
-  AppModel,
-  Mongoose,
   expect,
   moment,
   config,
+  Mongoose,
   faker,
   chai,
+  dropDatabase,
 };

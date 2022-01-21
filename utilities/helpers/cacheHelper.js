@@ -2,7 +2,7 @@ const commentContract = require('utilities/hiveEngine/commentContract');
 const { hmsetAsync } = require('utilities/redis/redisSetter');
 const {
   CACHE_POOL_KEY, ENGINE_TOKENS,
-  CACH_QUOTE_PRICE_KEY,
+  CACH_MARKET_POOL_KEY,
 } = require('constants/hiveEngine');
 
 const _ = require('lodash');
@@ -20,16 +20,13 @@ exports.cachePoolState = async () => {
     );
   }
 };
-exports.cachQuotePrice = async () => {
+exports.cacheMarketPool = async () => {
   for (const TOKEN of ENGINE_TOKENS) {
-    const res = await marketPools.getMarketPools({ query: { _id: TOKEN.MARKET_POOL_ID } });
-    const quotePrice = _.get(res, '[0].quotePrice');
-    if (!quotePrice) return;
-    const data = {};
-    data[TOKEN.SYMBOL] = quotePrice;
+    const marketPool = await marketPools.getMarketPools({ query: { _id: TOKEN.MARKET_POOL_ID } });
+    if (!marketPool) return;
     await hmsetAsync(
-      CACH_QUOTE_PRICE_KEY,
-      data,
+      `${CACH_MARKET_POOL_KEY}:${TOKEN.SYMBOL}`,
+      marketPool[0],
     );
   }
 };

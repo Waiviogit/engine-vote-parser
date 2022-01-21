@@ -25,7 +25,7 @@ const WObjectSchema = new Schema({
   parent: { type: String, default: '' },
   children: { type: [String], default: [] },
   authority: { type: AuthoritySchema, default: () => ({}) },
-  processed: { type: Boolean, default: false },
+  processed: { type: Boolean },
   fields: [{
     name: { type: String, index: true },
     body: { type: String },

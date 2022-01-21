@@ -1,4 +1,4 @@
-const { cachePoolState, cachQuotePrice } = require('./cacheEnginePrice');
+const { cachePoolState, cacheMarketPool } = require('./cacheEnginePrice');
 
 cachePoolState.start();
-cachQuotePrice.start();
+cacheMarketPool.start();

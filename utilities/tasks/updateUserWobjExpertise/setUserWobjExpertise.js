@@ -3,7 +3,7 @@ const _ = require('lodash');
 const calculateEngineExpertise = require('utilities/helpers/calculateEngineExpertise');
 
 let skip = 0;
-exports.setExpertise = async () => {
+exports.setExpertise = async (tokenSymbol) => {
   const { result } = await UserWobjects.find({
     condition: { $and: [{ expertiseWAIV: { $exists: true } }, { expertiseWAIV: { $gt: 0 } }, { processed: { $exists: false } }] },
     select: { expertiseWAIV: 1, _id: 1 },
@@ -15,8 +15,8 @@ exports.setExpertise = async () => {
     process.exit();
   }
   for (const resultElement of result) {
-    const generalWAIVexpertise = _.get(resultElement, 'expertiseWAIV');
-    const formatedExpertise = (await calculateEngineExpertise(generalWAIVexpertise, 'expertiseWAIV'));
+    const generalWAIVexpertise = _.get(resultElement, tokenSymbol);
+    const formatedExpertise = (await calculateEngineExpertise(generalWAIVexpertise, tokenSymbol));
     await UserWobjects.updateOne(
       { _id: resultElement._id },
       { $inc: { weight: formatedExpertise }, processed: true },

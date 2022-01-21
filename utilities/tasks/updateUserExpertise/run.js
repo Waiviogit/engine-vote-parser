@@ -1,6 +1,6 @@
 const { setExpertise } = require('./setUserExpertise');
 
 (async () => {
-  await setExpertise();
+  await setExpertise(process.argv[2]);
   process.exit();
 })();

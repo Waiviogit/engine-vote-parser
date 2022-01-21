@@ -95,7 +95,7 @@ const UserSchema = new Schema({
   followers_count: { type: Number, default: 0 },
   stage_version: { type: Number, default: 0, required: true },
   privateEmail: { type: String, default: null, select: false },
-  processed: { type: Boolean, default: false },
+  processed: { type: Boolean },
   referralStatus: {
     type: String,
     enum: Object.values(REFERRAL_STATUSES),

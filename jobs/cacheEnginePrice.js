@@ -5,6 +5,6 @@ exports.cachePoolState = cron.job('*/1 * * * *', async () => {
   await cacheHelper.cachePoolState();
 }, null, false, null, null, true);
 
-exports.cachQuotePrice = cron.job('*/1 * * * *', async () => {
-  await cacheHelper.cachQuotePrice();
+exports.cacheMarketPool = cron.job('*/1 * * * *', async () => {
+  await cacheHelper.cacheMarketPool();
 }, null, false, null, null, true);
