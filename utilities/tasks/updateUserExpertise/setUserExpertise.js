@@ -24,5 +24,5 @@ exports.setExpertise = async (tokenSymbol) => {
   }
   skip += result.length;
   console.log(`${skip} records updated `);
-  await this.setExpertise();
+  await this.setExpertise(tokenSymbol);
 };

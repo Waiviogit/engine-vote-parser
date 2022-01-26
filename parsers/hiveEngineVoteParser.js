@@ -254,7 +254,7 @@ const distributeHiveEngineExpertise = async ({ votes, posts }) => {
 const calculateGeneralHiveExpertise = async (wobjectRshares) => {
   let hiveExpertise = 0;
   for (const key in wobjectRshares) {
-    hiveExpertise += await calculateEngineExpertise(wobjectRshares[key], key);
+    hiveExpertise += BigNumber(await calculateEngineExpertise(wobjectRshares[key], key)).toNumber();
   }
   return hiveExpertise;
 };
@@ -264,36 +264,27 @@ const updateExpertiseInDb = async ({
   await Wobj.update(
     { author_permlink: wObject.author_permlink },
     {
-      $inc: {
-        ...formExpertiseUpdateData({
-          wobjectRshares, isAbs: true, divideBy: 1, generalHiveExpertise,
-        }),
-        weight: generalHiveExpertise,
-      },
+      $inc: formExpertiseUpdateData({
+        wobjectRshares, isAbs: true, divideBy: 1, initialKey: 'weight', initialValue: generalHiveExpertise,
+      }),
     },
   );
 
   await User.updateOne(
     { name: currentVote.voter },
     {
-      $inc: {
-        ...await formExpertiseUpdateData({
-          wobjectRshares, isAbs: true, divideBy: 2, generalHiveExpertise,
-        }),
-        wobjects_weight: generalHiveExpertise,
-      },
+      $inc: formExpertiseUpdateData({
+        wobjectRshares, isAbs: true, divideBy: 2, initialKey: 'wobjects_weight', initialValue: generalHiveExpertise,
+      }),
     },
   );
 
   await UserWobjects.updateOne(
     { user_name: currentVote.voter, author_permlink: wObject.author_permlink },
     {
-      $inc: {
-        ...await formExpertiseUpdateData({
-          wobjectRshares, isAbs: true, divideBy: 2, generalHiveExpertise,
-        }),
-        weight: generalHiveExpertise,
-      },
+      $inc: formExpertiseUpdateData({
+        wobjectRshares, isAbs: true, divideBy: 2, initialKey: 'weight', initialValue: generalHiveExpertise,
+      }),
     },
     { upsert: true, setDefaultsOnInsert: true },
   );
@@ -302,24 +293,18 @@ const updateExpertiseInDb = async ({
   await User.updateOne(
     { name: post.author },
     {
-      $inc: {
-        ...await formExpertiseUpdateData({
-          wobjectRshares, isAbs: false, divideBy: 2, generalHiveExpertise,
-        }),
-        wobjects_weight: generalHiveExpertise,
-      },
+      $inc: formExpertiseUpdateData({
+        wobjectRshares, isAbs: false, divideBy: 2, initialKey: 'wobjects_weight', initialValue: generalHiveExpertise,
+      }),
     },
   );
 
   await UserWobjects.updateOne(
     { user_name: post.author, author_permlink: wObject.author_permlink },
     {
-      $inc: {
-        ...await formExpertiseUpdateData({
-          wobjectRshares, isAbs: false, divideBy: 2, generalHiveExpertise,
-        }),
-        weight: generalHiveExpertise,
-      },
+      $inc: formExpertiseUpdateData({
+        wobjectRshares, isAbs: false, divideBy: 2, initialKey: 'weight', initialValue: generalHiveExpertise,
+      }),
     },
     { upsert: true, setDefaultsOnInsert: true },
   );

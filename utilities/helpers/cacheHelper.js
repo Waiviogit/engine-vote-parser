@@ -23,7 +23,7 @@ exports.cachePoolState = async () => {
 exports.cacheMarketPool = async () => {
   for (const TOKEN of ENGINE_TOKENS) {
     const marketPool = await marketPools.getMarketPools({ query: { _id: TOKEN.MARKET_POOL_ID } });
-    if (!marketPool) return;
+    if (_.isEmpty(marketPool)) return;
     await hmsetAsync(
       `${CACH_MARKET_POOL_KEY}:${TOKEN.SYMBOL}`,
       marketPool[0],

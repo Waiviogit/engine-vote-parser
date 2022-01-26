@@ -1,5 +1,6 @@
 const _ = require('lodash');
 const { sinon } = require('test/testHelper');
+const BigNumber = require('bignumber.js');
 const { expect } = require('../../testHelper');
 const { redisGetter } = require('../../../utilities/redis');
 const calculateEngineExpertise = require('../../../utilities/helpers/calculateEngineExpertise');
@@ -28,14 +29,18 @@ describe('Calculate Engine Expertise', async () => {
     callback.onCall(3).returns(market_pool);
 
     const WAIVExpertise = _.random(1000, 20000);
-    const res = await calculateEngineExpertise(WAIVExpertise, 'expertiseWAIV');
+    const res = await calculateEngineExpertise(WAIVExpertise, 'sampleToken');
 
-    value = (res / reward_fund.recent_claims) * reward_fund.reward_balance.replace(' HIVE', '') * current_median_history.base.replace(' HBD', '') * 1000000;
+    value = BigNumber(BigNumber(res).div(reward_fund.recent_claims).toNumber)
+      .multipliedBy(reward_fund.reward_balance.replace(' HIVE', ''))
+      .multipliedBy(current_median_history.base.replace(' HBD', ''))
+      .multipliedBy(1000000)
+      .toNumber();
 
-    const price = parseFloat(market_pool.quotePrice) * parseFloat(current_median_history.base.replace(' HBD', ''));
-    check = WAIVExpertise * price * smt_pool.rewards;
+    const price = BigNumber(parseFloat(market_pool.quotePrice)).multipliedBy(parseFloat(current_median_history.base.replace(' HBD', ''))).toNumber();
+    check = BigNumber(WAIVExpertise).multipliedBy(price).multipliedBy(smt_pool.rewards).toNumber();
   });
   it('should equal', () => {
-    expect(value.toFixed(5)).to.deep.eq(check.toFixed(5));
+    expect(value).to.deep.eq(check);
   });
 });

@@ -4,6 +4,7 @@ const {
   CACH_MARKET_POOL_KEY,
 } = require('constants/hiveEngine');
 const { CACHE_KEY } = require('constants/hiveConstants');
+const BigNumber = require('bignumber.js');
 const { redisGetter } = require('../redis');
 
 module.exports = async (waivExpertise, symbol) => {
@@ -14,8 +15,13 @@ module.exports = async (waivExpertise, symbol) => {
   const { base } = await redisGetter.getHashAll(CACHE_KEY.CURRENT_PRICE_INFO, lastBlockClient);
   const { rewards } = await redisGetter.getHashAll(`${CACHE_POOL_KEY}:${symbol}`, lastBlockClient);
   const { quotePrice } = await redisGetter.getHashAll(`${CACH_MARKET_POOL_KEY}:${symbol}`, lastBlockClient);
+  const price = BigNumber(parseFloat(quotePrice)).multipliedBy(parseFloat(base.replace(' HBD', ''))).toNumber();
 
-  const price = parseFloat(quotePrice) * parseFloat(base.replace(' HBD', ''));
-
-  return (waivExpertise * price * rewards * recent_claims) / (reward_balance.replace(' HIVE', '') * base.replace(' HBD', '') * 1000000);
+  if (!!base.replace(' HBD', '') && !!rewards && !!quotePrice && !!recent_claims && !!reward_balance.replace(' HIVE', '')) {
+    return BigNumber(waivExpertise).multipliedBy(price)
+      .multipliedBy(rewards)
+      .multipliedBy(recent_claims)
+      .div(BigNumber(reward_balance.replace(' HIVE', '')).multipliedBy(base.replace(' HBD', '')).multipliedBy(1000000))
+      .toNumber();
+  }
 };
