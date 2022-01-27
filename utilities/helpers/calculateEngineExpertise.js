@@ -24,4 +24,5 @@ module.exports = async (waivExpertise, symbol) => {
       .div(BigNumber(reward_balance.replace(' HIVE', '')).multipliedBy(base.replace(' HBD', '')).multipliedBy(1000000))
       .toNumber();
   }
+  return 0;
 };

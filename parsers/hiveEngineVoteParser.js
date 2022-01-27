@@ -254,9 +254,9 @@ const distributeHiveEngineExpertise = async ({ votes, posts }) => {
 const calculateGeneralHiveExpertise = async (wobjectRshares) => {
   let hiveExpertise = 0;
   for (const key in wobjectRshares) {
-    hiveExpertise += BigNumber(await calculateEngineExpertise(wobjectRshares[key], key)).toNumber();
+    hiveExpertise = BigNumber(hiveExpertise).plus(await calculateEngineExpertise(wobjectRshares[key], key))
   }
-  return hiveExpertise;
+  return hiveExpertise.toNumber();
 };
 const updateExpertiseInDb = async ({
   currentVote, wobjectRshares, post, wObject, generalHiveExpertise,
