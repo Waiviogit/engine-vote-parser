@@ -6,7 +6,7 @@ const { User } = require('../../../models');
 let blackList = [];
 const getBlackList = async () => {
   if (_.isEmpty(blackList)) {
-    blackList = await appHelper.getBlackListUsers();
+    ({ users: blackList } = await appHelper.getBlackListUsers());
     return blackList;
   }
   return blackList;
@@ -36,8 +36,14 @@ exports.setExpertise = async (tokenSymbol, direction = 'up') => {
   }
 
   for (const resultElement of result) {
-    const { users } = await getBlackList();
-    if (users.includes(resultElement.name)) continue;
+    const blacklistUsers = await getBlackList();
+    if (blacklistUsers.includes(resultElement.name)) {
+      await User.update(
+        { _id: resultElement._id },
+        { processed: true, [`expertise${tokenSymbol}`]: 0 },
+      );
+      continue;
+    }
     const generalExpertise = _.get(resultElement, `expertise${tokenSymbol}`);
     const formattedExpertise = await calculateEngineExpertise(generalExpertise, tokenSymbol);
 
