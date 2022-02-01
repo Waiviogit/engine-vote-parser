@@ -13,7 +13,9 @@ const { lastBlockClient } = require('utilities/redis/redis');
 const jsonHelper = require('utilities/helpers/jsonHelper');
 const _ = require('lodash');
 const BigNumber = require('bignumber.js');
+const userValidator = require('validator/userValidator');
 const calculateEngineExpertise = require('utilities/helpers/calculateEngineExpertise');
+const appHelper = require('utilities/helpers/appHelper');
 
 exports.parse = async ({ transactions, blockNumber, timestamps }) => {
   const { votes, rewards } = this.formatVotesAndRewards({ transactions, blockNumber, timestamps });
@@ -226,12 +228,15 @@ const updatePostsRshares = async (posts) => {
 };
 
 const distributeHiveEngineExpertise = async ({ votes, posts }) => {
+  const { users: blackList } = await appHelper.getBlackListUsers();
   for (const vote of votes) {
     const post = posts.find(
       (p) => (p.author === vote.author || p.author === vote.guest_author)
         && p.permlink === vote.permlink,
     );
     if (!post) continue;
+    if (userValidator.validateUserOnBlacklist([vote.voter, post.author, vote.guest_author], blackList)) continue;
+
     const currentVote = post.active_votes.find((v) => v.voter === vote.voter);
     if (!currentVote) continue;
     for (const wObject of _.get(post, 'wobjects', [])) {

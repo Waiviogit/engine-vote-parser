@@ -19,6 +19,7 @@ module.exports = {
     WObject: require('./schemas/wObjectSchema'),
     User: require('./schemas/UserSchema'),
     Post: require('./schemas/PostSchema'),
+    App: require('./schemas/AppSchema'),
     EngineAccountHistory: require('./schemas/EngineAccountHistorySchema'),
     UserWobjects: require('./schemas/UserWobjectsSchema'),
     CommentRef: require('./schemas/CommentRefSchema'),

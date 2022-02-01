@@ -1,6 +1,16 @@
 const _ = require('lodash');
 const calculateEngineExpertise = require('utilities/helpers/calculateEngineExpertise');
+const appHelper = require('utilities/helpers/appHelper');
 const { User } = require('../../../models');
+
+let blackList = [];
+const getBlackList = async () => {
+  if (_.isEmpty(blackList)) {
+    blackList = await appHelper.getBlackListUsers();
+    return blackList;
+  }
+  return blackList;
+};
 
 let records = 0;
 exports.setExpertise = async (tokenSymbol, direction = 'up') => {
@@ -16,7 +26,7 @@ exports.setExpertise = async (tokenSymbol, direction = 'up') => {
         processedCondition,
       ],
     },
-    select: { [`expertise${tokenSymbol}`]: 1, _id: 1 },
+    select: { [`expertise${tokenSymbol}`]: 1, _id: 1, name: 1 },
     limit: 1000,
   });
 
@@ -26,6 +36,8 @@ exports.setExpertise = async (tokenSymbol, direction = 'up') => {
   }
 
   for (const resultElement of result) {
+    const { users } = await getBlackList();
+    if (users.includes(resultElement.name)) continue;
     const generalExpertise = _.get(resultElement, `expertise${tokenSymbol}`);
     const formattedExpertise = await calculateEngineExpertise(generalExpertise, tokenSymbol);
 
