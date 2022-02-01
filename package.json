@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "node ./bin/service.js",
-    "setAirdropHistory": "NODE_PATH=. node ./utilities/tasks/setAccountHistory/setAirdropHistory.js",
+    "setWaivReward": "NODE_PATH=. node ./utilities/tasks/setWaivReward/run.js",
     "setSwapHistory": "NODE_PATH=. node ./utilities/tasks/setAccountHistory/setSwapHistory.js",
     "setRewardsHistory": "NODE_PATH=. node ./utilities/tasks/setAccountHistory/setRewardsHistory.js",
     "setWobjExpertise": "NODE_PATH=. node utilities/tasks/updateWobjExpertise/run.js",
