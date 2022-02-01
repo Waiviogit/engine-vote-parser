@@ -3,29 +3,53 @@ const calculateEngineExpertise = require('utilities/helpers/calculateEngineExper
 const appHelper = require('utilities/helpers/appHelper');
 const { User } = require('../../../models');
 
-let skip = 0;
-exports.setExpertise = async (tokenSymbol) => {
+let blackList = [];
+const getBlackList = async () => {
+  if (_.isEmpty(blackList)) {
+    blackList = await appHelper.getBlackListUsers();
+    return blackList;
+  }
+  return blackList;
+};
+
+let records = 0;
+exports.setExpertise = async (tokenSymbol, direction = 'up') => {
+  const processedCondition = direction === 'up'
+    ? { processed: { $exists: false } }
+    : { processed: true };
+
   const { result } = await User.find({
-    condition: { $and: [{ expertiseWAIV: { $exists: true } }, { expertiseWAIV: { $gt: 0 } }, { processed: { $exists: false } }] },
-    select: { expertiseWAIV: 1, _id: 1, name: 1 },
+    condition: {
+      $and: [
+        { [`expertise${tokenSymbol}`]: { $exists: true } },
+        { [`expertise${tokenSymbol}`]: { $gt: 0 } },
+        processedCondition,
+      ],
+    },
+    select: { [`expertise${tokenSymbol}`]: 1, _id: 1, name: 1 },
     limit: 1000,
-    skip,
   });
+
   if (_.isEmpty(result)) {
     console.log('task completed');
     process.exit();
   }
-  const { users } = await appHelper.getBlackListUsers();
+
   for (const resultElement of result) {
+    const { users } = await getBlackList();
     if (users.includes(resultElement.name)) continue;
-    const generalWAIVexpertise = _.get(resultElement, tokenSymbol);
-    const formatedExpertise = (await calculateEngineExpertise(generalWAIVexpertise, tokenSymbol));
+    const generalExpertise = _.get(resultElement, `expertise${tokenSymbol}`);
+    const formattedExpertise = await calculateEngineExpertise(generalExpertise, tokenSymbol);
+
+    const updateCondition = direction === 'up'
+      ? { $inc: { wobjects_weight: formattedExpertise }, processed: true }
+      : { $inc: { wobjects_weight: -formattedExpertise }, processed: false };
+
     await User.update(
       { _id: resultElement._id },
-      { $inc: { wobjects_weight: formatedExpertise }, processed: true },
+      updateCondition,
     );
   }
-  skip += result.length;
-  console.log(`${skip} records updated `);
-  await this.setExpertise(tokenSymbol);
+  console.log(`${records += result.length} records updated `);
+  await this.setExpertise(tokenSymbol, direction);
 };

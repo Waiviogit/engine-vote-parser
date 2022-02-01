@@ -1,6 +1,8 @@
 const { setExpertise } = require('./setUserWobjExpertise');
 
 (async () => {
-  await setExpertise(process.argv[2]);
+  const tokenSymbol = process.argv[2];
+  const direction = process.argv[3];
+  await setExpertise(tokenSymbol, direction);
   process.exit();
 })();
