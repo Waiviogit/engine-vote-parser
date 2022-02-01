@@ -8,7 +8,7 @@
     "setWaivReward": "NODE_PATH=. node ./utilities/tasks/setWaivReward/run.js",
     "setSwapHistory": "NODE_PATH=. node ./utilities/tasks/setAccountHistory/setSwapHistory.js",
     "setRewardsHistory": "NODE_PATH=. node ./utilities/tasks/setAccountHistory/setRewardsHistory.js",
-    "setWobjExpertise": " node utilities/tasks/updateWobjExpertise/run.js WAIV up",
+    "setWobjExpertise": "NODE_PATH=. node utilities/tasks/updateWobjExpertise/run.js",
     "setUserExpertise": "NODE_PATH=. node utilities/tasks/updateUserExpertise/run.js",
     "setUserWobjExpertise": "NODE_PATH=. node utilities/tasks/updateUserWobjExpertise/run.js",
     "parseEngineVotes": "NODE_PATH=. node ./utilities/tasks/parseVotes/run.js"
