@@ -5,13 +5,12 @@ const calculateEngineExpertise = require('utilities/helpers/calculateEngineExper
 let records = 0;
 exports.setExpertise = async (tokenSymbol, direction = 'up') => {
   const processedCondition = direction === 'up'
-    ? { processed: { $exists: false } }
+    ? { processed: false }
     : { processed: true };
 
   const { result } = await UserWobjects.find({
     condition: {
       $and: [
-        { [`expertise${tokenSymbol}`]: { $exists: true } },
         { [`expertise${tokenSymbol}`]: { $gt: 0 } },
         processedCondition,
       ],
