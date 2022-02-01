@@ -2,7 +2,7 @@ const { UserWobjects } = require('models');
 const _ = require('lodash');
 const calculateEngineExpertise = require('utilities/helpers/calculateEngineExpertise');
 
-let skip = 0;
+let records = 0;
 exports.setExpertise = async (tokenSymbol, direction = 'up') => {
   const processedCondition = direction === 'up'
     ? { processed: { $exists: false } }
@@ -13,18 +13,18 @@ exports.setExpertise = async (tokenSymbol, direction = 'up') => {
       $and: [
         { [`expertise${tokenSymbol}`]: { $exists: true } },
         { [`expertise${tokenSymbol}`]: { $gt: 0 } },
-        processedCondition],
+        processedCondition,
+      ],
     },
     select: { [`expertise${tokenSymbol}`]: 1, _id: 1 },
     limit: 1000,
-    skip,
   });
   if (_.isEmpty(result)) {
     console.log('task completed');
     process.exit();
   }
   for (const resultElement of result) {
-    const generalExpertise = _.get(resultElement, tokenSymbol);
+    const generalExpertise = _.get(resultElement, `expertise${tokenSymbol}`);
     const formattedExpertise = (await calculateEngineExpertise(generalExpertise, tokenSymbol));
 
     const updateCondition = direction === 'up'
@@ -36,8 +36,8 @@ exports.setExpertise = async (tokenSymbol, direction = 'up') => {
       updateCondition,
     );
   }
-  skip += result.length;
-  console.log(`${skip} records updated `);
+
+  console.log(`${records += result.length} records updated `);
 
   await this.setExpertise(tokenSymbol, direction);
 };
