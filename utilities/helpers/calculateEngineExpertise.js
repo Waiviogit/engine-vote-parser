@@ -1,3 +1,4 @@
+/* eslint-disable camelcase */
 const { lastBlockClient } = require('utilities/redis/redis');
 const {
   CACHE_POOL_KEY,
@@ -7,7 +8,7 @@ const { CACHE_KEY } = require('constants/hiveConstants');
 const BigNumber = require('bignumber.js');
 const { redisGetter } = require('../redis');
 
-module.exports = async (waivExpertise, symbol) => {
+module.exports = async (expertise, symbol) => {
   const {
     recent_claims,
     reward_balance,
@@ -18,7 +19,7 @@ module.exports = async (waivExpertise, symbol) => {
   const price = BigNumber(parseFloat(quotePrice)).multipliedBy(parseFloat(base.replace(' HBD', ''))).toNumber();
 
   if (!!base.replace(' HBD', '') && !!rewards && !!quotePrice && !!recent_claims && !!reward_balance.replace(' HIVE', '')) {
-    return BigNumber(waivExpertise).multipliedBy(price)
+    return BigNumber(expertise).multipliedBy(price)
       .multipliedBy(rewards)
       .multipliedBy(recent_claims)
       .div(BigNumber(reward_balance.replace(' HIVE', '')).multipliedBy(base.replace(' HBD', '')).multipliedBy(1000000))

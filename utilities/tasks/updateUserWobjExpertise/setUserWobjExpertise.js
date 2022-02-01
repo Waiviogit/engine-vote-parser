@@ -3,10 +3,19 @@ const _ = require('lodash');
 const calculateEngineExpertise = require('utilities/helpers/calculateEngineExpertise');
 
 let skip = 0;
-exports.setExpertise = async (tokenSymbol) => {
+exports.setExpertise = async (tokenSymbol, direction = 'up') => {
+  const processedCondition = direction === 'up'
+    ? { processed: { $exists: false } }
+    : { processed: true };
+
   const { result } = await UserWobjects.find({
-    condition: { $and: [{ expertiseWAIV: { $exists: true } }, { expertiseWAIV: { $gt: 0 } }, { processed: { $exists: false } }] },
-    select: { expertiseWAIV: 1, _id: 1 },
+    condition: {
+      $and: [
+        { [`expertise${tokenSymbol}`]: { $exists: true } },
+        { [`expertise${tokenSymbol}`]: { $gt: 0 } },
+        processedCondition],
+    },
+    select: { [`expertise${tokenSymbol}`]: 1, _id: 1 },
     limit: 1000,
     skip,
   });
@@ -15,15 +24,20 @@ exports.setExpertise = async (tokenSymbol) => {
     process.exit();
   }
   for (const resultElement of result) {
-    const generalWAIVexpertise = _.get(resultElement, tokenSymbol);
-    const formatedExpertise = (await calculateEngineExpertise(generalWAIVexpertise, tokenSymbol));
+    const generalExpertise = _.get(resultElement, tokenSymbol);
+    const formattedExpertise = (await calculateEngineExpertise(generalExpertise, tokenSymbol));
+
+    const updateCondition = direction === 'up'
+      ? { $inc: { weight: formattedExpertise }, processed: true }
+      : { $inc: { weight: -formattedExpertise }, processed: false };
+
     await UserWobjects.updateOne(
       { _id: resultElement._id },
-      { $inc: { weight: formatedExpertise }, processed: true },
+      updateCondition,
     );
   }
   skip += result.length;
   console.log(`${skip} records updated `);
 
-  await this.setExpertise(tokenSymbol);
+  await this.setExpertise(tokenSymbol, direction);
 };
