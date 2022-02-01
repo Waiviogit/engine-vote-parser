@@ -75,7 +75,6 @@ const increaseFieldWeight = async (data) => {
   }
 };
 
-
 // data include: author, permlink, author_permlink, voter
 const removeVote = async (data) => {
   try {
@@ -236,7 +235,9 @@ const pushNewPost = async ({ author_permlink: authorPermlink, post_id: postId })
   }
 };
 
-const find = async (condition, select, sort = {}, skip = 0, limit) => {
+const find = async ({
+  condition, select, sort = {}, skip = 0, limit,
+}) => {
   try {
     return {
       result: await WObjectModel

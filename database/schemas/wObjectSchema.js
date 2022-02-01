@@ -25,6 +25,7 @@ const WObjectSchema = new Schema({
   parent: { type: String, default: '' },
   children: { type: [String], default: [] },
   authority: { type: AuthoritySchema, default: () => ({}) },
+  processed: { type: Boolean },
   fields: [{
     name: { type: String, index: true },
     body: { type: String },
@@ -80,6 +81,7 @@ WObjectSchema.pre('save', function (next) {
 WObjectSchema.index({ map: '2dsphere' });
 WObjectSchema.index({ parent: -1 });
 WObjectSchema.index({ search: -1 });
+WObjectSchema.index({ processed: 1 });
 
 const wObjectModel = mongoose.model('wobject', WObjectSchema);
 

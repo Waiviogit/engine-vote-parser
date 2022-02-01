@@ -2,11 +2,14 @@ exports.TOKEN_WAIV = {
   SYMBOL: 'WAIV',
   POOL_ID: 13,
   TAGS: ['waivio', 'neoxian', 'palnet', 'waiv', 'food'],
+  MARKET_POOL_ID: 63,
 };
 
 exports.ENGINE_TOKENS = [this.TOKEN_WAIV];
 
 exports.CACHE_POOL_KEY = 'smt_pool';
+
+exports.CACH_MARKET_POOL_KEY = 'market_pool';
 
 exports.ENGINE_CONTRACTS = {
   MARKETPOOLS: 'marketpools',

@@ -13,6 +13,7 @@ const { lastBlockClient } = require('utilities/redis/redis');
 const jsonHelper = require('utilities/helpers/jsonHelper');
 const _ = require('lodash');
 const BigNumber = require('bignumber.js');
+const calculateEngineExpertise = require('utilities/helpers/calculateEngineExpertise');
 
 exports.parse = async ({ transactions, blockNumber, timestamps }) => {
   const { votes, rewards } = this.formatVotesAndRewards({ transactions, blockNumber, timestamps });
@@ -241,46 +242,86 @@ const distributeHiveEngineExpertise = async ({ votes, posts }) => {
         return accum;
       }, {});
       if (_.isEmpty(wobjectRshares)) continue;
+
+      const generalHiveExpertise = await calculateGeneralHiveExpertise(wobjectRshares);
+
       await updateExpertiseInDb({
-        currentVote, wobjectRshares, post, wObject,
+        currentVote, wobjectRshares, post, wObject, generalHiveExpertise,
       });
     }
   }
 };
+const calculateGeneralHiveExpertise = async (wobjectRshares) => {
+  let hiveExpertise = 0;
+  for (const key in wobjectRshares) {
+    hiveExpertise = BigNumber(hiveExpertise)
+      .plus(await calculateEngineExpertise(wobjectRshares[key], key));
+  }
+  return hiveExpertise.toNumber();
+};
 
 const updateExpertiseInDb = async ({
-  currentVote, wobjectRshares, post, wObject,
+  currentVote, wobjectRshares, post, wObject, generalHiveExpertise,
 }) => {
-  // object and voter expertise always positive
   await Wobj.update(
     { author_permlink: wObject.author_permlink },
-    { $inc: formExpertiseUpdateData({ wobjectRshares, isAbs: true, divideBy: 1 }) },
+    {
+      $inc: formExpertiseUpdateData({
+        wobjectRshares, isAbs: true, divideBy: 1, initialKey: 'weight', initialValue: generalHiveExpertise,
+      }),
+    },
   );
+
   await User.updateOne(
     { name: currentVote.voter },
-    { $inc: formExpertiseUpdateData({ wobjectRshares, isAbs: true, divideBy: 2 }) },
+    {
+      $inc: formExpertiseUpdateData({
+        wobjectRshares, isAbs: true, divideBy: 2, initialKey: 'wobjects_weight', initialValue: generalHiveExpertise,
+      }),
+    },
   );
+
   await UserWobjects.updateOne(
     { user_name: currentVote.voter, author_permlink: wObject.author_permlink },
-    { $inc: formExpertiseUpdateData({ wobjectRshares, isAbs: true, divideBy: 2 }) },
+    {
+      $inc: formExpertiseUpdateData({
+        wobjectRshares, isAbs: true, divideBy: 2, initialKey: 'weight', initialValue: generalHiveExpertise,
+      }),
+    },
     { upsert: true, setDefaultsOnInsert: true },
   );
+
   // post author can have negative expertise
   await User.updateOne(
     { name: post.author },
-    { $inc: formExpertiseUpdateData({ wobjectRshares, isAbs: false, divideBy: 2 }) },
+    {
+      $inc: formExpertiseUpdateData({
+        wobjectRshares, isAbs: false, divideBy: 2, initialKey: 'wobjects_weight', initialValue: generalHiveExpertise,
+      }),
+    },
   );
+
   await UserWobjects.updateOne(
     { user_name: post.author, author_permlink: wObject.author_permlink },
-    { $inc: formExpertiseUpdateData({ wobjectRshares, isAbs: false, divideBy: 2 }) },
+    {
+      $inc: formExpertiseUpdateData({
+        wobjectRshares, isAbs: false, divideBy: 2, initialKey: 'weight', initialValue: generalHiveExpertise,
+      }),
+    },
     { upsert: true, setDefaultsOnInsert: true },
   );
 };
 
-const formExpertiseUpdateData = ({ wobjectRshares, divideBy, isAbs }) => _.reduce(
+const formExpertiseUpdateData = ({
+  wobjectRshares, divideBy, isAbs, initialKey, initialValue,
+}) => _.reduce(
   wobjectRshares, (accum, rshares, index) => {
     const result = BigNumber(rshares).div(divideBy).toNumber();
     accum[`expertise${index}`] = isAbs ? Math.abs(result) : result;
     return accum;
-  }, {},
+  }, {
+    [initialKey]: isAbs
+      ? Math.abs(BigNumber(initialValue).div(divideBy).toNumber())
+      : BigNumber(initialValue).div(divideBy).toNumber(),
+  },
 );
