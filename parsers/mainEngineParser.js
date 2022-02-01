@@ -14,6 +14,7 @@ exports.engineSwitcher = async (transactions, blockNumber, timestamps) => {
       timestamps,
     });
   }
+
   await hiveEngineVoteParser.parse({
     transactions: _.filter(transactions, (vote) => filterVotesCB(vote)),
     blockNumber,
