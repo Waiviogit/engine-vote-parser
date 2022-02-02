@@ -11,6 +11,7 @@ exports.parse = async (transaction, blockNumber) => {
     switch (action) {
       case ENGINE_CONTRACT_ACTIONS.DELEGATE:
       case ENGINE_CONTRACT_ACTIONS.TRANSFER:
+      case ENGINE_CONTRACT_ACTIONS.UNDELEGATE:
         return {
           from: _.get(transaction, 'sender'),
           to: _.get(payload, 'to'),

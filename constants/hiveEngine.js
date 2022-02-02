@@ -20,6 +20,7 @@ exports.ENGINE_CONTRACT_ACTIONS = {
   NEW_AIRDROP: 'newAirdrop',
   TRANSFER: 'transfer',
   DELEGATE: 'delegate',
+  UNDELEGATE: 'undelegate',
   STAKE: 'stake',
   UNSTAKE: 'unstake',
   VOTE: 'vote',
