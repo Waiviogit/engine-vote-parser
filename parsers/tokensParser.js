@@ -5,35 +5,46 @@ const { sendNotification } = require('../utilities/notificationsApi/notification
 
 exports.parse = async (transaction, blockNumber) => {
   const payload = parseJson(_.get(transaction, 'payload'));
+  const action = _.get(transaction, 'action');
   if (_.isEmpty(payload)) return;
-
-  const getData = (action) => {
-    switch (action) {
-      case ENGINE_CONTRACT_ACTIONS.DELEGATE:
-      case ENGINE_CONTRACT_ACTIONS.TRANSFER:
-      case ENGINE_CONTRACT_ACTIONS.UNDELEGATE:
-        return {
+  const delegateTo = action === ENGINE_CONTRACT_ACTIONS.DELEGATE ? _.get(payload, 'to') : _.get(payload, 'from');
+  switch (action) {
+    case ENGINE_CONTRACT_ACTIONS.DELEGATE:
+    case ENGINE_CONTRACT_ACTIONS.TRANSFER:
+    case ENGINE_CONTRACT_ACTIONS.UNDELEGATE:
+      await sendNotification({
+        id: action,
+        block: blockNumber,
+        data: {
           from: _.get(transaction, 'sender'),
-          to: _.get(payload, 'to'),
+          to: delegateTo,
           amount: `${_.get(payload, 'quantity')} ${_.get(payload, 'symbol')}`,
           memo: _.get(payload, 'memo') ? _.get(payload, 'memo') : '',
-        };
-      case ENGINE_CONTRACT_ACTIONS.STAKE:
-      case ENGINE_CONTRACT_ACTIONS.UNSTAKE:
-        return {
+        },
+      });
+      break;
+    case ENGINE_CONTRACT_ACTIONS.STAKE:
+      await sendNotification({
+        id: ENGINE_CONTRACT_ACTIONS.TRANSFER_TO_VESTING,
+        block: blockNumber,
+        data: {
+          amount: `${_.get(payload, 'quantity')} ${_.get(payload, 'symbol')}`,
+          from: _.get(payload, 'to'),
+          to: _.get(payload, 'to'),
+        },
+      });
+      break;
+    case ENGINE_CONTRACT_ACTIONS.UNSTAKE:
+      await sendNotification({
+        id: action,
+        block: blockNumber,
+        data: {
           amount: `${_.get(payload, 'quantity')} ${_.get(payload, 'symbol')}`,
           account: _.get(payload, 'to'),
-        };
-      default:
-        return {};
-    }
-  };
-  const data = getData(_.get(transaction, 'action'));
-  if (_.isEmpty(data)) return;
-  const reqData = {
-    id: transaction.action,
-    block: blockNumber,
-    data,
-  };
-  await sendNotification(reqData);
+        },
+      });
+      break;
+    default:
+      return {};
+  }
 };
