@@ -22,6 +22,10 @@ exports.ENGINE_CONTRACT_ACTIONS = {
   SWAP_TOKENS: 'swapTokens',
   NEW_AIRDROP: 'newAirdrop',
   TRANSFER: 'transfer',
+  DELEGATE: 'delegate',
+  UNDELEGATE: 'undelegate',
+  STAKE: 'stake',
+  UNSTAKE: 'unstake',
   VOTE: 'vote',
 };
 
