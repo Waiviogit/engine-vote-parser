@@ -3,40 +3,46 @@ const { parseJson } = require('utilities/helpers/jsonHelper');
 const { ENGINE_CONTRACT_ACTIONS } = require('constants/hiveEngine');
 const { sendNotification } = require('../utilities/notificationsApi/notificationsUtil');
 
-exports.parse = async (transaction, blockNumber) => {
+const getRequestData = async (transaction, blockNumber) => {
   const payload = parseJson(_.get(transaction, 'payload'));
   const action = _.get(transaction, 'action');
   if (_.isEmpty(payload)) return;
 
   switch (action) {
     case ENGINE_CONTRACT_ACTIONS.DELEGATE:
-    case ENGINE_CONTRACT_ACTIONS.TRANSFER:
-      await sendNotification({
+      return {
         id: action,
         block: blockNumber,
         data: {
           from: _.get(transaction, 'sender'),
           to: _.get(payload, 'to'),
           amount: `${_.get(payload, 'quantity')} ${_.get(payload, 'symbol')}`,
-          memo: _.get(payload, 'memo') ? _.get(payload, 'memo') : '',
         },
-      });
-      break;
+      };
+    case ENGINE_CONTRACT_ACTIONS.TRANSFER:
+      return {
+        id: action,
+        block: blockNumber,
+        data: {
+          from: _.get(transaction, 'sender'),
+          to: _.get(payload, 'to'),
+          amount: `${_.get(payload, 'quantity')} ${_.get(payload, 'symbol')}`,
+          memo: _.get(payload, 'memo'),
+        },
+      };
     case ENGINE_CONTRACT_ACTIONS.UNDELEGATE:
-      await sendNotification({
+      return {
         id: action,
         block: blockNumber,
         data: {
           from: _.get(transaction, 'sender'),
           to: _.get(payload, 'from'),
           amount: `${_.get(payload, 'quantity')} ${_.get(payload, 'symbol')}`,
-          memo: _.get(payload, 'memo') ? _.get(payload, 'memo') : '',
         },
-      });
-      break;
+      };
     case ENGINE_CONTRACT_ACTIONS.STAKE:
     case ENGINE_CONTRACT_ACTIONS.UNSTAKE:
-      await sendNotification({
+      return {
         id: action,
         block: blockNumber,
         data: {
@@ -44,9 +50,14 @@ exports.parse = async (transaction, blockNumber) => {
           to: _.get(payload, 'to'),
           from: _.get(payload, 'to'),
         },
-      });
-      break;
+      };
     default:
       return {};
   }
+};
+
+exports.parse = async (transaction, blockNumber) => {
+  const requestData = await getRequestData(transaction, blockNumber);
+  if (_.isEmpty(requestData)) return;
+  await sendNotification(requestData);
 };

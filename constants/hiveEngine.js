@@ -16,7 +16,6 @@ exports.ENGINE_CONTRACTS = {
 };
 
 exports.ENGINE_CONTRACT_ACTIONS = {
-  TRANSFER_TO_VESTING: 'transfer_to_vesting',
   SWAP_TOKENS: 'swapTokens',
   NEW_AIRDROP: 'newAirdrop',
   TRANSFER: 'transfer',
