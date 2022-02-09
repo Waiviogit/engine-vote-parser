@@ -60,6 +60,19 @@ const getRequestData = async (transaction, blockNumber) => {
           from: _.get(transaction, 'sender'),
         },
       };
+    case ENGINE_CONTRACT_ACTIONS.CANCEL_UNSTAKE:
+      const logs = parseJson(_.get(transaction, 'logs'));
+      if (_.isEmpty(logs)) return;
+      const eventsData = _.get(logs, 'events.[0].data');
+
+      return {
+        id: action,
+        block: blockNumber,
+        data: {
+          amount: `${_.get(eventsData, 'quantity')} ${_.get(eventsData, 'symbol')}`,
+          account: _.get(transaction, 'sender'),
+        },
+      };
     default:
       return {};
   }
