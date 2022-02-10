@@ -1,4 +1,4 @@
-const { BOOK_BOTS } = require('constants/bookBot');
+const { BOOK_BOTS, POOL_FEE } = require('constants/bookBot');
 const _ = require('lodash');
 const engineMarket = require('utilities/hiveEngine/market');
 const enginePool = require('utilities/hiveEngine/marketPools');
@@ -11,8 +11,7 @@ const sendBookEvent = async ({ symbol }) => {
   await handleBookEvent({ bookBot });
 };
 
-// check balance
-// rc
+// rc!!!
 // if action buy or sale твоей ставки ребалансировка
 const handleBookEvent = async ({ bookBot }) => {
   const operations = [];
@@ -35,12 +34,15 @@ const handleBookEvent = async ({ bookBot }) => {
   const buyPriceIsMine = _.get(buyBook, '[0].account') === bookBot.account;
   const sellPriceIsMine = _.get(sellBook, '[0].account') === bookBot.account;
 
+  const poolPriceFee = BigNumber(poolPrice).times(POOL_FEE).toFixed();
+
   const nextBuyPrice = BigNumber(buyPrice).plus(getPrecisionPrice(token.precision)).toFixed();
   const nextSellPrice = BigNumber(sellPrice).minus(getPrecisionPrice(token.precision)).toFixed();
 
   if (BigNumber(buyPrice).gt(poolPrice)) {
     // много хотят купить по цене выше пула продаем и меняем в пуле по более выгодной цене
     // валидировать количество чтоб не влияло на пул
+    // продаем symbol получаем swap
     operations.push(getMarketSellParams({ symbol: bookBot.symbol, quantity: _.get(buyBook, '[0].quantity') }));
     console.log('market sell');
   }
@@ -48,17 +50,21 @@ const handleBookEvent = async ({ bookBot }) => {
   if (BigNumber(sellPrice).lt(poolPrice)) {
     // много хотят продать по цене ниже пула - покупаем
     // валидировать количество чтоб не влияло на пул
+    // продаем swap получаем symbol
     operations.push(getMarketBuyParams({ symbol: bookBot.symbol, quantity: _.get(sellBook, '[0].quantity') }));
 
     console.log('market buy');
   }
 
-  // 1 only started
-
-  // handle previous bed release
-  // validate balance
   // can add pool price + 0.25 percent
   if (!buyPriceIsMine && BigNumber(nextBuyPrice).lt(poolPrice)) {
+    const previousOrder = _.find(buyBook, (order) => order.account === bookBot.account);
+    if (previousOrder) {
+      operations.push(getCancelParams({
+        id: _.get(previousOrder, 'txId'),
+        type: 'buy',
+      }));
+    }
     operations.push(getLimitBuyParams({
       symbol: bookBot.symbol,
       price: nextBuyPrice,
@@ -68,22 +74,56 @@ const handleBookEvent = async ({ bookBot }) => {
       }),
     }));
   }
-  // check balance
-  // check previous
+
   if (buyPriceIsMine) {
     const previousBuyPrice = _.get(buyBook, '[1].price', '0');
-    if (BigNumber(buyPrice).minus(previousBuyPrice).gt(getPrecisionPrice(token.precision))) {
+    const conditionToCancelOrder = BigNumber(buyPrice).minus(previousBuyPrice)
+      .gt(getPrecisionPrice(token.precision));
+
+    if (conditionToCancelOrder) {
       operations.push(getCancelParams({
         id: _.get(buyBook, '[0].txId'),
         type: 'buy',
       }));
-      // push new order
+      operations.push(getLimitBuyParams({
+        symbol: bookBot.symbol,
+        price: BigNumber(previousBuyPrice).plus(getPrecisionPrice(token.precision)),
+        quantity: getQuantityToBuy({
+          price: BigNumber(previousBuyPrice).plus(getPrecisionPrice(token.precision)),
+          total: BigNumber(swapBalance).times(bookBot.tradePercent).toFixed(),
+        }),
+      }));
     }
-
-    // если кто-то купил делать ребалансировку
+    const currentQuantity = _.get(buyBook, '[0].quantity', '0');
+    const halfOfQuantity = getQuantityToBuy({
+      price: buyPrice,
+      total: BigNumber(swapBalance).times(bookBot.tradePercent).dividedBy(2).toFixed(),
+    });
+    const conditionForRechargeBalance = BigNumber(currentQuantity).lt(halfOfQuantity);
+    if (!conditionToCancelOrder && conditionForRechargeBalance) {
+      operations.push(getCancelParams({
+        id: _.get(buyBook, '[0].txId'),
+        type: 'buy',
+      }));
+      operations.push(getLimitBuyParams({
+        symbol: bookBot.symbol,
+        price: buyPrice,
+        quantity: getQuantityToBuy({
+          price: buyPrice,
+          total: BigNumber(swapBalance).times(bookBot.tradePercent).toFixed(),
+        }),
+      }));
+    }
   }
   // can add pool price - 0.25 percent
   if (!sellPriceIsMine && BigNumber(nextSellPrice).gt(poolPrice)) {
+    const previousOrder = _.find(sellBook, (order) => order.account === bookBot.account);
+    if (previousOrder) {
+      operations.push(getCancelParams({
+        id: _.get(previousOrder, 'txId'),
+        type: 'sell',
+      }));
+    }
     operations.push(getLimitSellParams({
       symbol: bookBot.symbol,
       price: nextSellPrice,
@@ -93,15 +133,37 @@ const handleBookEvent = async ({ bookBot }) => {
 
   if (sellPriceIsMine) {
     const previousSellPrice = _.get(sellBook, '[1].price', '0');
-    if (BigNumber(previousSellPrice).minus(sellPrice).gt(getPrecisionPrice(token.precision))) {
+    const conditionToCancelOrder = BigNumber(previousSellPrice).minus(sellPrice)
+      .gt(getPrecisionPrice(token.precision));
+
+    if (conditionToCancelOrder) {
       operations.push(getCancelParams({
         id: _.get(sellBook, '[0].txId'),
         type: 'sell',
       }));
-      // push new order
+      operations.push(getLimitSellParams({
+        symbol: bookBot.symbol,
+        price: BigNumber(previousSellPrice).minus(getPrecisionPrice(token.precision)),
+        quantity: BigNumber(symbolBalance).times(bookBot.tradePercent).toFixed(),
+      }));
       // take into account frozen sum
     }
-    // если кто-то купил делать ребалансировку
+    const currentQuantity = _.get(sellBook, '[0].quantity', '0');
+    const halfOfQuantity = BigNumber(symbolBalance).times(bookBot.tradePercent)
+      .dividedBy(2).toFixed();
+
+    const conditionForRechargeBalance = BigNumber(currentQuantity).lt(halfOfQuantity);
+    if (!conditionToCancelOrder && conditionForRechargeBalance) {
+      operations.push(getCancelParams({
+        id: _.get(sellBook, '[0].txId'),
+        type: 'sell',
+      }));
+      operations.push(getLimitSellParams({
+        symbol: bookBot.symbol,
+        price: sellPrice,
+        quantity: BigNumber(symbolBalance).times(bookBot.tradePercent).toFixed(),
+      }));
+    }
   }
 };
 
@@ -164,12 +226,12 @@ const getFormattedBalance = (balances, symbol = 'SWAP.HIVE') => {
   return _.get(balanceInfo, 'balance', '0');
 };
 
-(async () => {
-  const bookBot = {
-    account: 'flowmaster',
-    symbol: 'WAIV',
-    tokenPair: 'SWAP.HIVE:WAIV',
-    tradePercent: 0.2,
-  };
-  await handleBookEvent({ bookBot });
-})();
+// (async () => {
+//   const bookBot = {
+//     account: 'flowmaster',
+//     symbol: 'WAIV',
+//     tokenPair: 'SWAP.HIVE:WAIV',
+//     tradePercent: 0.2,
+//   };
+//   await handleBookEvent({ bookBot });
+// })();
