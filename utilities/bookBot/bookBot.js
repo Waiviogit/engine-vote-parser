@@ -6,6 +6,7 @@ const tokensContract = require('utilities/hiveEngine/tokensContract');
 const BigNumber = require('bignumber.js');
 
 const sendBookEvent = async ({ symbol }) => {
+  if (process.env.NODE_ENV !== 'production') return;
   const bookBot = _.find(BOOK_BOTS, (bot) => bot.symbol === symbol);
   if (!bookBot) return;
   await handleBookEvent({ bookBot });
@@ -43,15 +44,30 @@ const handleBookEvent = async ({ bookBot }) => {
     // много хотят купить по цене выше пула продаем и меняем в пуле по более выгодной цене
     // валидировать количество чтоб не влияло на пул
     // продаем symbol получаем swap
-    operations.push(getMarketSellParams({ symbol: bookBot.symbol, quantity: _.get(buyBook, '[0].quantity') }));
-    console.log('market sell');
+    const ourQuantityToSell = BigNumber(symbolBalance).times(bookBot.tradePercent).toFixed();
+    const topBookQuantity = _.get(buyBook, '[0].quantity');
+    const sellAll = BigNumber(ourQuantityToSell).gt(topBookQuantity);
+    operations.push(getMarketSellParams({
+      symbol: bookBot.symbol,
+      quantity: sellAll ? topBookQuantity : ourQuantityToSell,
+    }));
   }
 
   if (BigNumber(sellPrice).lt(poolPrice)) {
     // много хотят продать по цене ниже пула - покупаем
     // валидировать количество чтоб не влияло на пул
     // продаем swap получаем symbol
-    operations.push(getMarketBuyParams({ symbol: bookBot.symbol, quantity: _.get(sellBook, '[0].quantity') }));
+    const ourQuantityToBuy = getQuantityToBuy({
+      price: sellPrice,
+      total: BigNumber(swapBalance).times(bookBot.tradePercent).toFixed(),
+    });
+    const topBookQuantity = _.get(buyBook, '[0].quantity');
+    const buyAll = BigNumber(ourQuantityToBuy).gt(topBookQuantity);
+
+    operations.push(getMarketBuyParams({
+      symbol: bookBot.symbol,
+      quantity: buyAll ? topBookQuantity : ourQuantityToBuy,
+    }));
 
     console.log('market buy');
   }
