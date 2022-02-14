@@ -16,6 +16,7 @@ exports.ENGINE_CONTRACTS = {
   AIRDROPS: 'airdrops',
   TOKENS: 'tokens',
   COMMENTS: 'comments',
+  MARKET: 'market',
 };
 
 exports.ENGINE_CONTRACT_ACTIONS = {
@@ -41,3 +42,37 @@ exports.POST_REWARD_EVENTS = [
   this.ENGINE_EVENTS.AUTHOR_REWARD,
   this.ENGINE_EVENTS.BENEFICIARY_REWARD,
 ];
+
+exports.MARKET_CONTRACT = {
+  CANCEL: 'cancel',
+  BUY: 'buy',
+  MARKET_BUY: 'marketBuy',
+  SELL: 'sell',
+  MARKET_SELL: 'marketSell',
+  ORDER_CLOSED: 'orderClosed',
+  ORDER_EXPIRED: 'orderExpired',
+};
+
+exports.TOKENS_CONTRACT = {
+  TRANSFER: 'transfer',
+  TRANSFER_FROM_CONTRACT: 'transferFromContract',
+  TRANSFER_TO_CONTRACT: 'transferToContract',
+  ISSUE: 'issue',
+  UPDATE_PRECISION: 'updatePrecision',
+  UPDATE_URL: 'updateUrl',
+  UPDATE_METADATA: 'updateMetadata',
+  TRANSFER_OWNERSHIP: 'transferOwnership',
+  CREATE: 'create',
+  ENABLE_STAKING: 'enableStaking',
+  STAKE: 'stake',
+  STAKE_FROM_CONTRACT: 'stakeFromContract',
+  UNSTAKE: 'unstake',
+  CANCEL_UNSTAKE: 'cancelUnstake',
+  ENABLE_DELEGATION: 'enableDelegation',
+  DELEGATE: 'delegate',
+  UNDELEGATE: 'undelegate',
+  CHECK_PENDING_UNSTAKES: 'checkPendingUnstakes',
+  CHECK_PENDING_UNDELEGATIONS: 'checkPendingUndelegations',
+  UPDATE_PARAMS: 'updateParams',
+  ISSUE_TO_CONTRACT: 'issueToContract',
+};

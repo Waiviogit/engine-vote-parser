@@ -5,7 +5,7 @@ const enginePool = require('utilities/hiveEngine/marketPools');
 const tokensContract = require('utilities/hiveEngine/tokensContract');
 const BigNumber = require('bignumber.js');
 
-const sendBookEvent = async ({ symbol }) => {
+exports.sendBookEvent = async ({ symbol }) => {
   if (process.env.NODE_ENV !== 'production') return;
   const bookBot = _.find(BOOK_BOTS, (bot) => bot.symbol === symbol);
   if (!bookBot) return;
@@ -26,7 +26,8 @@ const handleBookEvent = async ({ bookBot }) => {
   const [token = {}] = await tokensContract.getTokensParams({ query: { symbol: bookBot.symbol } });
   const buyBook = await engineMarket.getBuyBook({ query: { symbol: bookBot.symbol } });
   const sellBook = await engineMarket.getSellBook({ query: { symbol: bookBot.symbol } });
-  const [dieselPool = {}] = await enginePool.getMarketPools({ query: { tokenPair: bookBot.tokenPair } });
+  const [dieselPool = {}] = await enginePool
+    .getMarketPools({ query: { tokenPair: bookBot.tokenPair } });
   if (_.isEmpty(dieselPool)) return;
 
   const buyPrice = _.get(buyBook, '[0].price', '0');
@@ -68,8 +69,6 @@ const handleBookEvent = async ({ bookBot }) => {
       symbol: bookBot.symbol,
       quantity: buyAll ? topBookQuantity : ourQuantityToBuy,
     }));
-
-    console.log('market buy');
   }
 
   // can add pool price + 0.25 percent
