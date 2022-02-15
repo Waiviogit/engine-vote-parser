@@ -1,5 +1,13 @@
 const BOOK_BEE = {
-  account: 'test',
+  account: 'pi-trader',
+  key: 'test',
+  symbol: 'WAIV',
+  tokenPair: 'SWAP.HIVE:WAIV',
+  tradePercent: 0.2,
+};
+
+const BOOK_BEE2 = {
+  account: 'dhedge-drips',
   key: 'test',
   symbol: 'WAIV',
   tokenPair: 'SWAP.HIVE:WAIV',
@@ -9,5 +17,5 @@ const BOOK_BEE = {
 exports.POOL_FEE = 0.003;
 
 exports.BOOK_BOTS = [
-  BOOK_BEE,
+  BOOK_BEE, BOOK_BEE2,
 ];

@@ -1,7 +1,6 @@
 const express = require('express');
 const logger = require('morgan');
 require('jobs');
-require('utilities/bookBot/bookBot');
 
 const { runEngineStream } = require('processor/processor');
 

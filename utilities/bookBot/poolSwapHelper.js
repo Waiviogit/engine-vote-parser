@@ -1,5 +1,4 @@
 const BigNumber = require('bignumber.js');
-const axios = require('axios');
 
 const getAmountOut = (params, amountIn, liquidityIn, liquidityOut) => {
   const amountInWithFee = BigNumber(amountIn).times(params.tradeFeeMul);
@@ -38,7 +37,7 @@ const createJSON = ({
   },
 });
 
-const getSwapOutput = ({
+exports.getSwapOutput = ({
   symbol, amountIn, pool, slippage, from, params,
 }) => {
   if (!pool) return {};
@@ -134,41 +133,3 @@ const getSwapOutput = ({
     json,
   };
 };
-
-// (async () => {
-//   const { data: { result: [params] } } = await axios.post(
-//     'https://api2.hive-engine.com/rpc/contracts',
-//     {
-//       jsonrpc: '2.0',
-//       method: 'find',
-//       params: {
-//         contract: 'marketpools',
-//         table: 'params',
-//         query: {},
-//       },
-//       id: 'ssc-mainnet-hive',
-//     },
-//   );
-//   const { data: { result: [pool] } } = await axios.post(
-//     'https://api2.hive-engine.com/rpc/contracts',
-//     {
-//       jsonrpc: '2.0',
-//       method: 'find',
-//       params: {
-//         contract: 'marketpools',
-//         table: 'pools',
-//         query: { tokenPair: 'SWAP.HIVE:WAIV' },
-//       },
-//       id: 'ssc-mainnet-hive',
-//     },
-//   );
-//   const result = await getSwapOutput({
-//     pool,
-//     params,
-//     amountIn: 10,
-//     slippage: 0.01,
-//     symbol: 'SWAP.HIVE',
-//     from: false,
-//   });
-//   console.log('yo');
-// })();

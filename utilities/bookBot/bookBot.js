@@ -4,17 +4,34 @@ const engineMarket = require('utilities/hiveEngine/market');
 const enginePool = require('utilities/hiveEngine/marketPools');
 const tokensContract = require('utilities/hiveEngine/tokensContract');
 const BigNumber = require('bignumber.js');
+const poolSwapHelper = require('./poolSwapHelper');
 
-exports.sendBookEvent = async ({ symbol }) => {
-  if (process.env.NODE_ENV !== 'production') return;
+exports.sendBookEvent = async ({ symbol, event }) => {
+  // if (process.env.NODE_ENV !== 'production') return;
   const bookBot = _.find(BOOK_BOTS, (bot) => bot.symbol === symbol);
   if (!bookBot) return;
-  await handleBookEvent({ bookBot });
+  await handleBookEvent({ bookBot, event });
+};
+
+const getSwapParams = ({ event, params, bookBot }) => {
+  const [base, quote] = bookBot.tokenPair.split(':');
+  const slippage = 0.005;
+  if (event.action === 'buy') {
+    const tradeFeeMul = BigNumber(event.quantityHive).dividedBy(params.tradeFeeMul);
+    const slippagePercent = BigNumber(event.quantityHive).times(0.005);
+
+    const amountIn = BigNumber(tradeFeeMul).plus(slippagePercent).toFixed();
+    const symbol = base === bookBot.symbol ? quote : base;
+    return {
+      amountIn,
+      symbol,
+      slippage,
+    };
+  }
 };
 
 // rc!!!
-// if action buy or sale твоей ставки ребалансировка
-const handleBookEvent = async ({ bookBot }) => {
+const handleBookEvent = async ({ bookBot, event }) => {
   const operations = [];
 
   const balances = await tokensContract.getTokenBalances({
@@ -40,6 +57,44 @@ const handleBookEvent = async ({ bookBot }) => {
 
   const nextBuyPrice = BigNumber(buyPrice).plus(getPrecisionPrice(token.precision)).toFixed();
   const nextSellPrice = BigNumber(sellPrice).minus(getPrecisionPrice(token.precision)).toFixed();
+
+  if (event) {
+    const [params = {}] = await enginePool.getMarketPoolsParams();
+    const eventPrice = BigNumber(event.quantityHive).dividedBy(event.quantityTokens).toFixed();
+    // block 14852808
+    // buy
+    const fee1 = BigNumber(event.quantityHive).dividedBy(params.tradeFeeMul).toFixed();
+    const fee2 = BigNumber(event.quantityHive).times(0.005).toFixed();
+    const sum = BigNumber(fee1).plus(fee2).toFixed();
+    // works
+    const result = poolSwapHelper.getSwapOutput({
+      // ...getSwapParams({ event, params, bookBot }),
+      symbol: 'SWAP.HIVE',
+      // + calc fee
+      // amountIn: event.quantityHive,
+      amountIn: sum,
+      pool: dieselPool,
+      slippage: 0.005,
+      from: false,
+      params,
+    });
+    const profit = BigNumber(event.quantityTokens).minus(result.amountOut).toFixed();
+    console.log();
+    // sell
+    const result2SELL = poolSwapHelper.getSwapOutput({
+      symbol: 'WAIV',
+      // + calc fee
+      amountIn: event.quantityTokens,
+      pool: dieselPool,
+      slippage: 0.005,
+      from: false,
+      params,
+    });
+    // need сколько отправить в банк
+
+    // if buy quantityTokens swap на hive (я потратил hive)
+    // if sell quantityHive swap на tokens (я потратил токен)
+  }
 
   if (BigNumber(buyPrice).gt(poolPrice)) {
     // много хотят купить по цене выше пула продаем и меняем в пуле по более выгодной цене
