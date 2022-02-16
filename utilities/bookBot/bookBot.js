@@ -13,21 +13,30 @@ exports.sendBookEvent = async ({ symbol, event }) => {
   await handleBookEvent({ bookBot, event });
 };
 
-const getSwapParams = ({ event, params, bookBot }) => {
-  const [base, quote] = bookBot.tokenPair.split(':');
+const getSwapParams = ({
+  event, params, bookBot, dieselPool,
+}) => {
+  const tokenPairArr = bookBot.tokenPair.split(':');
   const slippage = 0.005;
-  if (event.action === 'buy') {
-    const tradeFeeMul = BigNumber(event.quantityHive).dividedBy(params.tradeFeeMul);
-    const slippagePercent = BigNumber(event.quantityHive).times(0.005);
+  const tokensToProcess = event.action === 'buy'
+    ? event.quantityHive
+    : event.quantityTokens;
+  const symbol = event.action === 'buy'
+    ? _.filter(tokenPairArr, (el) => el !== bookBot.symbol)[0]
+    : bookBot.symbol;
 
-    const amountIn = BigNumber(tradeFeeMul).plus(slippagePercent).toFixed();
-    const symbol = base === bookBot.symbol ? quote : base;
-    return {
-      amountIn,
-      symbol,
-      slippage,
-    };
-  }
+  const tradeFeeMul = BigNumber(tokensToProcess).dividedBy(params.tradeFeeMul);
+  const slippagePercent = BigNumber(tokensToProcess).times(slippage);
+
+  const amountIn = BigNumber(tradeFeeMul).plus(slippagePercent).toFixed();
+  return {
+    amountIn,
+    symbol,
+    slippage,
+    params,
+    from: false,
+    pool: dieselPool,
+  };
 };
 
 // rc!!!
@@ -62,34 +71,13 @@ const handleBookEvent = async ({ bookBot, event }) => {
     const [params = {}] = await enginePool.getMarketPoolsParams();
     const eventPrice = BigNumber(event.quantityHive).dividedBy(event.quantityTokens).toFixed();
     // block 14852808
-    // buy
-    const fee1 = BigNumber(event.quantityHive).dividedBy(params.tradeFeeMul).toFixed();
-    const fee2 = BigNumber(event.quantityHive).times(0.005).toFixed();
-    const sum = BigNumber(fee1).plus(fee2).toFixed();
-    // works
-    const result = poolSwapHelper.getSwapOutput({
-      // ...getSwapParams({ event, params, bookBot }),
-      symbol: 'SWAP.HIVE',
-      // + calc fee
-      // amountIn: event.quantityHive,
-      amountIn: sum,
-      pool: dieselPool,
-      slippage: 0.005,
-      from: false,
-      params,
-    });
-    const profit = BigNumber(event.quantityTokens).minus(result.amountOut).toFixed();
-    console.log();
+    const swapOutput = poolSwapHelper.getSwapOutput(getSwapParams({
+      event, params, bookBot, dieselPool,
+    }));
+    // const profit = BigNumber(event.quantityTokens).minus(swapOutput.amountOut).toFixed();
     // sell
-    const result2SELL = poolSwapHelper.getSwapOutput({
-      symbol: 'WAIV',
-      // + calc fee
-      amountIn: event.quantityTokens,
-      pool: dieselPool,
-      slippage: 0.005,
-      from: false,
-      params,
-    });
+    operations.push(swapOutput.json);
+    console.log();
     // need сколько отправить в банк
 
     // if buy quantityTokens swap на hive (я потратил hive)
@@ -287,21 +275,11 @@ const getPrecisionPrice = (precision) => {
   }
   return string;
 };
+
 // use when buy because we know quantity we sell in waiv
-// when buy freeze swap.hive when sell freeze waiv
 const getQuantityToBuy = ({ price, total }) => BigNumber(total).dividedBy(price).toFixed();
 
 const getFormattedBalance = (balances, symbol = 'SWAP.HIVE') => {
   const balanceInfo = _.find(balances, (b) => b.symbol === 'SWAP.HIVE');
   return _.get(balanceInfo, 'balance', '0');
 };
-
-// (async () => {
-//   const bookBot = {
-//     account: 'flowmaster',
-//     symbol: 'WAIV',
-//     tokenPair: 'SWAP.HIVE:WAIV',
-//     tradePercent: 0.2,
-//   };
-//   await handleBookEvent({ bookBot });
-// })();

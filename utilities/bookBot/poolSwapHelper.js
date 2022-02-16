@@ -20,12 +20,12 @@ const calcFee = ({
   return fee;
 };
 
-const createJSON = ({
+const operationForJson = ({
   tokenPair,
   minAmountOut,
   tokenSymbol,
   tokenAmount,
-}) => JSON.stringify({
+}) => ({
   contractName: 'marketpools',
   contractAction: 'swapTokens',
   contractPayload: {
@@ -116,11 +116,11 @@ exports.getSwapOutput = ({
   const amountOutToFixed = amountOut.toFixed(precision, BigNumber.ROUND_DOWN);
   const minAmountOutToFixed = minAmountOut.minus(fee).toFixed(precision, BigNumber.ROUND_DOWN);
 
-  const json = createJSON({
+  const json = operationForJson({
     minAmountOut: minAmountOutToFixed,
     tokenPair,
     tokenSymbol,
-    tokenAmount,
+    tokenAmount: BigNumber(tokenAmount).toFixed(precision, BigNumber.ROUND_DOWN),
   });
 
   return {
