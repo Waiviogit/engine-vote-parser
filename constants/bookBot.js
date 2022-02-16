@@ -14,7 +14,7 @@ const BOOK_BEE2 = {
   tradePercent: 0.2,
 };
 
-exports.POOL_FEE = 0.003;
+exports.POOL_FEE = 0.9975;
 
 exports.BOOK_BOTS = [
   BOOK_BEE, BOOK_BEE2,
