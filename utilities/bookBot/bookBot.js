@@ -8,7 +8,7 @@ const _ = require('lodash');
 const poolSwapHelper = require('./poolSwapHelper');
 
 exports.sendBookEvent = async ({ symbol, event }) => {
-  // if (process.env.NODE_ENV !== 'production') return;
+  if (process.env.NODE_ENV !== 'production') return;
   const bookBot = _.find(BOOK_BOTS, (bot) => bot.symbol === symbol);
   if (!bookBot) return;
   await handleBookEvent({ bookBot, event });
