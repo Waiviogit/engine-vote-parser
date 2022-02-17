@@ -1,5 +1,8 @@
 const express = require('express');
 const logger = require('morgan');
+const dotenv = require('dotenv');
+
+dotenv.config({ path: `env/.env.${process.env.NODE_ENV || 'development'}` });
 require('jobs');
 
 const { runEngineStream } = require('processor/processor');

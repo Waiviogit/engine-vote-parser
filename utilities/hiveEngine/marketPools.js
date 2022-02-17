@@ -7,3 +7,11 @@ exports.getMarketPools = async ({ query }) => engineQuery({
     query,
   },
 });
+
+exports.getMarketPoolsParams = async ({ query } = { query: {} }) => engineQuery({
+  params: {
+    contract: 'marketpools',
+    table: 'params',
+    query,
+  },
+});

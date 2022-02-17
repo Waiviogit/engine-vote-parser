@@ -135,4 +135,5 @@ module.exports = {
   HIVED_NODES,
   HIVE_MIND_NODES,
   HIVE_ENGINE_NODES,
+  COMMON_RPC_NODES,
 };
