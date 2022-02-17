@@ -3,7 +3,8 @@ const BOOK_WAIV = {
   key: process.env.BOOK_BOT_WAIV_KEY,
   symbol: 'WAIV',
   tokenPair: 'SWAP.HIVE:WAIV',
-  tradePercent: 0.2,
+  percentSymbol: 0.2,
+  percentSwap: 0.2,
 };
 
 const BOOK_BEE2 = {
