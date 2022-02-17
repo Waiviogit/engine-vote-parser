@@ -28,6 +28,7 @@ exports.ENGINE_CONTRACT_ACTIONS = {
   STAKE: 'stake',
   UNSTAKE: 'unstake',
   VOTE: 'vote',
+  CANCEL_UNSTAKE: 'cancelUnstake',
 };
 
 exports.ENGINE_EVENTS = {
