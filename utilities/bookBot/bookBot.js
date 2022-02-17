@@ -32,6 +32,8 @@ const handleBookEvent = async ({ bookBot, event }) => {
   const [params = {}] = await enginePool.getMarketPoolsParams();
   if (_.isEmpty(dieselPool)) return;
 
+  const tokenPrecision = _.get(token, 'precision', 8);
+
   const buyPrice = _.get(buyBook, '[0].price', '0');
   const sellPrice = _.get(sellBook, '[0].price', '0');
   const poolPrice = getDieselPoolPrice({ dieselPool, bookBot });
@@ -67,7 +69,8 @@ const handleBookEvent = async ({ bookBot, event }) => {
 
   if (BigNumber(buyPrice).gt(poolPrice)) {
     // validate quantity to not affect pool
-    const ourQuantityToSell = BigNumber(symbolBalance).times(bookBot.percentSymbol).toFixed();
+    const ourQuantityToSell = BigNumber(symbolBalance)
+      .times(bookBot.percentSymbol).toFixed(tokenPrecision);
     const topBookQuantity = _.get(buyBook, '[0].quantity', '0');
     const sellAll = BigNumber(ourQuantityToSell).gt(topBookQuantity);
     operations.push(getMarketSellParams({
@@ -81,6 +84,7 @@ const handleBookEvent = async ({ bookBot, event }) => {
     const ourQuantityToBuy = getQuantityToBuy({
       price: sellPrice,
       total: BigNumber(swapBalance).times(bookBot.percentSwap).toFixed(),
+      precision: tokenPrecision,
     });
     const topBookQuantity = _.get(buyBook, '[0].quantity', '0');
     const buyAll = BigNumber(ourQuantityToBuy).gt(topBookQuantity);
@@ -99,16 +103,14 @@ const handleBookEvent = async ({ bookBot, event }) => {
         type: 'buy',
       }));
     }
-    const balanceWithCanceled = previousOrder
-      ? BigNumber(_.get(previousOrder, 'quantity', '0')).plus(swapBalance)
-      : swapBalance;
 
     operations.push(getLimitBuyParams({
       symbol: bookBot.symbol,
       price: nextBuyPrice,
       quantity: getQuantityToBuy({
         price: nextBuyPrice,
-        total: BigNumber(balanceWithCanceled).times(bookBot.percentSwap).toFixed(),
+        total: BigNumber(swapBalance).times(bookBot.percentSwap).toFixed(),
+        precision: tokenPrecision,
       }),
     }));
   }
@@ -124,15 +126,14 @@ const handleBookEvent = async ({ bookBot, event }) => {
         type: 'buy',
       }));
 
-      const balanceWithCanceled = BigNumber(_.get(buyBook, '[0].quantity', '0')).plus(swapBalance);
-
       if (createBuyOrderCondition) {
         operations.push(getLimitBuyParams({
           symbol: bookBot.symbol,
           price: BigNumber(previousBuyPrice).plus(getPrecisionPrice(token.precision)),
           quantity: getQuantityToBuy({
             price: BigNumber(previousBuyPrice).plus(getPrecisionPrice(token.precision)),
-            total: BigNumber(balanceWithCanceled).times(bookBot.percentSwap).toFixed(),
+            total: BigNumber(swapBalance).times(bookBot.percentSwap).toFixed(),
+            precision: tokenPrecision,
           }),
         }));
       }
@@ -141,6 +142,7 @@ const handleBookEvent = async ({ bookBot, event }) => {
     const halfOfQuantity = getQuantityToBuy({
       price: buyPrice,
       total: BigNumber(swapBalance).times(bookBot.percentSwap).dividedBy(2).toFixed(),
+      precision: tokenPrecision,
     });
     const conditionForRechargeBalance = BigNumber(currentQuantity).lt(halfOfQuantity);
     if (!conditionToCancelOrder && conditionForRechargeBalance) {
@@ -155,6 +157,7 @@ const handleBookEvent = async ({ bookBot, event }) => {
           quantity: getQuantityToBuy({
             price: buyPrice,
             total: BigNumber(swapBalance).times(bookBot.percentSwap).toFixed(),
+            precision: tokenPrecision,
           }),
         }));
       }
@@ -169,14 +172,12 @@ const handleBookEvent = async ({ bookBot, event }) => {
         type: 'sell',
       }));
     }
-    const balanceWithCanceled = previousOrder
-      ? BigNumber(_.get(previousOrder, 'quantity', '0')).plus(symbolBalance)
-      : symbolBalance;
 
     operations.push(getLimitSellParams({
       symbol: bookBot.symbol,
       price: nextSellPrice,
-      quantity: BigNumber(balanceWithCanceled).times(bookBot.percentSymbol).toFixed(),
+      quantity: BigNumber(symbolBalance)
+        .times(bookBot.percentSymbol).toFixed(tokenPrecision),
     }));
   }
   // before order check pool prices
@@ -191,17 +192,17 @@ const handleBookEvent = async ({ bookBot, event }) => {
         type: 'sell',
       }));
       if (createSellOrderCondition) {
-        const balanceWithCanceled = BigNumber(_.get(sellBook, '[0].quantity', '0')).plus(symbolBalance);
         operations.push(getLimitSellParams({
           symbol: bookBot.symbol,
           price: BigNumber(previousSellPrice).minus(getPrecisionPrice(token.precision)),
-          quantity: BigNumber(balanceWithCanceled).times(bookBot.percentSymbol).toFixed(),
+          quantity: BigNumber(symbolBalance)
+            .times(bookBot.percentSymbol).toFixed(tokenPrecision),
         }));
       }
     }
     const currentQuantity = _.get(sellBook, '[0].quantity', '0');
     const halfOfQuantity = BigNumber(symbolBalance).times(bookBot.percentSymbol)
-      .dividedBy(2).toFixed();
+      .dividedBy(2).toFixed(tokenPrecision);
 
     const conditionForRechargeBalance = BigNumber(currentQuantity).lt(halfOfQuantity);
     if (!conditionToCancelOrder && conditionForRechargeBalance) {
@@ -213,7 +214,8 @@ const handleBookEvent = async ({ bookBot, event }) => {
         operations.push(getLimitSellParams({
           symbol: bookBot.symbol,
           price: sellPrice,
-          quantity: BigNumber(symbolBalance).times(bookBot.percentSymbol).toFixed(),
+          quantity: BigNumber(symbolBalance)
+            .times(bookBot.percentSymbol).toFixed(tokenPrecision),
         }));
       }
     }
@@ -223,11 +225,12 @@ const handleBookEvent = async ({ bookBot, event }) => {
 };
 
 const broadcastToChain = async ({ bookBot, operations }) => {
-  await broadcastUtil.broadcastJson({
+  const { result } = await broadcastUtil.broadcastJson({
     json: JSON.stringify(operations),
     required_auths: [bookBot.account],
     key: bookBot.key,
   });
+  console.log(result);
 };
 
 const getSwapParams = ({
@@ -308,7 +311,7 @@ const getPrecisionPrice = (precision) => {
 };
 
 // use when buy because we know quantity we sell in token
-const getQuantityToBuy = ({ price, total }) => BigNumber(total).dividedBy(price).toFixed();
+const getQuantityToBuy = ({ price, total, precision }) => BigNumber(total).dividedBy(price).toFixed(precision);
 
 const getFormattedBalance = (balances, symbol = 'SWAP.HIVE') => {
   const balanceInfo = _.find(balances, (b) => b.symbol === 'SWAP.HIVE');

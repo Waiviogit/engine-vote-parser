@@ -36,7 +36,13 @@ const formatBookEvents = (logs) => {
   }, []);
 };
 
-const hasMarketEvents = (logs) => _.includes(_.map(_.get(logs, 'events', []), 'event'), TOKENS_CONTRACT.TRANSFER_FROM_CONTRACT);
+const hasMarketEvents = (logs) => _.some(
+  _.map(_.get(logs, 'events', []), 'event'),
+  (el) => _.includes(
+    [TOKENS_CONTRACT.TRANSFER_FROM_CONTRACT, TOKENS_CONTRACT.TRANSFER_TO_CONTRACT],
+    el,
+  ),
+);
 
 const sendBookSignal = async ({ transaction, payload, logs }) => {
   if (_.includes(MARKET_CONTRACT_BOOKBOT_EVENT, transaction.action)) {
@@ -49,9 +55,10 @@ const sendBookSignal = async ({ transaction, payload, logs }) => {
       await bookBot.sendBookEvent({ symbol: payload.symbol, event });
     }
   }
-  if (transaction.action === MARKET_CONTRACT.CANCEL) {
-    return bookBot.sendBookEvent({ symbol: payload.symbol });
-  }
+  // if (transaction.action === MARKET_CONTRACT.CANCEL) {
+  // we cant get symbol cancel
+  //   return bookBot.sendBookEvent({ symbol: payload.symbol });
+  // }
 };
 
 exports.parse = async (transaction, blockNumber) => {
