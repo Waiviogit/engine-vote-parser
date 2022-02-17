@@ -6,6 +6,7 @@ const broadcastUtil = require('utilities/hiveApi/broadcastUtil');
 const BigNumber = require('bignumber.js');
 const _ = require('lodash');
 const poolSwapHelper = require('./poolSwapHelper');
+const { MARKET_CONTRACT } = require('../../constants/hiveEngine');
 
 exports.sendBookEvent = async ({ symbol, event }) => {
   if (process.env.NODE_ENV !== 'production') return;
@@ -51,7 +52,7 @@ const handleBookEvent = async ({ bookBot, event }) => {
   const nextSellPriceFee = BigNumber(nextBuyPrice).minus(poolPriceFee).toFixed();
 
   const createBuyOrderCondition = BigNumber(nextBuyPriceFee).lt(poolPrice);
-  const createSellOrderCondition = BigNumber(nextSellPriceFee).gt(poolPrice);
+  const createSellOrderCondition = BigNumber(poolPrice).lt(nextSellPriceFee);
 
   if (event) {
     // const eventPrice = BigNumber(event.quantityHive).dividedBy(event.quantityTokens).toFixed();
@@ -100,7 +101,7 @@ const handleBookEvent = async ({ bookBot, event }) => {
     if (previousOrder) {
       operations.push(getCancelParams({
         id: _.get(previousOrder, 'txId'),
-        type: 'buy',
+        type: MARKET_CONTRACT.BUY,
       }));
     }
 
@@ -123,7 +124,7 @@ const handleBookEvent = async ({ bookBot, event }) => {
     if (conditionToCancelOrder) {
       operations.push(getCancelParams({
         id: _.get(buyBook, '[0].txId'),
-        type: 'buy',
+        type: MARKET_CONTRACT.BUY,
       }));
 
       if (createBuyOrderCondition) {
@@ -148,7 +149,7 @@ const handleBookEvent = async ({ bookBot, event }) => {
     if (!conditionToCancelOrder && conditionForRechargeBalance) {
       operations.push(getCancelParams({
         id: _.get(buyBook, '[0].txId'),
-        type: 'buy',
+        type: MARKET_CONTRACT.BUY,
       }));
       if (createBuyOrderCondition) {
         operations.push(getLimitBuyParams({
@@ -169,7 +170,7 @@ const handleBookEvent = async ({ bookBot, event }) => {
     if (previousOrder) {
       operations.push(getCancelParams({
         id: _.get(previousOrder, 'txId'),
-        type: 'sell',
+        type: MARKET_CONTRACT.SELL,
       }));
     }
 
@@ -189,7 +190,7 @@ const handleBookEvent = async ({ bookBot, event }) => {
     if (conditionToCancelOrder) {
       operations.push(getCancelParams({
         id: _.get(sellBook, '[0].txId'),
-        type: 'sell',
+        type: MARKET_CONTRACT.SELL,
       }));
       if (createSellOrderCondition) {
         operations.push(getLimitSellParams({
@@ -208,7 +209,7 @@ const handleBookEvent = async ({ bookBot, event }) => {
     if (!conditionToCancelOrder && conditionForRechargeBalance) {
       operations.push(getCancelParams({
         id: _.get(sellBook, '[0].txId'),
-        type: 'sell',
+        type: MARKET_CONTRACT.SELL,
       }));
       if (createSellOrderCondition) {
         operations.push(getLimitSellParams({
@@ -221,6 +222,11 @@ const handleBookEvent = async ({ bookBot, event }) => {
     }
   }
   if (_.isEmpty(operations)) return;
+  const cancelTransactions = handleOpenOrders({
+    operations, bookBot, buyBook, sellBook,
+  });
+  operations.unshift(...cancelTransactions);
+
   return broadcastToChain({ bookBot, operations });
 };
 
@@ -233,15 +239,51 @@ const broadcastToChain = async ({ bookBot, operations }) => {
   console.log(result);
 };
 
+const handleOpenOrders = ({
+  operations, bookBot, buyBook, sellBook,
+}) => {
+  const addOrdersToCancel = [];
+  const buyOrders = _.find(operations,
+    (operation) => operation.contractAction === MARKET_CONTRACT.BUY);
+  const sellOrders = _.find(operations,
+    (operation) => operation.contractAction === MARKET_CONTRACT.SELL);
+  const cancelOrders = _.filter(operations,
+    (operation) => operation.contractAction === MARKET_CONTRACT.CANCEL);
+
+  if (buyOrders) {
+    const myBuyOrders = _.filter(buyBook, (el) => el.account === bookBot.account);
+    const notCanceledOrders = _.filter(myBuyOrders,
+      (order) => _.includes(cancelOrders, (cancel) => cancel.contractPayload.id === order.txId));
+    for (const notCanceledOrder of notCanceledOrders) {
+      addOrdersToCancel.push(getCancelParams({
+        id: _.get(notCanceledOrder, 'txId'),
+        type: MARKET_CONTRACT.BUY,
+      }));
+    }
+  }
+  if (sellOrders) {
+    const mySellOrders = _.filter(sellBook, (el) => el.account === bookBot.account);
+    const notCanceledOrders = _.filter(mySellOrders,
+      (order) => _.includes(cancelOrders, (cancel) => cancel.contractPayload.id === order.txId));
+    for (const notCanceledOrder of notCanceledOrders) {
+      addOrdersToCancel.push(getCancelParams({
+        id: _.get(notCanceledOrder, 'txId'),
+        type: MARKET_CONTRACT.SELL,
+      }));
+    }
+  }
+  return addOrdersToCancel;
+};
+
 const getSwapParams = ({
   event, params, bookBot, dieselPool,
 }) => {
   const tokenPairArr = bookBot.tokenPair.split(':');
   const slippage = 0.005;
-  const tokensToProcess = event.action === 'buy'
+  const tokensToProcess = event.action === MARKET_CONTRACT.BUY
     ? event.quantityHive
     : event.quantityTokens;
-  const symbol = event.action === 'buy'
+  const symbol = event.action === MARKET_CONTRACT.BUY
     ? _.filter(tokenPairArr, (el) => el !== bookBot.symbol)[0]
     : bookBot.symbol;
 
@@ -269,32 +311,32 @@ const getDieselPoolPrice = ({ dieselPool, bookBot }) => {
 // limit orders
 const getLimitBuyParams = ({ symbol, quantity, price }) => ({
   contractName: 'market',
-  contractAction: 'buy',
+  contractAction: MARKET_CONTRACT.BUY,
   contractPayload: { symbol, quantity, price },
 });
 
 const getLimitSellParams = ({ symbol, quantity, price }) => ({
   contractName: 'market',
-  contractAction: 'sell',
+  contractAction: MARKET_CONTRACT.SELL,
   contractPayload: { symbol, quantity, price },
 });
 
 // market orders
 const getMarketBuyParams = ({ symbol, quantity }) => ({
   contractName: 'market',
-  contractAction: 'marketBuy',
+  contractAction: MARKET_CONTRACT.MARKET_BUY,
   contractPayload: { symbol, quantity },
 });
 
 const getMarketSellParams = ({ symbol, quantity }) => ({
   contractName: 'market',
-  contractAction: 'marketSell',
+  contractAction: MARKET_CONTRACT.MARKET_SELL,
   contractPayload: { symbol, quantity },
 });
 
 const getCancelParams = ({ type, id }) => ({
   contractName: 'market',
-  contractAction: 'cancel',
+  contractAction: MARKET_CONTRACT.CANCEL,
   contractPayload: { type, id },
 });
 
