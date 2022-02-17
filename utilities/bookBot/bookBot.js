@@ -63,7 +63,7 @@ const handleBookEvent = async ({ bookBot, event }) => {
     operations.push(swapOutput.json);
     // need transfer to bank
     // const profit = BigNumber(event.quantityTokens).minus(swapOutput.amountOut).toFixed();
-    return broadcastToChain({ bookBot, operations });
+     return broadcastToChain({ bookBot, operations });
     // if buy quantityTokens swap на hive (spent hive)
     // if sell quantityHive swap на tokens (spent token)
   }
@@ -253,7 +253,7 @@ const handleOpenOrders = ({
   if (buyOrders) {
     const myBuyOrders = _.filter(buyBook, (el) => el.account === bookBot.account);
     const notCanceledOrders = _.filter(myBuyOrders,
-      (order) => _.includes(cancelOrders, (cancel) => cancel.contractPayload.id === order.txId));
+      (order) => !_.some(cancelOrders, (cancel) => cancel.contractPayload.id === order.txId));
     for (const notCanceledOrder of notCanceledOrders) {
       addOrdersToCancel.push(getCancelParams({
         id: _.get(notCanceledOrder, 'txId'),
@@ -264,7 +264,7 @@ const handleOpenOrders = ({
   if (sellOrders) {
     const mySellOrders = _.filter(sellBook, (el) => el.account === bookBot.account);
     const notCanceledOrders = _.filter(mySellOrders,
-      (order) => _.includes(cancelOrders, (cancel) => cancel.contractPayload.id === order.txId));
+      (order) => !_.some(cancelOrders, (cancel) => cancel.contractPayload.id === order.txId));
     for (const notCanceledOrder of notCanceledOrders) {
       addOrdersToCancel.push(getCancelParams({
         id: _.get(notCanceledOrder, 'txId'),
