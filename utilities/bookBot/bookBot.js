@@ -99,12 +99,16 @@ const handleBookEvent = async ({ bookBot, event }) => {
         type: 'buy',
       }));
     }
+    const balanceWithCanceled = previousOrder
+      ? BigNumber(_.get(previousOrder, 'quantity')).plus(swapBalance)
+      : swapBalance;
+
     operations.push(getLimitBuyParams({
       symbol: bookBot.symbol,
       price: nextBuyPrice,
       quantity: getQuantityToBuy({
         price: nextBuyPrice,
-        total: BigNumber(swapBalance).times(bookBot.tradePercent).toFixed(),
+        total: BigNumber(balanceWithCanceled).times(bookBot.tradePercent).toFixed(),
       }),
     }));
   }
@@ -120,13 +124,15 @@ const handleBookEvent = async ({ bookBot, event }) => {
         type: 'buy',
       }));
 
+      const balanceWithCanceled = BigNumber(_.get(buyBook, '[0].quantity')).plus(swapBalance);
+
       if (createBuyOrderCondition) {
         operations.push(getLimitBuyParams({
           symbol: bookBot.symbol,
           price: BigNumber(previousBuyPrice).plus(getPrecisionPrice(token.precision)),
           quantity: getQuantityToBuy({
             price: BigNumber(previousBuyPrice).plus(getPrecisionPrice(token.precision)),
-            total: BigNumber(swapBalance).times(bookBot.tradePercent).toFixed(),
+            total: BigNumber(balanceWithCanceled).times(bookBot.tradePercent).toFixed(),
           }),
         }));
       }
@@ -163,10 +169,14 @@ const handleBookEvent = async ({ bookBot, event }) => {
         type: 'sell',
       }));
     }
+    const balanceWithCanceled = previousOrder
+      ? BigNumber(_.get(previousOrder, 'quantity')).plus(symbolBalance)
+      : symbolBalance;
+
     operations.push(getLimitSellParams({
       symbol: bookBot.symbol,
       price: nextSellPrice,
-      quantity: BigNumber(symbolBalance).times(bookBot.tradePercent).toFixed(),
+      quantity: BigNumber(balanceWithCanceled).times(bookBot.tradePercent).toFixed(),
     }));
   }
   // before order check pool prices
@@ -181,13 +191,13 @@ const handleBookEvent = async ({ bookBot, event }) => {
         type: 'sell',
       }));
       if (createSellOrderCondition) {
+        const balanceWithCanceled = BigNumber(_.get(sellBook, '[0].quantity')).plus(symbolBalance);
         operations.push(getLimitSellParams({
           symbol: bookBot.symbol,
           price: BigNumber(previousSellPrice).minus(getPrecisionPrice(token.precision)),
-          quantity: BigNumber(symbolBalance).times(bookBot.tradePercent).toFixed(),
+          quantity: BigNumber(balanceWithCanceled).times(bookBot.tradePercent).toFixed(),
         }));
       }
-      // take into account frozen sum
     }
     const currentQuantity = _.get(sellBook, '[0].quantity', '0');
     const halfOfQuantity = BigNumber(symbolBalance).times(bookBot.tradePercent)
