@@ -63,7 +63,7 @@ const handleBookEvent = async ({ bookBot, event }) => {
     operations.push(swapOutput.json);
     // need transfer to bank
     // const profit = BigNumber(event.quantityTokens).minus(swapOutput.amountOut).toFixed();
-     return broadcastToChain({ bookBot, operations });
+    return broadcastToChain({ bookBot, operations });
     // if buy quantityTokens swap на hive (spent hive)
     // if sell quantityHive swap на tokens (spent token)
   }
