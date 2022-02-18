@@ -9,7 +9,6 @@ const poolSwapHelper = require('./poolSwapHelper');
 const { MARKET_CONTRACT } = require('../../constants/hiveEngine');
 
 exports.sendBookEvent = async ({ symbol, event }) => {
-  if (process.env.NODE_ENV !== 'production') return;
   const bookBot = _.find(BOOK_BOTS, (bot) => bot.symbol === symbol);
   if (!bookBot) return;
   await handleBookEvent({ bookBot, event });
@@ -353,7 +352,8 @@ const getPrecisionPrice = (precision) => {
 };
 
 // use when buy because we know quantity we sell in token
-const getQuantityToBuy = ({ price, total, precision }) => BigNumber(total).dividedBy(price).toFixed(precision);
+const getQuantityToBuy = ({ price, total, precision }) => BigNumber(total)
+  .dividedBy(price).toFixed(precision);
 
 const getFormattedBalance = (balances, symbol = 'SWAP.HIVE') => {
   const balanceInfo = _.find(balances, (b) => b.symbol === symbol);
