@@ -11,3 +11,9 @@ exports.getLatestBlockInfo = async () => engineQuery({
   method: 'getLatestBlockInfo',
   endpoint: '/blockchain',
 });
+
+exports.getTransactionInfo = async ({ params }) => engineQuery({
+  method: 'getTransactionInfo',
+  endpoint: '/blockchain',
+  params,
+});
