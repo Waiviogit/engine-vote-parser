@@ -49,7 +49,7 @@ const handleBookEvent = async ({ bookBot, event }) => {
   const nextSellPrice = BigNumber(sellPrice).minus(getPrecisionPrice(token.precision)).toFixed();
 
   const nextBuyPriceFee = BigNumber(nextBuyPrice).plus(poolPriceFee).toFixed();
-  const nextSellPriceFee = BigNumber(nextBuyPrice).minus(poolPriceFee).toFixed();
+  const nextSellPriceFee = BigNumber(nextSellPrice).minus(poolPriceFee).toFixed();
 
   const createBuyOrderCondition = BigNumber(nextBuyPriceFee).lt(poolPrice);
   const createSellOrderCondition = BigNumber(poolPrice).lt(nextSellPriceFee);
