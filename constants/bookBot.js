@@ -5,6 +5,7 @@ const BOOK_WAIV = {
   tokenPair: 'SWAP.HIVE:WAIV',
   percentSymbol: 0.2,
   percentSwap: 0.2,
+  minRC: 20,
 };
 
 exports.POOL_FEE = 0.9975;

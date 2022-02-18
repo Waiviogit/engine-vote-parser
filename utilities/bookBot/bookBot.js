@@ -5,8 +5,10 @@ const tokensContract = require('utilities/hiveEngine/tokensContract');
 const broadcastUtil = require('utilities/hiveApi/broadcastUtil');
 const BigNumber = require('bignumber.js');
 const _ = require('lodash');
+const { MARKET_CONTRACT } = require('constants/hiveEngine');
+const { calculateRcPercent } = require('utilities/hiveApi/hiveOperations');
 const poolSwapHelper = require('./poolSwapHelper');
-const { MARKET_CONTRACT } = require('../../constants/hiveEngine');
+const bookEmitter = require('./bookEvents');
 
 exports.sendBookEvent = async ({ symbol, event }) => {
   const bookBot = _.find(BOOK_BOTS, (bot) => bot.symbol === symbol);
@@ -14,9 +16,10 @@ exports.sendBookEvent = async ({ symbol, event }) => {
   await handleBookEvent({ bookBot, event });
 };
 
-// rc!!!
 const handleBookEvent = async ({ bookBot, event }) => {
   const operations = [];
+  const { result: rcLeft } = await calculateRcPercent(bookBot.account);
+  if (rcLeft) handleBotRc({ rcLeft, bookBot });
 
   const balances = await tokensContract.getTokenBalances({
     query: { symbol: { $in: ['SWAP.HIVE', bookBot.symbol] }, account: bookBot.account },
@@ -237,6 +240,11 @@ const broadcastToChain = async ({ bookBot, operations }) => {
     key: bookBot.key,
   });
   console.log(result);
+};
+
+const handleBotRc = ({ rcLeft, bookBot }) => {
+  if (BigNumber(rcLeft).gt(bookBot.minRC)) return;
+  bookEmitter.emit('bot-rc', { account: bookBot.account, rc: rcLeft });
 };
 
 const handleOpenOrders = ({
