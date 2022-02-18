@@ -24,15 +24,18 @@ const handleBookEvent = async ({ bookBot, event }) => {
   const swapBalance = getFormattedBalance(balances);
   const symbolBalance = getFormattedBalance(balances, bookBot.symbol);
 
-  const [token = {}] = await tokensContract.getTokensParams({ query: { symbol: bookBot.symbol } });
+  const token = await tokensContract.getTokensParams({ query: { symbol: bookBot.symbol } });
   const buyBook = await engineMarket.getBuyBook({ query: { symbol: bookBot.symbol } });
   const sellBook = await engineMarket.getSellBook({ query: { symbol: bookBot.symbol } });
-  const [dieselPool = {}] = await enginePool
+  const marketPools = await enginePool
     .getMarketPools({ query: { tokenPair: bookBot.tokenPair } });
-  const [params = {}] = await enginePool.getMarketPoolsParams();
+  const params = await enginePool.getMarketPoolsParams();
+  const tradeFeeMul = _.get(params, '[0].tradeFeeMul', POOL_FEE);
+
+  const dieselPool = _.get(marketPools, '[0]');
   if (_.isEmpty(dieselPool)) return;
 
-  const tokenPrecision = _.get(token, 'precision', 8);
+  const tokenPrecision = _.get(token, '[0].precision', 8);
 
   const buyPrice = _.get(buyBook, '[0].price', '0');
   const sellPrice = _.get(sellBook, '[0].price', '0');
@@ -40,12 +43,10 @@ const handleBookEvent = async ({ bookBot, event }) => {
   const buyPriceIsMine = _.get(buyBook, '[0].account') === bookBot.account;
   const sellPriceIsMine = _.get(sellBook, '[0].account') === bookBot.account;
 
-  const poolPriceFee = BigNumber(poolPrice).times(
-    BigNumber(1).minus(_.get(params, 'tradeFeeMul', POOL_FEE)),
-  ).toFixed();
+  const poolPriceFee = BigNumber(poolPrice).times(BigNumber(1).minus(tradeFeeMul)).toFixed();
 
-  const nextBuyPrice = BigNumber(buyPrice).plus(getPrecisionPrice(token.precision)).toFixed();
-  const nextSellPrice = BigNumber(sellPrice).minus(getPrecisionPrice(token.precision)).toFixed();
+  const nextBuyPrice = BigNumber(buyPrice).plus(getPrecisionPrice(tokenPrecision)).toFixed();
+  const nextSellPrice = BigNumber(sellPrice).minus(getPrecisionPrice(tokenPrecision)).toFixed();
 
   const nextBuyPriceFee = BigNumber(nextBuyPrice).plus(poolPriceFee).toFixed();
   const nextSellPriceFee = BigNumber(nextSellPrice).minus(poolPriceFee).toFixed();
@@ -57,7 +58,7 @@ const handleBookEvent = async ({ bookBot, event }) => {
     // const eventPrice = BigNumber(event.quantityHive).dividedBy(event.quantityTokens).toFixed();
     // block 14852808
     const swapOutput = poolSwapHelper.getSwapOutput(getSwapParams({
-      event, params, bookBot, dieselPool,
+      event, bookBot, dieselPool, tradeFeeMul,
     }));
     operations.push(swapOutput.json);
     // need transfer to bank
@@ -118,7 +119,7 @@ const handleBookEvent = async ({ bookBot, event }) => {
   if (buyPriceIsMine) {
     const previousBuyPrice = _.get(buyBook, '[1].price', '0');
     const conditionToCancelOrder = BigNumber(buyPrice).minus(previousBuyPrice)
-      .gt(getPrecisionPrice(token.precision));
+      .gt(getPrecisionPrice(tokenPrecision));
 
     if (conditionToCancelOrder) {
       operations.push(getCancelParams({
@@ -129,9 +130,9 @@ const handleBookEvent = async ({ bookBot, event }) => {
       if (createBuyOrderCondition) {
         operations.push(getLimitBuyParams({
           symbol: bookBot.symbol,
-          price: BigNumber(previousBuyPrice).plus(getPrecisionPrice(token.precision)),
+          price: BigNumber(previousBuyPrice).plus(getPrecisionPrice(tokenPrecision)),
           quantity: getQuantityToBuy({
-            price: BigNumber(previousBuyPrice).plus(getPrecisionPrice(token.precision)),
+            price: BigNumber(previousBuyPrice).plus(getPrecisionPrice(tokenPrecision)),
             total: BigNumber(swapBalance).times(bookBot.percentSwap).toFixed(),
             precision: tokenPrecision,
           }),
@@ -184,7 +185,7 @@ const handleBookEvent = async ({ bookBot, event }) => {
   if (sellPriceIsMine) {
     const previousSellPrice = _.get(sellBook, '[1].price', '0');
     const conditionToCancelOrder = BigNumber(previousSellPrice).minus(sellPrice)
-      .gt(getPrecisionPrice(token.precision));
+      .gt(getPrecisionPrice(tokenPrecision));
 
     if (conditionToCancelOrder) {
       operations.push(getCancelParams({
@@ -194,7 +195,7 @@ const handleBookEvent = async ({ bookBot, event }) => {
       if (createSellOrderCondition) {
         operations.push(getLimitSellParams({
           symbol: bookBot.symbol,
-          price: BigNumber(previousSellPrice).minus(getPrecisionPrice(token.precision)),
+          price: BigNumber(previousSellPrice).minus(getPrecisionPrice(tokenPrecision)),
           quantity: BigNumber(symbolBalance)
             .times(bookBot.percentSymbol).toFixed(tokenPrecision),
         }));
@@ -275,7 +276,7 @@ const handleOpenOrders = ({
 };
 
 const getSwapParams = ({
-  event, params, bookBot, dieselPool,
+  event, bookBot, dieselPool, tradeFeeMul,
 }) => {
   const tokenPairArr = bookBot.tokenPair.split(':');
   const slippage = 0.005;
@@ -286,15 +287,15 @@ const getSwapParams = ({
     ? _.filter(tokenPairArr, (el) => el !== bookBot.symbol)[0]
     : bookBot.symbol;
 
-  const tradeFeeMul = BigNumber(tokensToProcess).dividedBy(params.tradeFeeMul);
+  const tradeFee = BigNumber(tokensToProcess).dividedBy(tradeFeeMul);
   const slippagePercent = BigNumber(tokensToProcess).times(slippage);
 
-  const amountIn = BigNumber(tradeFeeMul).plus(slippagePercent).toFixed();
+  const amountIn = BigNumber(tradeFee).plus(slippagePercent).toFixed();
   return {
     amountIn,
     symbol,
     slippage,
-    params,
+    tradeFeeMul,
     from: false,
     pool: dieselPool,
   };

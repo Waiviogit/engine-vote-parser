@@ -1,7 +1,9 @@
 const BigNumber = require('bignumber.js');
 
-const getAmountOut = (params, amountIn, liquidityIn, liquidityOut) => {
-  const amountInWithFee = BigNumber(amountIn).times(params.tradeFeeMul);
+const getAmountOut = ({
+  amountIn, liquidityIn, liquidityOut, tradeFeeMul,
+}) => {
+  const amountInWithFee = BigNumber(amountIn).times(tradeFeeMul);
   const num = BigNumber(amountInWithFee).times(liquidityOut);
   const den = BigNumber(liquidityIn).plus(amountInWithFee);
   const amountOut = num.dividedBy(den);
@@ -10,10 +12,12 @@ const getAmountOut = (params, amountIn, liquidityIn, liquidityOut) => {
 };
 
 const calcFee = ({
-  params, tokenAmount, liquidityIn, liquidityOut, precision,
+  tokenAmount, liquidityIn, liquidityOut, precision, tradeFeeMul,
 }) => {
-  const tokenAmountAdjusted = BigNumber(getAmountOut(params, tokenAmount, liquidityIn, liquidityOut));
-  const fee = BigNumber(tokenAmountAdjusted).dividedBy(params.tradeFeeMul)
+  const tokenAmountAdjusted = BigNumber(getAmountOut({
+    tokenAmount, liquidityIn, liquidityOut,
+  }));
+  const fee = BigNumber(tokenAmountAdjusted).dividedBy(tradeFeeMul)
     .minus(tokenAmountAdjusted)
     .toFixed(precision, BigNumber.ROUND_HALF_UP);
 
@@ -38,7 +42,7 @@ const operationForJson = ({
 });
 
 exports.getSwapOutput = ({
-  symbol, amountIn, pool, slippage, from, params,
+  symbol, amountIn, pool, slippage, from, tradeFeeMul,
 }) => {
   if (!pool) return {};
   let liquidityIn;
@@ -106,7 +110,7 @@ exports.getSwapOutput = ({
   const slippageAmount = from ? amountOut.times(slippage) : BigNumber(amountIn).times(slippage);
 
   const fee = calcFee({
-    params, tokenAmount, liquidityIn, liquidityOut, precision,
+    tokenAmount, liquidityIn, liquidityOut, precision, tradeFeeMul,
   });
   const minAmountOut = from
     ? amountOut.minus(slippageAmount)
