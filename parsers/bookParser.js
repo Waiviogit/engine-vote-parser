@@ -43,7 +43,10 @@ const handleMarketEvents = ({ market, usualEvent, tradeEvent }) => {
     if (!_.includes(_.map(BOOK_BOTS, 'symbol'), payload.symbol)) continue;
     const botEvents = formatBookEvents(logs);
     if (_.isEmpty(botEvents) && !hasMarketEvents(logs)) continue;
-    if (_.isEmpty(botEvents) && hasMarketEvents(logs)) usualEvent.push({ symbol: payload.symbol });
+    if (_.isEmpty(botEvents) && hasMarketEvents(logs)) {
+      usualEvent.push({ symbol: payload.symbol });
+      continue;
+    }
     for (const event of botEvents) {
       tradeEvent.push({ symbol: payload.symbol, event });
     }
