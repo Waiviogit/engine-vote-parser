@@ -356,6 +356,6 @@ const getPrecisionPrice = (precision) => {
 const getQuantityToBuy = ({ price, total, precision }) => BigNumber(total).dividedBy(price).toFixed(precision);
 
 const getFormattedBalance = (balances, symbol = 'SWAP.HIVE') => {
-  const balanceInfo = _.find(balances, (b) => b.symbol === 'SWAP.HIVE');
+  const balanceInfo = _.find(balances, (b) => b.symbol === symbol);
   return _.get(balanceInfo, 'balance', '0');
 };
