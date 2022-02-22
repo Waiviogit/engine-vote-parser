@@ -1,4 +1,6 @@
 const BigNumber = require('bignumber.js');
+const enginePool = require('utilities/hiveEngine/marketPools');
+const { MARKET_CONTRACT } = require('constants/hiveEngine');
 
 const getAmountOut = ({
   amountIn, liquidityIn, liquidityOut, tradeFeeMul,
@@ -15,7 +17,7 @@ const calcFee = ({
   tokenAmount, liquidityIn, liquidityOut, precision, tradeFeeMul,
 }) => {
   const tokenAmountAdjusted = BigNumber(getAmountOut({
-    tokenAmount, liquidityIn, liquidityOut,
+    amountIn: tokenAmount, liquidityIn, liquidityOut, tradeFeeMul,
   }));
   const fee = BigNumber(tokenAmountAdjusted).dividedBy(tradeFeeMul)
     .minus(tokenAmountAdjusted)
@@ -136,4 +138,48 @@ exports.getSwapOutput = ({
     newPrices,
     json,
   };
+};
+
+exports.maxQuantityBookOrder = ({
+  pool, type, price, tradeFeeMul,
+}) => {
+  const slippage = 0.005;
+  const {
+    baseQuantity, quoteQuantity, tokenPair, precision,
+  } = pool;
+  const [baseSymbol] = tokenPair.split(':');
+  const hiveQuantity = baseSymbol === 'SWAP.HIVE'
+    ? baseQuantity
+    : quoteQuantity;
+  const symbolQuantity = baseSymbol === 'SWAP.HIVE'
+    ? quoteQuantity
+    : baseQuantity;
+
+  const poolPrice = BigNumber(hiveQuantity).dividedBy(symbolQuantity).toFixed(precision);
+
+  if (type === MARKET_CONTRACT.SELL) {
+    const priceImpact = BigNumber(100).minus(
+      BigNumber(poolPrice).times(100).dividedBy(price),
+    ).toFixed();
+    const quantity = BigNumber(priceImpact).times(hiveQuantity).dividedBy(100).toFixed(precision);
+    const { minAmountOut } = this.getSwapOutput({
+      pool,
+      symbol: 'SWAP.HIVE',
+      from: true,
+      tradeFeeMul,
+      slippage,
+      amountIn: quantity,
+    });
+    return minAmountOut;
+    // after => swap from swap.hive to waiv
+  }
+
+  if (type === MARKET_CONTRACT.BUY) {
+    const priceImpact = BigNumber(100).minus(
+      BigNumber(price).times(100).dividedBy(poolPrice),
+    ).toFixed();
+    return BigNumber(priceImpact).times(symbolQuantity).dividedBy(100).toFixed(precision);
+    // after => swap from waiv to swap.hive
+  }
+  return '0';
 };

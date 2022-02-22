@@ -57,6 +57,19 @@ const handleBookEvent = async ({ bookBot, event }) => {
   const createBuyOrderCondition = BigNumber(nextBuyPriceFee).lt(poolPrice);
   const createSellOrderCondition = BigNumber(poolPrice).lt(nextSellPriceFee);
 
+  const maxBuyQuantity = poolSwapHelper.maxQuantityBookOrder({
+    pool: dieselPool,
+    type: MARKET_CONTRACT.BUY,
+    price: nextBuyPrice,
+    tradeFeeMul,
+  });
+  const maxSellQuantity = poolSwapHelper.maxQuantityBookOrder({
+    pool: dieselPool,
+    type: MARKET_CONTRACT.SELL,
+    price: nextSellPrice,
+    tradeFeeMul,
+  });
+
   if (event) {
     // const eventPrice = BigNumber(event.quantityHive).dividedBy(event.quantityTokens).toFixed();
     // block 14852808
@@ -84,18 +97,22 @@ const handleBookEvent = async ({ bookBot, event }) => {
   }
 
   if (BigNumber(sellPrice).lt(poolPrice)) {
-    // validate quantity to not affect pool
     const ourQuantityToBuy = getQuantityToBuy({
       price: sellPrice,
       total: BigNumber(swapBalance).times(bookBot.percentSwap).toFixed(),
       precision: tokenPrecision,
     });
-    const topBookQuantity = _.get(buyBook, '[0].quantity', '0');
-    const buyAll = BigNumber(ourQuantityToBuy).gt(topBookQuantity);
 
-    operations.push(getMarketBuyParams({
+    const finalQuantity = orderQuantity({
+      ourQuantity: ourQuantityToBuy, maxQuantity: maxBuyQuantity,
+    });
+
+    const topBookQuantity = _.get(buyBook, '[0].quantity', '0');
+    const buyAll = BigNumber(finalQuantity).gt(topBookQuantity);
+
+    orderCondition(finalQuantity) && operations.push(getMarketBuyParams({
       symbol: bookBot.symbol,
-      quantity: buyAll ? topBookQuantity : ourQuantityToBuy,
+      quantity: buyAll ? topBookQuantity : finalQuantity,
     }));
   }
 
@@ -107,15 +124,20 @@ const handleBookEvent = async ({ bookBot, event }) => {
         type: MARKET_CONTRACT.BUY,
       }));
     }
+    const ourQuantityToBuy = getQuantityToBuy({
+      price: nextBuyPrice,
+      total: BigNumber(swapBalance).times(bookBot.percentSwap).toFixed(),
+      precision: tokenPrecision,
+    });
 
-    operations.push(getLimitBuyParams({
+    const finalQuantity = orderQuantity({
+      ourQuantity: ourQuantityToBuy, maxQuantity: maxBuyQuantity,
+    });
+
+    orderCondition(finalQuantity) && operations.push(getLimitBuyParams({
       symbol: bookBot.symbol,
       price: nextBuyPrice,
-      quantity: getQuantityToBuy({
-        price: nextBuyPrice,
-        total: BigNumber(swapBalance).times(bookBot.percentSwap).toFixed(),
-        precision: tokenPrecision,
-      }),
+      quantity: finalQuantity,
     }));
   }
   // before order check pool prices
@@ -131,14 +153,20 @@ const handleBookEvent = async ({ bookBot, event }) => {
       }));
 
       if (createBuyOrderCondition) {
-        operations.push(getLimitBuyParams({
+        const ourQuantityToBuy = getQuantityToBuy({
+          price: BigNumber(previousBuyPrice).plus(getPrecisionPrice(tokenPrecision)),
+          total: BigNumber(swapBalance).times(bookBot.percentSwap).toFixed(),
+          precision: tokenPrecision,
+        });
+
+        const finalQuantity = orderQuantity({
+          ourQuantity: ourQuantityToBuy, maxQuantity: maxBuyQuantity,
+        });
+
+        orderCondition(finalQuantity) && operations.push(getLimitBuyParams({
           symbol: bookBot.symbol,
           price: BigNumber(previousBuyPrice).plus(getPrecisionPrice(tokenPrecision)),
-          quantity: getQuantityToBuy({
-            price: BigNumber(previousBuyPrice).plus(getPrecisionPrice(tokenPrecision)),
-            total: BigNumber(swapBalance).times(bookBot.percentSwap).toFixed(),
-            precision: tokenPrecision,
-          }),
+          quantity: finalQuantity,
         }));
       }
     }
@@ -155,14 +183,20 @@ const handleBookEvent = async ({ bookBot, event }) => {
         type: MARKET_CONTRACT.BUY,
       }));
       if (createBuyOrderCondition) {
-        operations.push(getLimitBuyParams({
+        const ourQuantityToBuy = getQuantityToBuy({
+          price: buyPrice,
+          total: BigNumber(swapBalance).times(bookBot.percentSwap).toFixed(),
+          precision: tokenPrecision,
+        });
+
+        const finalQuantity = orderQuantity({
+          ourQuantity: ourQuantityToBuy, maxQuantity: maxBuyQuantity,
+        });
+
+        orderCondition(finalQuantity) && operations.push(getLimitBuyParams({
           symbol: bookBot.symbol,
           price: buyPrice,
-          quantity: getQuantityToBuy({
-            price: buyPrice,
-            total: BigNumber(swapBalance).times(bookBot.percentSwap).toFixed(),
-            precision: tokenPrecision,
-          }),
+          quantity: finalQuantity,
         }));
       }
     }
@@ -282,6 +316,12 @@ const handleOpenOrders = ({
   }
   return addOrdersToCancel;
 };
+
+const orderQuantity = ({ ourQuantity, maxQuantity }) => (BigNumber(ourQuantity).gt(maxQuantity)
+  ? maxQuantity
+  : ourQuantity);
+
+const orderCondition = (quantity) => BigNumber(quantity).gt(0);
 
 const getSwapParams = ({
   event, bookBot, dieselPool, tradeFeeMul,
