@@ -1,5 +1,4 @@
 const BigNumber = require('bignumber.js');
-const enginePool = require('utilities/hiveEngine/marketPools');
 const { MARKET_CONTRACT } = require('constants/hiveEngine');
 
 const getAmountOut = ({

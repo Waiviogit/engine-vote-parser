@@ -19,7 +19,6 @@ exports.sendBookEvent = async ({ symbol, event }) => {
 const handleBookEvent = async ({ bookBot, event }) => {
   const operations = [];
   const { result: rcLeft } = await calculateRcPercent(bookBot.account);
-  if (rcLeft) handleBotRc({ rcLeft, bookBot });
 
   const balances = await tokensContract.getTokenBalances({
     query: { symbol: { $in: ['SWAP.HIVE', bookBot.symbol] }, account: bookBot.account },
@@ -69,6 +68,13 @@ const handleBookEvent = async ({ bookBot, event }) => {
     price: nextSellPrice,
     tradeFeeMul,
   });
+
+  if (rcLeft && !event) {
+    const { exit } = handleBotRc({
+      rcLeft, bookBot, buyBook, sellBook,
+    });
+    if (exit) return;
+  }
 
   if (event) {
     // const eventPrice = BigNumber(event.quantityHive).dividedBy(event.quantityTokens).toFixed();
@@ -298,9 +304,30 @@ const broadcastToChain = async ({ bookBot, operations }) => {
   console.log(result);
 };
 
-const handleBotRc = ({ rcLeft, bookBot }) => {
-  if (BigNumber(rcLeft).gt(bookBot.minRC)) return;
-  bookEmitter.emit('bot-rc', { account: bookBot.account, rc: rcLeft });
+const handleBotRc = ({
+  rcLeft, bookBot, buyBook, sellBook,
+}) => {
+  const buyPosition = _.findIndex(buyBook, (order) => order.account === bookBot.account);
+  const sellPosition = _.findIndex(sellBook, (order) => order.account === bookBot.account);
+
+  const secondPositionCondition = BigNumber(buyPosition).lte(1) && BigNumber(sellPosition).lte(1);
+  const thirdPositionCondition = BigNumber(buyPosition).lte(2) && BigNumber(sellPosition).lte(2);
+  const fourthPositionCondition = BigNumber(buyPosition).lte(3) && BigNumber(sellPosition).lte(3);
+
+  if (BigNumber(rcLeft).lt(10)) {
+    return { exit: fourthPositionCondition };
+  }
+  if (BigNumber(rcLeft).lt(20)) {
+    bookEmitter.emit('bot-rc', { account: bookBot.account, rc: rcLeft });
+    return { exit: thirdPositionCondition };
+  }
+  if (BigNumber(rcLeft).lt(30)) {
+    return { exit: thirdPositionCondition };
+  }
+  if (BigNumber(rcLeft).lt(50)) {
+    return { exit: secondPositionCondition };
+  }
+  return { exit: false };
 };
 
 const handleOpenOrders = ({
