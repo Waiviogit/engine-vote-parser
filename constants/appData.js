@@ -119,6 +119,7 @@ const telegramApi = {
   HOST: 'https://waiviodev.com',
   BASE_URL: '/telegram-api',
   SENTRY_ERROR: '/sentry',
+  BOT_RC: '/bot-rc',
 };
 
 const BLOCK_REQ_MAX_TIME = 1000;

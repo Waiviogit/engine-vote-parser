@@ -1,7 +1,10 @@
 const BigNumber = require('bignumber.js');
+const { MARKET_CONTRACT } = require('constants/hiveEngine');
 
-const getAmountOut = (params, amountIn, liquidityIn, liquidityOut) => {
-  const amountInWithFee = BigNumber(amountIn).times(params.tradeFeeMul);
+const getAmountOut = ({
+  amountIn, liquidityIn, liquidityOut, tradeFeeMul,
+}) => {
+  const amountInWithFee = BigNumber(amountIn).times(tradeFeeMul);
   const num = BigNumber(amountInWithFee).times(liquidityOut);
   const den = BigNumber(liquidityIn).plus(amountInWithFee);
   const amountOut = num.dividedBy(den);
@@ -10,10 +13,12 @@ const getAmountOut = (params, amountIn, liquidityIn, liquidityOut) => {
 };
 
 const calcFee = ({
-  params, tokenAmount, liquidityIn, liquidityOut, precision,
+  tokenAmount, liquidityIn, liquidityOut, precision, tradeFeeMul,
 }) => {
-  const tokenAmountAdjusted = BigNumber(getAmountOut(params, tokenAmount, liquidityIn, liquidityOut));
-  const fee = BigNumber(tokenAmountAdjusted).dividedBy(params.tradeFeeMul)
+  const tokenAmountAdjusted = BigNumber(getAmountOut({
+    amountIn: tokenAmount, liquidityIn, liquidityOut, tradeFeeMul,
+  }));
+  const fee = BigNumber(tokenAmountAdjusted).dividedBy(tradeFeeMul)
     .minus(tokenAmountAdjusted)
     .toFixed(precision, BigNumber.ROUND_HALF_UP);
 
@@ -38,7 +43,7 @@ const operationForJson = ({
 });
 
 exports.getSwapOutput = ({
-  symbol, amountIn, pool, slippage, from, params,
+  symbol, amountIn, pool, slippage, from, tradeFeeMul,
 }) => {
   if (!pool) return {};
   let liquidityIn;
@@ -106,7 +111,7 @@ exports.getSwapOutput = ({
   const slippageAmount = from ? amountOut.times(slippage) : BigNumber(amountIn).times(slippage);
 
   const fee = calcFee({
-    params, tokenAmount, liquidityIn, liquidityOut, precision,
+    tokenAmount, liquidityIn, liquidityOut, precision, tradeFeeMul,
   });
   const minAmountOut = from
     ? amountOut.minus(slippageAmount)
@@ -132,4 +137,48 @@ exports.getSwapOutput = ({
     newPrices,
     json,
   };
+};
+
+exports.maxQuantityBookOrder = ({
+  pool, type, price, tradeFeeMul,
+}) => {
+  const slippage = 0.005;
+  const {
+    baseQuantity, quoteQuantity, tokenPair, precision,
+  } = pool;
+  const [baseSymbol] = tokenPair.split(':');
+  const hiveQuantity = baseSymbol === 'SWAP.HIVE'
+    ? baseQuantity
+    : quoteQuantity;
+  const symbolQuantity = baseSymbol === 'SWAP.HIVE'
+    ? quoteQuantity
+    : baseQuantity;
+
+  const poolPrice = BigNumber(hiveQuantity).dividedBy(symbolQuantity).toFixed(precision);
+
+  if (type === MARKET_CONTRACT.SELL) {
+    const priceImpact = BigNumber(100).minus(
+      BigNumber(poolPrice).times(100).dividedBy(price),
+    ).toFixed();
+    const quantity = BigNumber(priceImpact).times(hiveQuantity).dividedBy(100).toFixed(precision);
+    const { minAmountOut } = this.getSwapOutput({
+      pool,
+      symbol: 'SWAP.HIVE',
+      from: true,
+      tradeFeeMul,
+      slippage,
+      amountIn: quantity,
+    });
+    return minAmountOut;
+    // after => swap from swap.hive to waiv
+  }
+
+  if (type === MARKET_CONTRACT.BUY) {
+    const priceImpact = BigNumber(100).minus(
+      BigNumber(price).times(100).dividedBy(poolPrice),
+    ).toFixed();
+    return BigNumber(priceImpact).times(symbolQuantity).dividedBy(100).toFixed(precision);
+    // after => swap from waiv to swap.hive
+  }
+  return '0';
 };
