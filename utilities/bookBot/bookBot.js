@@ -69,6 +69,12 @@ const handleBookEvent = async ({ bookBot, event }) => {
     tradeFeeMul,
   });
 
+  const marketBuyCondition = BigNumber(sellPrice).lt(poolPrice)
+    && !BigNumber(sellPrice).eq(0);
+
+  const marketSellCondition = BigNumber(buyPrice).gt(poolPrice)
+    && !BigNumber(buyPrice).eq(0);
+
   if (rcLeft && !event) {
     const { exit } = handleBotRc({
       rcLeft, bookBot, buyBook, sellBook,
@@ -90,7 +96,7 @@ const handleBookEvent = async ({ bookBot, event }) => {
     // if sell quantityHive swap на tokens (spent token)
   }
 
-  if (BigNumber(buyPrice).gt(poolPrice)) {
+  if (marketSellCondition) {
     const ourQuantityToSell = BigNumber(symbolBalance)
       .times(bookBot.percentSymbol).toFixed(tokenPrecision);
 
@@ -107,7 +113,7 @@ const handleBookEvent = async ({ bookBot, event }) => {
     }));
   }
 
-  if (BigNumber(sellPrice).lt(poolPrice)) {
+  if (marketBuyCondition) {
     const ourQuantityToBuy = getQuantityToBuy({
       price: sellPrice,
       total: BigNumber(swapBalance).times(bookBot.percentSwap).toFixed(),
@@ -118,12 +124,16 @@ const handleBookEvent = async ({ bookBot, event }) => {
       ourQuantity: ourQuantityToBuy, maxQuantity: maxBuyQuantity,
     });
 
-    const topBookQuantity = _.get(buyBook, '[0].quantity', '0');
-    const buyAll = BigNumber(finalQuantity).gt(topBookQuantity);
+    const topBookQuantity = _.get(sellBook, '[0].quantity', '0');
+    const topBookPrice = _.get(sellBook, '[0].quantity', '0');
+    const hiveQuantity = BigNumber(topBookQuantity).times(topBookPrice).toFixed(tokenPrecision);
 
-    orderCondition(finalQuantity) && operations.push(getMarketBuyParams({
+    const buyAll = BigNumber(finalQuantity).gt(hiveQuantity);
+    const conditionToOrder = orderCondition(finalQuantity) && orderCondition(hiveQuantity);
+
+    conditionToOrder && operations.push(getMarketBuyParams({
       symbol: bookBot.symbol,
-      quantity: buyAll ? topBookQuantity : finalQuantity,
+      quantity: buyAll ? hiveQuantity : finalQuantity,
     }));
   }
 
