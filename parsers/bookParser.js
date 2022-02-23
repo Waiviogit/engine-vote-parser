@@ -3,10 +3,9 @@ const {
   ENGINE_CONTRACTS, MARKET_CONTRACT, MARKET_CONTRACT_BOOKBOT_EVENT, TOKENS_CONTRACT,
 } = require('constants/hiveEngine');
 const jsonHelper = require('utilities/helpers/jsonHelper');
-const { BOOK_BOTS, BOOK_DELAY } = require('constants/bookBot');
+const { BOOK_BOTS } = require('constants/bookBot');
 const bookBot = require('utilities/bookBot/bookBot');
 const blockchain = require('utilities/hiveEngine/blockchain');
-const bookBotQueue = require('utilities/redis/queues/bookBotQueue');
 
 exports.parse = async ({ transactions }) => {
   if (process.env.NODE_ENV !== 'production') return;
@@ -32,7 +31,7 @@ exports.parse = async ({ transactions }) => {
     await bookBot.sendBookEvent(usualSignal);
   }
   for (const eventSignal of tradeEvent) {
-    bookBotQueue.send(JSON.stringify(eventSignal), BOOK_DELAY);
+    await bookBot.sendBookEvent(eventSignal);
   }
 };
 

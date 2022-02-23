@@ -1,4 +1,6 @@
-const { BOOK_BOTS, POOL_FEE } = require('constants/bookBot');
+const {
+  BOOK_BOTS, POOL_FEE, BOOK_EMITTER_EVENTS, REDIS_BOOK,
+} = require('constants/bookBot');
 const engineMarket = require('utilities/hiveEngine/market');
 const enginePool = require('utilities/hiveEngine/marketPools');
 const tokensContract = require('utilities/hiveEngine/tokensContract');
@@ -7,6 +9,8 @@ const BigNumber = require('bignumber.js');
 const _ = require('lodash');
 const { MARKET_CONTRACT } = require('constants/hiveEngine');
 const { calculateRcPercent } = require('utilities/hiveApi/hiveOperations');
+const redisGetter = require('utilities/redis/redisGetter');
+const redisSetter = require('utilities/redis/redisSetter');
 const poolSwapHelper = require('./poolSwapHelper');
 const bookEmitter = require('./bookEvents');
 
@@ -91,12 +95,14 @@ const handleBookEvent = async ({ bookBot, event }) => {
     operations.push(swapOutput.json);
     // need transfer to bank
     // const profit = BigNumber(event.quantityTokens).minus(swapOutput.amountOut).toFixed();
-    return broadcastToChain({ bookBot, operations });
+    return bookBroadcastToChain({ bookBot, operations });
     // if buy quantityTokens swap на hive (spent hive)
     // if sell quantityHive swap на tokens (spent token)
   }
 
   if (marketSellCondition) {
+    const redisSellKey = `${REDIS_BOOK.MAIN}:${REDIS_BOOK.MARKET_SELL}:${bookBot.symbol}:${bookBot.account}`;
+    const previousOrder = await redisGetter.getAsync({ key: redisSellKey });
     const ourQuantityToSell = BigNumber(symbolBalance)
       .times(bookBot.percentSymbol).toFixed(tokenPrecision);
 
@@ -106,14 +112,23 @@ const handleBookEvent = async ({ bookBot, event }) => {
 
     const topBookQuantity = _.get(buyBook, '[0].quantity', '0');
     const sellAll = BigNumber(finalQuantity).gt(topBookQuantity);
-
-    orderCondition(finalQuantity) && operations.push(getMarketSellParams({
-      symbol: bookBot.symbol,
-      quantity: sellAll ? topBookQuantity : finalQuantity,
-    }));
+    if (orderCondition(finalQuantity) && !previousOrder) {
+      operations.push(getMarketSellParams({
+        symbol: bookBot.symbol,
+        quantity: sellAll ? topBookQuantity : finalQuantity,
+      }));
+      await redisSetter.setExpireTTL({
+        key: redisSellKey,
+        data: bookBot.account,
+        expire: REDIS_BOOK.EXPIRE_SECONDS,
+      });
+    }
   }
 
   if (marketBuyCondition) {
+    const redisBuyKey = `${REDIS_BOOK.MAIN}:${REDIS_BOOK.MARKET_BUY}:${bookBot.symbol}:${bookBot.account}`;
+    const previousOrder = await redisGetter.getAsync({ key: redisBuyKey });
+
     const ourQuantityToBuy = getQuantityToBuy({
       price: sellPrice,
       total: BigNumber(swapBalance).times(bookBot.percentSwap).toFixed(),
@@ -131,10 +146,17 @@ const handleBookEvent = async ({ bookBot, event }) => {
     const buyAll = BigNumber(finalQuantity).gt(hiveQuantity);
     const conditionToOrder = orderCondition(finalQuantity) && orderCondition(hiveQuantity);
 
-    conditionToOrder && operations.push(getMarketBuyParams({
-      symbol: bookBot.symbol,
-      quantity: buyAll ? hiveQuantity : finalQuantity,
-    }));
+    if (conditionToOrder && !previousOrder) {
+      operations.push(getMarketBuyParams({
+        symbol: bookBot.symbol,
+        quantity: buyAll ? hiveQuantity : finalQuantity,
+      }));
+      await redisSetter.setExpireTTL({
+        key: redisBuyKey,
+        data: bookBot.account,
+        expire: REDIS_BOOK.EXPIRE_SECONDS,
+      });
+    }
   }
 
   if (!buyPriceIsMine && createBuyOrderCondition) {
@@ -302,10 +324,10 @@ const handleBookEvent = async ({ bookBot, event }) => {
   });
   operations.unshift(...cancelTransactions);
 
-  return broadcastToChain({ bookBot, operations });
+  return bookBroadcastToChain({ bookBot, operations });
 };
 
-const broadcastToChain = async ({ bookBot, operations }) => {
+const bookBroadcastToChain = async ({ bookBot, operations }) => {
   const { result } = await broadcastUtil.broadcastJson({
     json: JSON.stringify(operations),
     required_auths: [bookBot.account],
@@ -328,7 +350,7 @@ const handleBotRc = ({
     return { exit: fourthPositionCondition };
   }
   if (BigNumber(rcLeft).lt(20)) {
-    bookEmitter.emit('bot-rc', { account: bookBot.account, rc: rcLeft });
+    bookEmitter.emit(BOOK_EMITTER_EVENTS.RC, { account: bookBot.account, rc: rcLeft });
     return { exit: thirdPositionCondition };
   }
   if (BigNumber(rcLeft).lt(30)) {

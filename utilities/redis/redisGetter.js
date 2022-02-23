@@ -11,3 +11,5 @@ exports.getLastBlockNum = async (key) => {
 exports.zrevrange = async ({
   key, start, end, client = expiredPostsClient,
 }) => client.zrevrangeAsync(key, start, end);
+
+exports.getAsync = async ({ key, client = expiredPostsClient }) => client.getAsync(key);
