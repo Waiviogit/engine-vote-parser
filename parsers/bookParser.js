@@ -8,7 +8,7 @@ const bookBot = require('utilities/bookBot/bookBot');
 const blockchain = require('utilities/hiveEngine/blockchain');
 
 exports.parse = async ({ transactions }) => {
-  if (process.env.NODE_ENV !== 'production') return;
+  if (process.env.NODE_ENV !== 'staging') return;
   const { market, marketPool, marketCancel } = _.reduce(transactions, (acc, transaction) => {
     const cancelCondition = transaction.contract === ENGINE_CONTRACTS.MARKET
       && transaction.action === MARKET_CONTRACT.CANCEL;
