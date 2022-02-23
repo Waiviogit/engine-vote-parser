@@ -9,8 +9,16 @@ const BOOK_WAIV = {
 
 exports.POOL_FEE = 0.9975;
 
-exports.BOOK_QUEUE = 'bookBot';
-exports.BOOK_DELAY = 5;
+exports.BOOK_EMITTER_EVENTS = {
+  RC: 'bot-rc',
+};
+
+exports.REDIS_BOOK = {
+  MAIN: 'bookBot',
+  MARKET_BUY: 'marketBuy',
+  MARKET_SELL: 'marketSell',
+  EXPIRE_SECONDS: 60,
+};
 
 exports.BOOK_BOTS = [
   BOOK_WAIV,

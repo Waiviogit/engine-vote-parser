@@ -1,4 +1,4 @@
-const { lastBlockClient, postRefsClient } = require('utilities/redis/redis');
+const { lastBlockClient, postRefsClient, expiredPostsClient } = require('utilities/redis/redis');
 const { COMMENT_REF_TYPES } = require('constants/common');
 
 exports.setLastBlockNum = async (blockNum, redisKey) => {
@@ -31,3 +31,7 @@ exports.addObjectType = async (path, name) => {
 };
 
 exports.hmsetAsync = async (key, data, client = lastBlockClient) => client.hmsetAsync(key, data);
+
+exports.setExpireTTL = async ({
+  key, data, client = expiredPostsClient, expire,
+}) => client.setAsync(key, data, 'EX', expire);
