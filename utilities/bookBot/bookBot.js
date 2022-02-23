@@ -125,7 +125,7 @@ const handleBookEvent = async ({ bookBot, event }) => {
     });
 
     const topBookQuantity = _.get(sellBook, '[0].quantity', '0');
-    const topBookPrice = _.get(sellBook, '[0].quantity', '0');
+    const topBookPrice = _.get(sellBook, '[0].price', '0');
     const hiveQuantity = BigNumber(topBookQuantity).times(topBookPrice).toFixed(tokenPrecision);
 
     const buyAll = BigNumber(finalQuantity).gt(hiveQuantity);
