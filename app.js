@@ -4,6 +4,7 @@ const dotenv = require('dotenv');
 
 dotenv.config({ path: `env/.env.${process.env.NODE_ENV || 'development'}` });
 require('jobs');
+require('./utilities/redis/queues');
 
 const { runEngineStream } = require('processor/processor');
 

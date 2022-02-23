@@ -9,6 +9,9 @@ const BOOK_WAIV = {
 
 exports.POOL_FEE = 0.9975;
 
+exports.BOOK_QUEUE = 'bookBot';
+exports.BOOK_DELAY = 5;
+
 exports.BOOK_BOTS = [
   BOOK_WAIV,
 ];
