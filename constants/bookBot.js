@@ -8,6 +8,7 @@ const BOOK_WAIV = {
 };
 
 exports.POOL_FEE = 0.9975;
+exports.HIVE_PEGGED_PRECISION = 8;
 
 exports.BOOK_EMITTER_EVENTS = {
   RC: 'bot-rc',

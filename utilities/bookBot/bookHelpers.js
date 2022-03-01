@@ -128,3 +128,15 @@ exports.handleOpenOrders = ({
   }
   return addOrdersToCancel;
 };
+
+exports.countTotalBalance = ({
+  book, hivePegged = false, balance, botName, precision,
+}) => {
+  const totalBalance = _.reduce(book, (accum, el) => {
+    if (el.account === botName) {
+      accum = BigNumber(accum).plus(hivePegged ? el.tokensLocked : el.quantity);
+    }
+    return accum;
+  }, BigNumber(balance));
+  return BigNumber(totalBalance).toFixed(precision);
+};

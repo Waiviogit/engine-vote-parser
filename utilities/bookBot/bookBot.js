@@ -1,5 +1,5 @@
 const {
-  BOOK_BOTS, POOL_FEE, BOOK_EMITTER_EVENTS, REDIS_BOOK,
+  BOOK_BOTS, POOL_FEE, BOOK_EMITTER_EVENTS, REDIS_BOOK, HIVE_PEGGED_PRECISION,
 } = require('constants/bookBot');
 const engineMarket = require('utilities/hiveEngine/market');
 const enginePool = require('utilities/hiveEngine/marketPools');
@@ -27,6 +27,7 @@ const {
   orderCondition,
   getSwapParams,
   handleOpenOrders,
+  countTotalBalance,
 } = require('./bookHelpers');
 
 exports.sendBookEvent = async ({ symbol, event }) => {
@@ -42,8 +43,6 @@ const handleBookEvent = async ({ bookBot, event }) => {
   const balances = await tokensContract.getTokenBalances({
     query: { symbol: { $in: ['SWAP.HIVE', bookBot.symbol] }, account: bookBot.account },
   });
-  const swapBalance = getFormattedBalance(balances);
-  const symbolBalance = getFormattedBalance(balances, bookBot.symbol);
 
   const token = await tokensContract.getTokensParams({ query: { symbol: bookBot.symbol } });
   const buyBook = await engineMarket.getBuyBook({ query: { symbol: bookBot.symbol } });
@@ -57,6 +56,24 @@ const handleBookEvent = async ({ bookBot, event }) => {
   if (_.isEmpty(dieselPool)) return;
 
   const tokenPrecision = _.get(token, '[0].precision', 8);
+
+  const swapBalance = getFormattedBalance(balances);
+  const symbolBalance = getFormattedBalance(balances, bookBot.symbol);
+
+  const swapTotalBalance = countTotalBalance({
+    book: buyBook,
+    hivePegged: true,
+    botName: bookBot.account,
+    precision: HIVE_PEGGED_PRECISION,
+    balance: swapBalance,
+  });
+
+  const symbolTotalBalance = countTotalBalance({
+    book: sellBook,
+    botName: bookBot.account,
+    precision: tokenPrecision,
+    balance: symbolBalance,
+  });
 
   const buyPrice = _.get(buyBook, '[0].price', '0');
   const sellPrice = _.get(sellBook, '[0].price', '0');
@@ -407,7 +424,7 @@ const handleBotRc = ({
 (async () => {
   // validate params to buy to sell percent
   const bookBot = {
-    account: 'flowmaster',
+    account: 'pi-trader',
     key: 'vbbv',
     symbol: 'WAIV',
     bookStages: {
@@ -432,7 +449,7 @@ const handleBotRc = ({
     },
   };
 
- // await handleBookEvent({});
+  await handleBookEvent({ bookBot });
 
   console.log();
 })();
