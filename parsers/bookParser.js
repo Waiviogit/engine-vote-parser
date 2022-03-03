@@ -5,7 +5,6 @@ const {
 const jsonHelper = require('utilities/helpers/jsonHelper');
 const { BOOK_BOTS } = require('constants/bookBot');
 const bookBot = require('utilities/bookBot/bookBot');
-const blockchain = require('utilities/hiveEngine/blockchain');
 
 exports.parse = async ({ transactions }) => {
   if (process.env.NODE_ENV !== 'staging') return;
@@ -26,7 +25,6 @@ exports.parse = async ({ transactions }) => {
   const tradeEvent = [];
   handleMarketEvents({ market, usualEvent, tradeEvent });
   handleSwapEvents({ marketPool, usualEvent });
-  await handleCancelEvent({ marketCancel, usualEvent });
   for (const usualSignal of _.uniqBy(usualEvent, 'symbol')) {
     await bookBot.sendBookEvent(usualSignal);
   }
@@ -69,18 +67,6 @@ const handleSwapEvents = ({ marketPool, usualEvent }) => {
   }
 };
 
-const handleCancelEvent = async ({ marketCancel, usualEvent }) => {
-  await Promise.all(_.map(marketCancel, async (cancel) => {
-    const payload = jsonHelper.parseJson(_.get(cancel, 'payload'));
-    if (!payload.id) return;
-    const result = await blockchain.getTransactionInfo({ params: { txid: payload.id } });
-    const cancelPayload = jsonHelper.parseJson(_.get(result, 'payload'));
-    if (_.isEmpty(cancelPayload)) return;
-    if (!_.includes(_.map(BOOK_BOTS, 'symbol'), cancelPayload.symbol)) return;
-    usualEvent.push({ symbol: cancelPayload.symbol });
-  }));
-};
-
 const formatBookEvents = (logs) => {
   const bookBots = _.map(BOOK_BOTS, 'account');
   return _.reduce(_.get(logs, 'events', []), (acc, el, index) => {
@@ -115,7 +101,7 @@ const formatBookEvents = (logs) => {
 const hasMarketEvents = (logs) => _.some(
   _.map(_.get(logs, 'events', []), 'event'),
   (el) => _.includes(
-    [TOKENS_CONTRACT.TRANSFER_FROM_CONTRACT, TOKENS_CONTRACT.TRANSFER_TO_CONTRACT],
+    [TOKENS_CONTRACT.TRANSFER_FROM_CONTRACT],
     el,
   ),
 );

@@ -1,6 +1,7 @@
 const BigNumber = require('bignumber.js');
 const _ = require('lodash');
 const { MARKET_CONTRACT } = require('constants/hiveEngine');
+const { bookBotSchema, bookPositionSchema, bookPercentSchema } = require('utilities/validation/bookBotValidation');
 
 exports.getQuantityToBuy = ({ price, total, precision }) => BigNumber(total)
   .dividedBy(price).toFixed(precision);
@@ -93,42 +94,6 @@ exports.getSwapParams = ({
   };
 };
 
-exports.handleOpenOrders = ({
-  operations, bookBot, buyBook, sellBook,
-}) => {
-  const addOrdersToCancel = [];
-  const buyOrders = _.find(operations,
-    (operation) => operation.contractAction === MARKET_CONTRACT.BUY);
-  const sellOrders = _.find(operations,
-    (operation) => operation.contractAction === MARKET_CONTRACT.SELL);
-  const cancelOrders = _.filter(operations,
-    (operation) => operation.contractAction === MARKET_CONTRACT.CANCEL);
-
-  if (buyOrders) {
-    const myBuyOrders = _.filter(buyBook, (el) => el.account === bookBot.account);
-    const notCanceledOrders = _.filter(myBuyOrders,
-      (order) => !_.some(cancelOrders, (cancel) => cancel.contractPayload.id === order.txId));
-    for (const notCanceledOrder of notCanceledOrders) {
-      addOrdersToCancel.push(this.getCancelParams({
-        id: _.get(notCanceledOrder, 'txId'),
-        type: MARKET_CONTRACT.BUY,
-      }));
-    }
-  }
-  if (sellOrders) {
-    const mySellOrders = _.filter(sellBook, (el) => el.account === bookBot.account);
-    const notCanceledOrders = _.filter(mySellOrders,
-      (order) => !_.some(cancelOrders, (cancel) => cancel.contractPayload.id === order.txId));
-    for (const notCanceledOrder of notCanceledOrders) {
-      addOrdersToCancel.push(this.getCancelParams({
-        id: _.get(notCanceledOrder, 'txId'),
-        type: MARKET_CONTRACT.SELL,
-      }));
-    }
-  }
-  return addOrdersToCancel;
-};
-
 exports.countTotalBalance = ({
   book, hivePegged = false, balance, botName, precision,
 }) => {
@@ -139,4 +104,33 @@ exports.countTotalBalance = ({
     return accum;
   }, BigNumber(balance));
   return BigNumber(totalBalance).toFixed(precision);
+};
+
+exports.validateBookBot = (bot) => {
+  let percentToSellSwap = BigNumber(0);
+  let percentToSellSymbol = BigNumber(0);
+  let percentToBuySwap = BigNumber(0);
+  let percentToBuySymbol = BigNumber(0);
+  const { value, error } = bookBotSchema.validate(bot);
+  if (error) return false;
+  const { positions } = value;
+  for (const position in positions) {
+    percentToSellSwap = percentToSellSwap.plus(positions[position].percentToSellSwap);
+    percentToSellSymbol = percentToSellSymbol.plus(positions[position].percentToSellSymbol);
+    percentToBuySwap = percentToBuySwap.plus(positions[position].percentToBuySwap);
+    percentToBuySymbol = percentToBuySymbol.plus(positions[position].percentToBuySymbol);
+    const { error: positionError } = bookPositionSchema.validate({
+      positionBuy: positions[position].positionBuy,
+      positionSell: positions[position].positionSell,
+    });
+    if (positionError) return false;
+  }
+  const { error: percentError } = bookPercentSchema.validate({
+    percentToSellSwap: percentToSellSwap.toNumber(),
+    percentToSellSymbol: percentToSellSymbol.toNumber(),
+    percentToBuySwap: percentToBuySwap.toNumber(),
+    percentToBuySymbol: percentToBuySymbol.toNumber(),
+  });
+  if (percentError) return false;
+  return true;
 };
