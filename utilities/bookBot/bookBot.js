@@ -179,8 +179,8 @@ const handleLimitSell = async ({
   const { positionSell } = positions[position];
   const { percentToSellSymbol } = positions[position];
 
-  const minPrice = _.get(book, '[0].price', getPrecisionPrice(tokenPrecision));
-  const maxPrice = _.get(book, `[${book.length - 1}].price`, '0');
+  const minPrice = _.get(book, '[0].price', '10000');
+  const maxPrice = _.get(book, `[${book.length - 1}].price`, '100000');
 
   const redisKey = `${REDIS_BOOK.MAIN}:${REDIS_BOOK.SELL}:${bookBot.symbol}:${bookBot.account}:${position}`;
   const previousOrder = await redisGetter.getHashAll(redisKey, expiredPostsClient);
@@ -279,7 +279,7 @@ const handleLimitBuy = async ({
   const { positionBuy } = positions[position];
   const { percentToBuySwap } = positions[position];
 
-  const maxPrice = _.get(book, '[0].price', getPrecisionPrice(tokenPrecision));
+  const maxPrice = _.get(book, '[0].price', '0.001');
   const minPrice = _.get(book, `[${book.length - 1}].price`, '0');
 
   const redisKey = `${REDIS_BOOK.MAIN}:${REDIS_BOOK.BUY}:${bookBot.symbol}:${bookBot.account}:${position}`;
