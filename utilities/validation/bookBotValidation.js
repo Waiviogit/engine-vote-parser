@@ -11,13 +11,13 @@ exports.bookBotSchema = Joi.object({
 });
 
 exports.bookPercentSchema = Joi.object({
-  percentToSellSwap: Joi.number().min(0.001).max(1).required(),
-  percentToSellSymbol: Joi.number().min(0.001).max(1).required(),
-  percentToBuySwap: Joi.number().min(0.001).max(1).required(),
-  percentToBuySymbol: Joi.number().min(0.001).max(1).required(),
+  percentToSellSwap: Joi.number().min(0.001).max(0.9).required(),
+  percentToSellSymbol: Joi.number().min(0.001).max(0.9).required(),
+  percentToBuySwap: Joi.number().min(0.001).max(0.9).required(),
+  percentToBuySymbol: Joi.number().min(0.001).max(0.9).required(),
 });
 
 exports.bookPositionSchema = Joi.object({
-  positionBuy: Joi.number().min(0).max(1).required(),
-  positionSell: Joi.number().min(0).max(1).required(),
+  positionBuy: Joi.number().min(0).max(0.999).required(),
+  positionSell: Joi.number().min(0).required(),
 });

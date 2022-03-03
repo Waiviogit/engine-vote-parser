@@ -17,7 +17,6 @@ const bookEmitter = require('./bookEvents');
 const {
   getQuantityToBuy,
   getFormattedBalance,
-  getPrecisionPrice,
   getDieselPoolPrice,
   getLimitBuyParams,
   getLimitSellParams,
@@ -180,7 +179,6 @@ const handleLimitSell = async ({
   const { percentToSellSymbol } = positions[position];
 
   const minPrice = _.get(book, '[0].price', '10000');
-  const maxPrice = _.get(book, `[${book.length - 1}].price`, '100000');
 
   const redisKey = `${REDIS_BOOK.MAIN}:${REDIS_BOOK.SELL}:${bookBot.symbol}:${bookBot.account}:${position}`;
   const previousOrder = await redisGetter.getHashAll(redisKey, expiredPostsClient);
@@ -189,7 +187,6 @@ const handleLimitSell = async ({
     positionSell,
     poolPrice,
     minPrice,
-    maxPrice,
     poolPriceFee,
   });
 
@@ -249,15 +246,12 @@ const calcPriceToSell = ({
   positionSell,
   poolPrice,
   minPrice,
-  maxPrice,
   poolPriceFee,
 }) => {
   const startPrice = BigNumber(poolPrice).lt(BigNumber(minPrice).minus(poolPriceFee))
     ? minPrice
-    : BigNumber(poolPrice).plus(poolPriceFee);
-
-  const diff = BigNumber(maxPrice).minus(startPrice);
-  const addPart = BigNumber(diff).times(positionSell);
+    : BigNumber(poolPrice).plus(poolPriceFee).toFixed();
+  const addPart = BigNumber(startPrice).times(positionSell).toFixed();
 
   return BigNumber(startPrice).plus(addPart).toFixed(HIVE_PEGGED_PRECISION);
 };
@@ -280,7 +274,6 @@ const handleLimitBuy = async ({
   const { percentToBuySwap } = positions[position];
 
   const maxPrice = _.get(book, '[0].price', '0.001');
-  const minPrice = _.get(book, `[${book.length - 1}].price`, '0');
 
   const redisKey = `${REDIS_BOOK.MAIN}:${REDIS_BOOK.BUY}:${bookBot.symbol}:${bookBot.account}:${position}`;
   const previousOrder = await redisGetter.getHashAll(redisKey, expiredPostsClient);
@@ -288,7 +281,6 @@ const handleLimitBuy = async ({
   const positionPrice = calcPriceToBuy({
     positionBuy,
     poolPrice,
-    minPrice,
     maxPrice,
     poolPriceFee,
   });
@@ -351,14 +343,12 @@ const handleLimitBuy = async ({
 };
 
 const calcPriceToBuy = ({
-  positionBuy, maxPrice, minPrice, poolPrice, poolPriceFee,
+  positionBuy, maxPrice, poolPrice, poolPriceFee,
 }) => {
   const startPrice = BigNumber(BigNumber(maxPrice).plus(poolPriceFee)).lt(poolPrice)
     ? maxPrice
     : BigNumber(poolPrice).minus(poolPriceFee);
-
-  const diff = BigNumber(startPrice).minus(minPrice);
-  const subtractPart = BigNumber(diff).times(positionBuy);
+  const subtractPart = BigNumber(startPrice).times(positionBuy).toFixed();
 
   return BigNumber(startPrice).minus(subtractPart).toFixed(HIVE_PEGGED_PRECISION);
 };

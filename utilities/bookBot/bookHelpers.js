@@ -11,18 +11,6 @@ exports.getFormattedBalance = (balances, symbol = 'SWAP.HIVE') => {
   return _.get(balanceInfo, 'balance', '0');
 };
 
-exports.getPrecisionPrice = (precision) => {
-  let string = '0.';
-  for (let i = 0; i < precision; i++) {
-    if (i === precision - 1) {
-      string += '1';
-      continue;
-    }
-    string += '0';
-  }
-  return string;
-};
-
 exports.getDieselPoolPrice = ({ dieselPool, bookBot }) => {
   const [base] = dieselPool.tokenPair.split(':');
   return base === bookBot.symbol
