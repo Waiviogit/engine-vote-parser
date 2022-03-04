@@ -35,3 +35,5 @@ exports.hmsetAsync = async (key, data, client = lastBlockClient) => client.hmset
 exports.setExpireTTL = async ({
   key, data, client = expiredPostsClient, expire,
 }) => client.setAsync(key, data, 'EX', expire);
+
+exports.delKey = async (key, client = expiredPostsClient) => client.delAsync(key);
