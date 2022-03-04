@@ -69,13 +69,17 @@ const handleSwapEvents = ({ marketPool, usualEvent }) => {
 
 const formatBookEvents = (logs) => {
   const bookBots = _.map(BOOK_BOTS, 'account');
+  let startIndex = 0;
   return _.reduce(_.get(logs, 'events', []), (acc, el, index) => {
+    startIndex++;
+    if (el.event === MARKET_CONTRACT.ORDER_CLOSED) startIndex = 0;
+
     if (el.event === TOKENS_CONTRACT.TRANSFER_FROM_CONTRACT) {
-      const txIndex = index % 2 !== 0
+      const txIndex = startIndex % 2 !== 0
         ? index + 1
         : index - 1;
       const tx = {};
-      tx.action = index % 2 !== 0
+      tx.action = startIndex % 2 !== 0
         ? 'buy'
         : 'sell';
       tx.quantityTokens = tx.action === 'buy'
