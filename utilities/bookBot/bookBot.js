@@ -390,8 +390,7 @@ const handleMarketSell = async ({
 }) => {
   const redisSellKey = `${REDIS_BOOK.MAIN}:${REDIS_BOOK.MARKET_SELL}:${bookBot.symbol}:${bookBot.account}`;
   const previousOrder = await redisGetter.getAsync({ key: redisSellKey });
-  const ourQuantityToSell = BigNumber(symbolBalance)
-    .times(bookBot.percentSymbol).toFixed(tokenPrecision);
+  const ourQuantityToSell = BigNumber(symbolBalance).toFixed(tokenPrecision);
 
   const finalQuantity = orderQuantity({
     ourQuantity: ourQuantityToSell, maxQuantity: maxSellQuantity,
@@ -421,7 +420,7 @@ const handleMarketBuy = async ({
 
   const ourQuantityToBuy = getQuantityToBuy({
     price: sellPrice,
-    total: BigNumber(swapBalance).times(bookBot.percentSwap).toFixed(),
+    total: BigNumber(swapBalance).toFixed(),
     precision: tokenPrecision,
   });
 
