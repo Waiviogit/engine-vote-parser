@@ -101,7 +101,7 @@ const formatBookEvents = (logs) => {
 const hasMarketEvents = (logs) => _.some(
   _.map(_.get(logs, 'events', []), 'event'),
   (el) => _.includes(
-    [TOKENS_CONTRACT.TRANSFER_FROM_CONTRACT],
+    [TOKENS_CONTRACT.TRANSFER_FROM_CONTRACT, TOKENS_CONTRACT.TRANSFER_TO_CONTRACT],
     el,
   ),
 );
