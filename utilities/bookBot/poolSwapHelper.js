@@ -43,14 +43,14 @@ const operationForJson = ({
 });
 
 exports.getSwapOutput = ({
-  symbol, amountIn, pool, slippage, from, tradeFeeMul,
+  symbol, amountIn, pool, slippage, from, tradeFeeMul, precision,
 }) => {
   if (!pool) return {};
   let liquidityIn;
   let liquidityOut;
 
   const {
-    baseQuantity, quoteQuantity, tokenPair, precision,
+    baseQuantity, quoteQuantity, tokenPair,
   } = pool;
   const [baseSymbol, quoteSymbol] = tokenPair.split(':');
   const isBase = symbol === baseSymbol;
@@ -140,7 +140,7 @@ exports.getSwapOutput = ({
 };
 
 exports.maxQuantityBookOrder = ({
-  pool, type, price, tradeFeeMul,
+  pool, type, price, tradeFeeMul, tokenPrecision,
 }) => {
   const slippage = 0.005;
   const {
@@ -168,6 +168,7 @@ exports.maxQuantityBookOrder = ({
       tradeFeeMul,
       slippage,
       amountIn: quantity,
+      precision: tokenPrecision,
     });
     return minAmountOut;
     // after => swap from swap.hive to waiv

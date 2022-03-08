@@ -2,9 +2,13 @@ const BigNumber = require('bignumber.js');
 const _ = require('lodash');
 const { MARKET_CONTRACT } = require('constants/hiveEngine');
 const { bookBotSchema, bookPositionSchema, bookPercentSchema } = require('utilities/validation/bookBotValidation');
+const { HIVE_PEGGED_PRECISION } = require('constants/bookBot');
 
 exports.getQuantityToBuy = ({ price, total, precision }) => BigNumber(total)
   .dividedBy(price).toFixed(precision);
+
+exports.getSwapExpenses = ({ quantity, price }) => BigNumber(quantity)
+  .times(price).toFixed(HIVE_PEGGED_PRECISION);
 
 exports.getFormattedBalance = (balances, symbol = 'SWAP.HIVE') => {
   const balanceInfo = _.find(balances, (b) => b.symbol === symbol);
@@ -57,7 +61,7 @@ exports.orderQuantity = ({ ourQuantity, maxQuantity }) => (BigNumber(ourQuantity
 exports.orderCondition = (quantity) => BigNumber(quantity).gt(0);
 
 exports.getSwapParams = ({
-  event, bookBot, dieselPool, tradeFeeMul,
+  event, bookBot, dieselPool, tradeFeeMul, tokenPrecision,
 }) => {
   const tokenPairArr = bookBot.tokenPair.split(':');
   const slippage = 0.005;
@@ -72,6 +76,11 @@ exports.getSwapParams = ({
   const slippagePercent = BigNumber(tokensToProcess).times(slippage);
 
   const amountIn = BigNumber(tradeFee).plus(slippagePercent).toFixed();
+
+  const precision = symbol === bookBot.symbol
+    ? tokenPrecision
+    : HIVE_PEGGED_PRECISION;
+
   return {
     amountIn,
     symbol,
@@ -79,6 +88,7 @@ exports.getSwapParams = ({
     tradeFeeMul,
     from: false,
     pool: dieselPool,
+    precision,
   };
 };
 
