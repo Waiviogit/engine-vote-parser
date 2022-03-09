@@ -485,6 +485,11 @@ const handleLimitSell = async ({
       price,
       quantity: BigNumber(finalQuantity).toFixed(tokenPrecision),
     }));
+    await redisSetter.hmsetAsync(
+      redisKey,
+      { price, quantity: BigNumber(finalQuantity).toFixed(tokenPrecision) },
+      expiredPostsClient,
+    );
   }
   return handleLimitSell({
     operations,
