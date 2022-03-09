@@ -1,7 +1,7 @@
 const BigNumber = require('bignumber.js');
 const _ = require('lodash');
 const { MARKET_CONTRACT } = require('constants/hiveEngine');
-const { bookBotSchema, bookPositionSchema, bookPercentSchema } = require('utilities/validation/bookBotValidation');
+const { bookBotSchema } = require('utilities/validation/bookBotValidation');
 const { HIVE_PEGGED_PRECISION } = require('constants/bookBot');
 
 exports.getQuantityToBuy = ({ price, total, precision }) => BigNumber(total)
@@ -105,30 +105,7 @@ exports.countTotalBalance = ({
 };
 
 exports.validateBookBot = (bot) => {
-  let percentToSellSwap = BigNumber(0);
-  let percentToSellSymbol = BigNumber(0);
-  let percentToBuySwap = BigNumber(0);
-  let percentToBuySymbol = BigNumber(0);
-  const { value, error } = bookBotSchema.validate(bot);
+  const { error } = bookBotSchema.validate(bot);
   if (error) return false;
-  const { positions } = value;
-  for (const position in positions) {
-    percentToSellSwap = percentToSellSwap.plus(positions[position].percentToSellSwap);
-    percentToSellSymbol = percentToSellSymbol.plus(positions[position].percentToSellSymbol);
-    percentToBuySwap = percentToBuySwap.plus(positions[position].percentToBuySwap);
-    percentToBuySymbol = percentToBuySymbol.plus(positions[position].percentToBuySymbol);
-    const { error: positionError } = bookPositionSchema.validate({
-      positionBuy: positions[position].positionBuy,
-      positionSell: positions[position].positionSell,
-    });
-    if (positionError) return false;
-  }
-  const { error: percentError } = bookPercentSchema.validate({
-    percentToSellSwap: percentToSellSwap.toNumber(),
-    percentToSellSymbol: percentToSellSymbol.toNumber(),
-    percentToBuySwap: percentToBuySwap.toNumber(),
-    percentToBuySymbol: percentToBuySymbol.toNumber(),
-  });
-  if (percentError) return false;
   return true;
 };
