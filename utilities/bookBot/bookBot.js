@@ -211,7 +211,7 @@ const handleDeal = async ({
 }) => {
   // const eventPrice = BigNumber(event.quantityHive).dividedBy(event.quantityTokens).toFixed();
   // block 14852808
-  const swapOutput = poolSwapHelper.getSwapOutput(getSwapParams({
+  const swapOutput = poolSwapHelper.getSwapOutput(poolSwapHelper.getSwapParams({
     event, bookBot, dieselPool, tradeFeeMul, tokenPrecision,
   }));
   // need transfer to bank

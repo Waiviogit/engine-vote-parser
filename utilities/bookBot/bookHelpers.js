@@ -60,38 +60,6 @@ exports.orderQuantity = ({ ourQuantity, maxQuantity }) => (BigNumber(ourQuantity
 
 exports.orderCondition = (quantity) => BigNumber(quantity).gt(0);
 
-exports.getSwapParams = ({
-  event, bookBot, dieselPool, tradeFeeMul, tokenPrecision,
-}) => {
-  const tokenPairArr = bookBot.tokenPair.split(':');
-  const slippage = 0.005;
-  const tokensToProcess = event.action === MARKET_CONTRACT.BUY
-    ? event.quantityHive
-    : event.quantityTokens;
-  const symbol = event.action === MARKET_CONTRACT.BUY
-    ? _.filter(tokenPairArr, (el) => el !== bookBot.symbol)[0]
-    : bookBot.symbol;
-
-  const tradeFee = BigNumber(tokensToProcess).dividedBy(tradeFeeMul);
-  const slippagePercent = BigNumber(tokensToProcess).times(slippage);
-
-  const amountIn = BigNumber(tradeFee).plus(slippagePercent).toFixed();
-
-  const precision = symbol === bookBot.symbol
-    ? tokenPrecision
-    : HIVE_PEGGED_PRECISION;
-
-  return {
-    amountIn,
-    symbol,
-    slippage,
-    tradeFeeMul,
-    from: false,
-    pool: dieselPool,
-    precision,
-  };
-};
-
 exports.countTotalBalance = ({
   book, hivePegged = false, balance, botName, precision,
 }) => {

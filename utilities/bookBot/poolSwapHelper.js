@@ -1,5 +1,7 @@
 const BigNumber = require('bignumber.js');
 const { MARKET_CONTRACT } = require('constants/hiveEngine');
+const _ = require('lodash');
+const { HIVE_PEGGED_PRECISION } = require('constants/bookBot');
 
 const getAmountOut = ({
   amountIn, liquidityIn, liquidityOut, tradeFeeMul,
@@ -41,6 +43,37 @@ const operationForJson = ({
     minAmountOut,
   },
 });
+
+exports.getSwapParams = ({
+  event, bookBot, dieselPool, tradeFeeMul, tokenPrecision,
+}) => {
+  const tokenPairArr = bookBot.tokenPair.split(':');
+  const slippage = 0.005;
+  const tokensToProcess = event.action === MARKET_CONTRACT.BUY
+    ? event.quantityHive
+    : event.quantityTokens;
+  const symbol = event.action === MARKET_CONTRACT.BUY
+    ? _.filter(tokenPairArr, (el) => el !== bookBot.symbol)[0]
+    : bookBot.symbol;
+
+  const precision = symbol === bookBot.symbol
+    ? tokenPrecision
+    : HIVE_PEGGED_PRECISION;
+
+  const amountIn = symbol === bookBot.symbol
+    ? BigNumber(tokensToProcess).dividedBy(tradeFeeMul).toFixed()
+    : BigNumber(tokensToProcess).toFixed();
+
+  return {
+    amountIn,
+    symbol,
+    slippage,
+    tradeFeeMul,
+    from: false,
+    pool: dieselPool,
+    precision,
+  };
+};
 
 exports.getSwapOutput = ({
   symbol, amountIn, pool, slippage, from, tradeFeeMul, precision,

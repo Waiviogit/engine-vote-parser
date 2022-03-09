@@ -69,34 +69,33 @@ const handleSwapEvents = ({ marketPool, usualEvent }) => {
 
 const formatBookEvents = (logs) => {
   const bookBots = _.map(BOOK_BOTS, 'account');
-  let startIndex = 0;
-  return _.reduce(_.get(logs, 'events', []), (acc, el, index) => {
-    startIndex++;
-    if (el.event === MARKET_CONTRACT.ORDER_CLOSED) startIndex = 0;
+  const events = _.filter(_.get(logs, 'events', []), (el) => el.event === TOKENS_CONTRACT.TRANSFER_FROM_CONTRACT);
+  return _.reduce(events, (acc, el, index) => {
+    const txIndex = index % 2 === 0
+      ? index + 1
+      : index - 1;
+    const tx = {};
+    tx.action = index % 2 === 0
+      ? 'buy'
+      : 'sell';
+    tx.quantityTokens = tx.action === 'buy'
+      ? el.data.quantity
+      : _.get(events, `[${txIndex}].data.quantity`);
+    tx.quantityHive = tx.action === 'buy'
+      ? _.get(events, `[${txIndex}].data.quantity`)
+      : el.data.quantity;
+    tx.buyer = tx.action === 'buy'
+      ? el.data.to
+      : _.get(events, `[${txIndex}].data.to`);
 
-    if (el.event === TOKENS_CONTRACT.TRANSFER_FROM_CONTRACT) {
-      const txIndex = startIndex % 2 !== 0
-        ? index + 1
-        : index - 1;
-      const tx = {};
-      tx.action = startIndex % 2 !== 0
-        ? 'buy'
-        : 'sell';
-      tx.quantityTokens = tx.action === 'buy'
-        ? el.data.quantity
-        : _.get(logs, `events[${txIndex}].data.quantity`);
-      tx.quantityHive = tx.action === 'buy'
-        ? _.get(logs, `events[${txIndex}].data.quantity`)
-        : el.data.quantity;
-      tx.buyer = tx.action === 'buy'
-        ? el.data.to
-        : _.get(logs, `events[${txIndex}].data.to`);
-
-      tx.seller = tx.action === 'buy'
-        ? _.get(logs, `events[${txIndex}].data.to`)
-        : el.data.to;
-      if (tx.action === 'buy' && _.includes(bookBots, tx.buyer)) acc.push(tx);
-      if (tx.action === 'sell' && _.includes(bookBots, tx.seller)) acc.push(tx);
+    tx.seller = tx.action === 'buy'
+      ? _.get(events, `[${txIndex}].data.to`)
+      : el.data.to;
+    if (tx.action === 'buy' && _.includes(bookBots, tx.buyer)) {
+      acc.push(tx);
+    }
+    if (tx.action === 'sell' && _.includes(bookBots, tx.seller)) {
+      acc.push(tx);
     }
     return acc;
   }, []);
