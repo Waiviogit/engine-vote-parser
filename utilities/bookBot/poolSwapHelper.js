@@ -140,7 +140,7 @@ exports.getSwapOutput = ({
 };
 
 exports.maxQuantityBookOrder = ({
-  pool, type, price, tradeFeeMul, tokenPrecision,
+  pool, type, price, tradeFeeMul, tokenPrecision, previousOrders = 0,
 }) => {
   const slippage = 0.005;
   const {
@@ -170,7 +170,7 @@ exports.maxQuantityBookOrder = ({
       amountIn: quantity,
       precision: tokenPrecision,
     });
-    return minAmountOut;
+    return BigNumber(minAmountOut).minus(previousOrders).toFixed(tokenPrecision);
     // after => swap from swap.hive to waiv
   }
 
@@ -178,7 +178,8 @@ exports.maxQuantityBookOrder = ({
     const priceImpact = BigNumber(100).minus(
       BigNumber(price).times(100).dividedBy(poolPrice),
     ).toFixed();
-    return BigNumber(priceImpact).times(symbolQuantity).dividedBy(100).toFixed(precision);
+    const maxQuantity = BigNumber(priceImpact).times(symbolQuantity).dividedBy(100);
+    return BigNumber(maxQuantity).minus(previousOrders).toFixed(tokenPrecision);
     // after => swap from waiv to swap.hive
   }
   return '0';
