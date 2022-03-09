@@ -1,5 +1,5 @@
 const {
-  BOOK_BOTS, POOL_FEE, BOOK_EMITTER_EVENTS, REDIS_BOOK, HIVE_PEGGED_PRECISION,
+  BOOK_BOTS, POOL_FEE, BOOK_EMITTER_EVENTS, REDIS_BOOK, HIVE_PEGGED_PRECISION, START_POSITION,
 } = require('constants/bookBot');
 const engineMarket = require('utilities/hiveEngine/market');
 const enginePool = require('utilities/hiveEngine/marketPools');
@@ -140,7 +140,7 @@ const handleBookEvent = async ({ bookBot, event }) => {
     tradeFeeMul,
     dieselPool,
     book: buyBook,
-    position: 0,
+    position: START_POSITION,
   });
 
   const sellPositions = await handleLimitSell({
@@ -153,7 +153,7 @@ const handleBookEvent = async ({ bookBot, event }) => {
     tradeFeeMul,
     dieselPool,
     book: sellBook,
-    position: 0,
+    position: START_POSITION,
   });
 
   await handleCloseOrders({

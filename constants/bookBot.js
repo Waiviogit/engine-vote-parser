@@ -5,35 +5,20 @@ const BOOK_WAIV = {
   tokenPair: 'SWAP.HIVE:WAIV',
   updateQuantityPercent: 70,
   priceDiffPercent: 1,
-  positions: {
-    first: {
-      percentToSellSwap: 0.1,
-      percentToSellSymbol: 0.1,
-      percentToBuySwap: 0.1,
-      percentToBuySymbol: 0.1,
-      positionBuy: 0,
-      positionSell: 0,
-    },
-    second: {
-      percentToSellSwap: 0.3,
-      percentToSellSymbol: 0.3,
-      percentToBuySwap: 0.3,
-      percentToBuySymbol: 0.3,
-      positionBuy: 0.4,
-      positionSell: 5,
-    },
-    third: {
-      percentToSellSwap: 0.5,
-      percentToSellSymbol: 0.5,
-      percentToBuySwap: 0.5,
-      percentToBuySymbol: 0.5,
-      positionBuy: 0.8,
-      positionSell: 10,
-    },
-  },
+  buyDiffPercent: 0.02,
+  sellDiffPercent: 0.02,
+  buyRatio: 3,
+  sellRatio: 3,
+  startBuyQuantity: 30,
+  startSellQuantity: 30,
+  swapBalanceUsage: 1,
+  symbolBalanceUsage: 1,
+  untouchedSwapPercent: 0.1,
+  untouchedSymbolPercent: 0.1,
 };
 
 exports.POOL_FEE = 0.9975;
+exports.START_POSITION = 0;
 exports.HIVE_PEGGED_PRECISION = 8;
 
 exports.BOOK_EMITTER_EVENTS = {
