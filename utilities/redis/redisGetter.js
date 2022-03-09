@@ -13,3 +13,5 @@ exports.zrevrange = async ({
 }) => client.zrevrangeAsync(key, start, end);
 
 exports.getAsync = async ({ key, client = expiredPostsClient }) => client.getAsync(key);
+
+exports.smembers = async (key, client = expiredPostsClient) => client.smembersAsync(key);

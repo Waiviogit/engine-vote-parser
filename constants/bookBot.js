@@ -46,6 +46,7 @@ exports.REDIS_BOOK = {
   MARKET_SELL: 'marketSell',
   SELL: 'sell',
   BUY: 'buy',
+  POSITIONS: 'positions',
   EXPIRE_SECONDS: 60,
 };
 

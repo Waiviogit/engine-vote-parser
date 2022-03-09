@@ -37,3 +37,7 @@ exports.setExpireTTL = async ({
 }) => client.setAsync(key, data, 'EX', expire);
 
 exports.delKey = async (key, client = expiredPostsClient) => client.delAsync(key);
+
+exports.sadd = async (key, member, client = expiredPostsClient) => client.saddAsync(key, member);
+
+exports.srem = async (key, member, client = expiredPostsClient) => client.sremAsync(key, member);
