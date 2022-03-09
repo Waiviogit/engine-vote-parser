@@ -7,17 +7,14 @@ exports.bookBotSchema = Joi.object({
   tokenPair: Joi.string().required(),
   updateQuantityPercent: Joi.number().min(1).max(99).required(),
   priceDiffPercent: Joi.number().min(0.01).max(1000).required(),
-  positions: Joi.object().required(),
-});
-
-exports.bookPercentSchema = Joi.object({
-  percentToSellSwap: Joi.number().min(0.001).max(0.9).required(),
-  percentToSellSymbol: Joi.number().min(0.001).max(0.9).required(),
-  percentToBuySwap: Joi.number().min(0.001).max(0.9).required(),
-  percentToBuySymbol: Joi.number().min(0.001).max(0.9).required(),
-});
-
-exports.bookPositionSchema = Joi.object({
-  positionBuy: Joi.number().min(0).max(0.999).required(),
-  positionSell: Joi.number().min(0).required(),
+  buyDiffPercent: Joi.number().min(0.001).max(1000).required(),
+  sellDiffPercent: Joi.number().min(0.001).max(1000).required(),
+  buyRatio: Joi.number().min(2).max(1000).required(),
+  sellRatio: Joi.number().min(2).max(1000).required(),
+  startBuyQuantity: Joi.number().min(10).required(),
+  startSellQuantity: Joi.number().min(10).required(),
+  swapBalanceUsage: Joi.number().min(0.001).max(1).required(),
+  symbolBalanceUsage: Joi.number().min(0.001).max(1).required(),
+  untouchedSwapPercent: Joi.number().min(0.001).max(0.999).required(),
+  untouchedSymbolPercent: Joi.number().min(0.001).max(0.999).required(),
 });
