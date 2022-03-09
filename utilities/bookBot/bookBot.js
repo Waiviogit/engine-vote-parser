@@ -133,9 +133,10 @@ const handleBookEvent = async ({ bookBot, event }) => {
   const buyPositions = await handleLimitBuy({
     operations,
     bookBot,
-    price: BigNumber(poolPrice).minus(poolPriceFee).toFixed(),
+    price: BigNumber(poolPrice).minus(poolPriceFee).toFixed(HIVE_PEGGED_PRECISION),
     balance: balanceLimitBuy,
-    quantity: BigNumber(bookBot.startBuyQuantity).dividedBy(bookBot.buyRatio).toFixed(),
+    quantity: BigNumber(bookBot.startBuyQuantity)
+      .dividedBy(bookBot.buyRatio).toFixed(tokenPrecision),
     tokenPrecision,
     tradeFeeMul,
     dieselPool,
@@ -146,9 +147,10 @@ const handleBookEvent = async ({ bookBot, event }) => {
   const sellPositions = await handleLimitSell({
     operations,
     bookBot,
-    price: BigNumber(poolPrice).plus(poolPriceFee).toFixed(),
+    price: BigNumber(poolPrice).plus(poolPriceFee).toFixed(HIVE_PEGGED_PRECISION),
     balance: balanceLimitSell,
-    quantity: BigNumber(bookBot.startSellQuantity).dividedBy(bookBot.sellRatio).toFixed(),
+    quantity: BigNumber(bookBot.startSellQuantity)
+      .dividedBy(bookBot.sellRatio).toFixed(tokenPrecision),
     tokenPrecision,
     tradeFeeMul,
     dieselPool,
