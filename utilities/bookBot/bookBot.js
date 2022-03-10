@@ -98,29 +98,37 @@ const handleBookEvent = async ({ bookBot, event }) => {
   }
 
   if (marketSellCondition) {
-    const maxSellQuantity = poolSwapHelper.maxQuantityBookOrder({
-      pool: dieselPool,
+    const buyQuantity = _.get(buyBook, '[0].quantity', '0');
+    const profitablePrice = calcProfitPrice({
+      quantity: buyQuantity,
       type: MARKET_CONTRACT.SELL,
-      price: sellPrice,
-      tradeFeeMul,
+      pool: dieselPool,
       tokenPrecision,
+      tradeFeeMul,
+      bookBot,
     });
-    return handleMarketSell({
-      symbolBalance, tokenPrecision, bookBot, buyBook, maxSellQuantity,
-    });
+    if (BigNumber(buyPrice).gt(profitablePrice)) {
+      return handleMarketSell({
+        symbolBalance, tokenPrecision, bookBot, maxSellQuantity: buyQuantity,
+      });
+    }
   }
 
   if (marketBuyCondition) {
-    const maxBuyQuantity = poolSwapHelper.maxQuantityBookOrder({
-      pool: dieselPool,
+    const sellQuantity = _.get(sellBook, '[0].quantity', '0');
+    const profitablePrice = calcProfitPrice({
+      quantity: sellQuantity,
       type: MARKET_CONTRACT.BUY,
-      price: buyPrice,
-      tradeFeeMul,
+      pool: dieselPool,
       tokenPrecision,
+      tradeFeeMul,
+      bookBot,
     });
-    return handleMarketBuy({
-      sellPrice, swapBalance, tokenPrecision, bookBot, maxBuyQuantity, sellBook,
-    });
+    if (BigNumber(sellPrice).lt(profitablePrice)) {
+      return handleMarketBuy({
+        sellPrice, swapBalance, tokenPrecision, bookBot, maxBuyQuantity: sellQuantity,
+      });
+    }
   }
 
   const balanceLimitBuy = BigNumber(swapTotalBalance).times(bookBot.swapBalanceUsage)
@@ -221,7 +229,7 @@ const handleDeal = async ({
 };
 
 const handleMarketSell = async ({
-  symbolBalance, tokenPrecision, maxSellQuantity, buyBook, bookBot,
+  symbolBalance, tokenPrecision, maxSellQuantity, bookBot,
 }) => {
   const redisSellKey = `${REDIS_BOOK.MAIN}:${REDIS_BOOK.MARKET_SELL}:${bookBot.symbol}:${bookBot.account}`;
   const previousOrder = await redisGetter.getAsync({ key: redisSellKey });
@@ -231,12 +239,10 @@ const handleMarketSell = async ({
     ourQuantity: ourQuantityToSell, maxQuantity: maxSellQuantity,
   });
 
-  const topBookQuantity = _.get(buyBook, '[0].quantity', '0');
-  const sellAll = BigNumber(finalQuantity).gt(topBookQuantity);
   if (orderCondition(finalQuantity) && !previousOrder) {
     const operations = getMarketSellParams({
       symbol: bookBot.symbol,
-      quantity: sellAll ? topBookQuantity : finalQuantity,
+      quantity: finalQuantity,
     });
     await redisSetter.setExpireTTL({
       key: redisSellKey,
@@ -248,7 +254,7 @@ const handleMarketSell = async ({
 };
 
 const handleMarketBuy = async ({
-  sellPrice, swapBalance, tokenPrecision, bookBot, maxBuyQuantity, sellBook,
+  sellPrice, swapBalance, tokenPrecision, bookBot, maxBuyQuantity,
 }) => {
   const redisBuyKey = `${REDIS_BOOK.MAIN}:${REDIS_BOOK.MARKET_BUY}:${bookBot.symbol}:${bookBot.account}`;
   const previousOrder = await redisGetter.getAsync({ key: redisBuyKey });
@@ -263,17 +269,12 @@ const handleMarketBuy = async ({
     ourQuantity: ourQuantityToBuy, maxQuantity: maxBuyQuantity,
   });
 
-  const topBookQuantity = _.get(sellBook, '[0].quantity', '0');
-  const topBookPrice = _.get(sellBook, '[0].price', '0');
-  const hiveQuantity = BigNumber(topBookQuantity).times(topBookPrice).toFixed(tokenPrecision);
-
-  const buyAll = BigNumber(finalQuantity).gt(hiveQuantity);
-  const conditionToOrder = orderCondition(finalQuantity) && orderCondition(hiveQuantity);
+  const conditionToOrder = orderCondition(finalQuantity);
   if (!conditionToOrder || previousOrder) return;
 
   const operations = getMarketBuyParams({
     symbol: bookBot.symbol,
-    quantity: buyAll ? hiveQuantity : finalQuantity,
+    quantity: finalQuantity,
   });
   await redisSetter.setExpireTTL({
     key: redisBuyKey,
