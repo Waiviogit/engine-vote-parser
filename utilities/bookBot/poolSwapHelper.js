@@ -50,26 +50,22 @@ exports.getSwapParams = ({
   const tokenPairArr = bookBot.tokenPair.split(':');
   const slippage = 0.005;
   const tokensToProcess = event.action === MARKET_CONTRACT.BUY
-    ? event.quantityHive
-    : event.quantityTokens;
+    ? event.quantityTokens
+    : event.quantityHive;
   const symbol = event.action === MARKET_CONTRACT.BUY
-    ? _.filter(tokenPairArr, (el) => el !== bookBot.symbol)[0]
-    : bookBot.symbol;
+    ? bookBot.symbol
+    : _.filter(tokenPairArr, (el) => el !== bookBot.symbol)[0];
 
   const precision = symbol === bookBot.symbol
     ? tokenPrecision
     : HIVE_PEGGED_PRECISION;
 
-  const amountIn = symbol === bookBot.symbol
-    ? BigNumber(tokensToProcess).dividedBy(tradeFeeMul).toFixed()
-    : BigNumber(tokensToProcess).toFixed();
-
   return {
-    amountIn,
+    amountIn: tokensToProcess,
     symbol,
     slippage,
     tradeFeeMul,
-    from: false,
+    from: true,
     pool: dieselPool,
     precision,
   };
