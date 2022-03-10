@@ -1,6 +1,7 @@
 const { cachePoolState, cacheMarketPool } = require('./cacheEnginePrice');
-const { botRcEmmiterUpdate } = require('./emiterJob');
+const { botRcEmmiterUpdate, checkBook } = require('./bookJob');
 
 cachePoolState.start();
 cacheMarketPool.start();
 botRcEmmiterUpdate.start();
+checkBook.start();
