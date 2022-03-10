@@ -50,26 +50,22 @@ exports.getSwapParams = ({
   const tokenPairArr = bookBot.tokenPair.split(':');
   const slippage = 0.005;
   const tokensToProcess = event.action === MARKET_CONTRACT.BUY
-    ? event.quantityHive
-    : event.quantityTokens;
+    ? event.quantityTokens
+    : event.quantityHive;
   const symbol = event.action === MARKET_CONTRACT.BUY
-    ? _.filter(tokenPairArr, (el) => el !== bookBot.symbol)[0]
-    : bookBot.symbol;
+    ? bookBot.symbol
+    : _.filter(tokenPairArr, (el) => el !== bookBot.symbol)[0];
 
   const precision = symbol === bookBot.symbol
     ? tokenPrecision
     : HIVE_PEGGED_PRECISION;
 
-  const amountIn = symbol === bookBot.symbol
-    ? BigNumber(tokensToProcess).dividedBy(tradeFeeMul).toFixed()
-    : BigNumber(tokensToProcess).toFixed();
-
   return {
-    amountIn,
+    amountIn: tokensToProcess,
     symbol,
     slippage,
     tradeFeeMul,
-    from: false,
+    from: true,
     pool: dieselPool,
     precision,
   };
@@ -170,50 +166,4 @@ exports.getSwapOutput = ({
     newPrices,
     json,
   };
-};
-
-exports.maxQuantityBookOrder = ({
-  pool, type, price, tradeFeeMul, tokenPrecision, previousOrders = 0,
-}) => {
-  const slippage = 0.005;
-  const {
-    baseQuantity, quoteQuantity, tokenPair, precision,
-  } = pool;
-  const [baseSymbol] = tokenPair.split(':');
-  const hiveQuantity = baseSymbol === 'SWAP.HIVE'
-    ? baseQuantity
-    : quoteQuantity;
-  const symbolQuantity = baseSymbol === 'SWAP.HIVE'
-    ? quoteQuantity
-    : baseQuantity;
-
-  const poolPrice = BigNumber(hiveQuantity).dividedBy(symbolQuantity).toFixed(precision);
-
-  if (type === MARKET_CONTRACT.SELL) {
-    const priceImpact = BigNumber(100).minus(
-      BigNumber(poolPrice).times(100).dividedBy(price),
-    ).toFixed();
-    const quantity = BigNumber(priceImpact).times(hiveQuantity).dividedBy(100).toFixed(precision);
-    const { minAmountOut } = this.getSwapOutput({
-      pool,
-      symbol: 'SWAP.HIVE',
-      from: true,
-      tradeFeeMul,
-      slippage,
-      amountIn: quantity,
-      precision: tokenPrecision,
-    });
-    return BigNumber(minAmountOut).minus(previousOrders).toFixed(tokenPrecision);
-    // after => swap from swap.hive to waiv
-  }
-
-  if (type === MARKET_CONTRACT.BUY) {
-    const priceImpact = BigNumber(100).minus(
-      BigNumber(price).times(100).dividedBy(poolPrice),
-    ).toFixed();
-    const maxQuantity = BigNumber(priceImpact).times(symbolQuantity).dividedBy(100);
-    return BigNumber(maxQuantity).minus(previousOrders).toFixed(tokenPrecision);
-    // after => swap from waiv to swap.hive
-  }
-  return '0';
 };
