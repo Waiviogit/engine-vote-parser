@@ -207,7 +207,7 @@ exports.maxQuantityBookOrder = ({
     const priceImpact = BigNumber(100).minus(
       BigNumber(price).times(100).dividedBy(poolPrice),
     ).toFixed();
-    const maxQuantity = BigNumber(priceImpact).times(symbolQuantity).dividedBy(100);
+    const maxQuantity = BigNumber(priceImpact).times(symbolQuantity).dividedBy(100).toFixed();
     return BigNumber(maxQuantity).minus(previousOrders).toFixed(tokenPrecision);
     // after => swap from waiv to swap.hive
   }
