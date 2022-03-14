@@ -490,7 +490,7 @@ const handleLimitSell = async ({
     return { limitSellOperations: operations, limitSellCounter: position };
   }
   let needRenewOrder = false;
-  let currentQuantity = BigNumber(quantity).times(bookBot.sellRatio);
+  let currentQuantity = BigNumber(quantity).times(bookBot.sellRatio).toFixed(tokenPrecision);
 
   const redisKey = `${REDIS_BOOK.MAIN}:${REDIS_BOOK.SELL}:${bookBot.symbol}:${bookBot.account}:position${position}`;
   const redisPositions = `${REDIS_BOOK.MAIN}:${REDIS_BOOK.SELL}:${bookBot.symbol}:${bookBot.account}:${REDIS_BOOK.POSITIONS}`;
@@ -681,7 +681,7 @@ const calcProfitPrice = ({
       .toFixed(HIVE_PEGGED_PRECISION);
     const hiveQuantity = BigNumber(hiveAmountWithoutSlippage)
       .plus(result.fee)
-      .times(BigNumber(1).plus(bookBot.profitPercent));
+      .times(BigNumber(1).plus(profitPercent));
     const price = BigNumber(hiveQuantity).dividedBy(quantity).toFixed(HIVE_PEGGED_PRECISION);
     return price;
   }
