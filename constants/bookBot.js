@@ -15,7 +15,8 @@ const BOOK_WAIV = {
   symbolBalanceUsage: 1,
   untouchedSwapPercent: 0.1,
   untouchedSymbolPercent: 0.1,
-  profitPercent: 0.02,
+  profitPercent: 0.005,
+  profitUpdateStep: 0.01,
 };
 
 exports.POOL_FEE = 0.9975;
