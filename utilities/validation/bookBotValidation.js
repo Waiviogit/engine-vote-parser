@@ -18,4 +18,5 @@ exports.bookBotSchema = Joi.object({
   untouchedSwapPercent: Joi.number().min(0.001).max(0.999).required(),
   untouchedSymbolPercent: Joi.number().min(0.001).max(0.999).required(),
   profitPercent: Joi.number().min(0.0001).required(),
+  profitUpdateStep: Joi.number().min(0.0001).required(),
 });

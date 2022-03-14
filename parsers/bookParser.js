@@ -25,13 +25,24 @@ exports.parse = async ({ transactions }) => {
   const tradeEvent = [];
   handleMarketEvents({ market, usualEvent, tradeEvent });
   handleSwapEvents({ marketPool, usualEvent });
+
   for (const usualSignal of _.uniqBy(usualEvent, 'symbol')) {
-    await bookBot.sendBookEvent(usualSignal);
+    const sendSignal = !_.some(tradeEvent, (event) => event.symbol === usualSignal.symbol);
+    if (sendSignal) await bookBot.sendBookEvent(usualSignal);
   }
-  for (const eventSignal of tradeEvent) {
-    await bookBot.sendBookEvent(eventSignal);
+  if (_.isEmpty(tradeEvent)) return;
+
+  const sortedTrades = sortTradeBySymbol(tradeEvent);
+  for (const symbolDeal in sortedTrades) {
+    await bookBot.sendBookEvent({ symbol: symbolDeal, events: sortedTrades[symbolDeal] });
   }
 };
+
+const sortTradeBySymbol = (events) => _.reduce(events, (accum, el) => {
+  if (!_.has(accum, `${el.symbol}`)) accum[el.symbol] = [];
+  accum[el.symbol].push(el.event);
+  return accum;
+}, {});
 
 const handleMarketEvents = ({ market, usualEvent, tradeEvent }) => {
   for (const marketElement of market) {
