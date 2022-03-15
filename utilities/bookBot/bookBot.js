@@ -99,17 +99,17 @@ const handleBookEvent = async ({ bookBot, events }) => {
   if (marketSellCondition) {
     const buyQuantity = _.get(buyBook, '[0].quantity', '0');
     const profitablePrice = calcProfitPrice({
-      quantity: buyQuantity,
+      profitPercent: bookBot.profitPercent,
       type: MARKET_CONTRACT.SELL,
+      quantity: buyQuantity,
       pool: dieselPool,
       tokenPrecision,
       tradeFeeMul,
-      profitPercent: bookBot.profitPercent,
       bookBot,
     });
     if (BigNumber(buyPrice).gt(profitablePrice)) {
       const marketSell = await handleMarketSell({
-        symbolBalance, tokenPrecision, bookBot, maxSellQuantity: buyQuantity,
+        symbolBalance, bookBot, maxSellQuantity: buyQuantity,
       });
       marketSell && operations.push(marketSell);
     }
@@ -118,27 +118,21 @@ const handleBookEvent = async ({ bookBot, events }) => {
   if (marketBuyCondition) {
     const sellQuantity = _.get(sellBook, '[0].quantity', '0');
     const profitablePrice = calcProfitPrice({
-      quantity: sellQuantity,
+      profitPercent: bookBot.profitPercent,
       type: MARKET_CONTRACT.BUY,
+      quantity: sellQuantity,
       pool: dieselPool,
       tokenPrecision,
       tradeFeeMul,
-      profitPercent: bookBot.profitPercent,
       bookBot,
     });
     if (BigNumber(sellPrice).lt(profitablePrice)) {
       const marketBuy = await handleMarketBuy({
-        sellPrice, swapBalance, tokenPrecision, bookBot, maxBuyQuantity: sellQuantity,
+        sellPrice, swapBalance, bookBot, maxBuyQuantity: sellQuantity,
       });
       marketBuy && operations.push(marketBuy);
     }
   }
-
-  const balanceLimitBuy = BigNumber(swapTotalBalance).times(bookBot.swapBalanceUsage)
-    .minus(BigNumber(swapTotalBalance).times(bookBot.untouchedSwapPercent)).toFixed(HIVE_PEGGED_PRECISION);
-
-  const balanceLimitSell = BigNumber(symbolTotalBalance).times(bookBot.symbolBalanceUsage)
-    .minus(BigNumber(symbolTotalBalance).times(bookBot.untouchedSymbolPercent)).toFixed(tokenPrecision);
 
   /**
    * Close all orders if we find difference between redis and book positions
@@ -155,48 +149,65 @@ const handleBookEvent = async ({ bookBot, events }) => {
   /**
    * Handle Limit Buy Limit Sell
    */
+  const balanceLimitBuy = BigNumber(swapTotalBalance)
+    .times(bookBot.swapBalanceUsage)
+    .minus(BigNumber(swapTotalBalance).times(bookBot.untouchedSwapPercent))
+    .toFixed(HIVE_PEGGED_PRECISION);
+
+  const balanceLimitSell = BigNumber(symbolTotalBalance)
+    .times(bookBot.symbolBalanceUsage)
+    .minus(BigNumber(symbolTotalBalance).times(bookBot.untouchedSymbolPercent))
+    .toFixed(tokenPrecision);
+
+  const startLimitBuyQuantity = BigNumber(bookBot.startBuyQuantity)
+    .dividedBy(bookBot.buyRatio)
+    .toFixed(tokenPrecision);
+
+  const startLimitSellQuantity = BigNumber(bookBot.startSellQuantity)
+    .dividedBy(bookBot.sellRatio)
+    .toFixed(tokenPrecision);
+
   const lastOrderBuyEXKey = `${REDIS_BOOK.MAIN}:${REDIS_BOOK.BUY}:${bookBot.symbol}:${bookBot.account}`;
   const lastOrderSellEXKey = `${REDIS_BOOK.MAIN}:${REDIS_BOOK.SELL}:${bookBot.symbol}:${bookBot.account}`;
+
   const { limitBuyOperations, limitBuyCounter } = await handleLimitBuy({
-    operations: [],
-    bookBot,
-    balance: balanceLimitBuy,
-    quantity: BigNumber(bookBot.startBuyQuantity)
-      .dividedBy(bookBot.buyRatio).toFixed(tokenPrecision),
-    tokenPrecision,
-    tradeFeeMul,
-    dieselPool,
-    book: buyBook,
-    position: START_POSITION,
     profitPercent: bookBot.profitPercent,
     lastOrderEXKey: lastOrderBuyEXKey,
-  });
-  const { limitSellOperations, limitSellCounter } = await handleLimitSell({
-    operations: [],
-    bookBot,
-    balance: balanceLimitSell,
-    quantity: BigNumber(bookBot.startSellQuantity)
-      .dividedBy(bookBot.sellRatio).toFixed(tokenPrecision),
+    quantity: startLimitBuyQuantity,
+    balance: balanceLimitBuy,
+    position: START_POSITION,
     tokenPrecision,
+    book: buyBook,
+    operations: [],
     tradeFeeMul,
     dieselPool,
-    book: sellBook,
-    position: START_POSITION,
+    bookBot,
+  });
+  const { limitSellOperations, limitSellCounter } = await handleLimitSell({
     profitPercent: bookBot.profitPercent,
     lastOrderEXKey: lastOrderSellEXKey,
+    quantity: startLimitSellQuantity,
+    balance: balanceLimitSell,
+    position: START_POSITION,
+    operations: [],
+    tokenPrecision,
+    book: sellBook,
+    tradeFeeMul,
+    dieselPool,
+    bookBot,
   });
   if (limitBuyOperations.length) {
     await redisSetter.setExpireTTL({
+      expire: REDIS_BOOK.EXPIRE_SECONDS,
       key: lastOrderBuyEXKey,
       data: bookBot.account,
-      expire: REDIS_BOOK.EXPIRE_SECONDS,
     });
   }
   if (limitSellOperations.length) {
     await redisSetter.setExpireTTL({
+      expire: REDIS_BOOK.EXPIRE_SECONDS,
       key: lastOrderSellEXKey,
       data: bookBot.account,
-      expire: REDIS_BOOK.EXPIRE_SECONDS,
     });
   }
   operations.push(...limitSellOperations, ...limitBuyOperations);
@@ -223,6 +234,9 @@ const handleBookEvent = async ({ bookBot, events }) => {
   operations.push(...noFundLimitBuy, ...noFundLimitSell);
 
   if (_.isEmpty(operations)) return;
+  /**
+   * Close orders always goes first
+   */
   operations.sort((a, b) => (b.contractAction === MARKET_CONTRACT.CANCEL) - (a.contractAction === MARKET_CONTRACT.CANCEL));
 
   return bookBroadcastToChain({ bookBot, operations });
@@ -290,23 +304,22 @@ const handleDeal = async ({
 };
 
 const handleMarketSell = async ({
-  symbolBalance, tokenPrecision, maxSellQuantity, bookBot,
+  symbolBalance, maxSellQuantity, bookBot,
 }) => {
   const redisSellKey = `${REDIS_BOOK.MAIN}:${REDIS_BOOK.MARKET_SELL}:${bookBot.symbol}:${bookBot.account}`;
   const previousOrder = await redisGetter.getAsync({ key: redisSellKey });
-  const ourQuantityToSell = BigNumber(symbolBalance).toFixed(tokenPrecision);
 
   const finalQuantity = orderQuantity({
-    ourQuantity: ourQuantityToSell, maxQuantity: maxSellQuantity,
+    ourQuantity: symbolBalance, maxQuantity: maxSellQuantity,
   });
 
   const conditionToOrder = orderCondition(finalQuantity);
   if (!conditionToOrder || previousOrder) return;
 
   await redisSetter.setExpireTTL({
-    key: redisSellKey,
-    data: bookBot.account,
     expire: REDIS_BOOK.EXPIRE_SECONDS,
+    data: bookBot.account,
+    key: redisSellKey,
   });
   return getMarketSellParams({
     symbol: bookBot.symbol,
@@ -315,28 +328,22 @@ const handleMarketSell = async ({
 };
 
 const handleMarketBuy = async ({
-  sellPrice, swapBalance, tokenPrecision, bookBot, maxBuyQuantity,
+  sellPrice, swapBalance, bookBot, maxBuyQuantity,
 }) => {
   const redisBuyKey = `${REDIS_BOOK.MAIN}:${REDIS_BOOK.MARKET_BUY}:${bookBot.symbol}:${bookBot.account}`;
   const previousOrder = await redisGetter.getAsync({ key: redisBuyKey });
 
-  const ourQuantityToBuy = getQuantityToBuy({
-    price: sellPrice,
-    total: BigNumber(swapBalance).toFixed(),
-    precision: tokenPrecision,
-  });
+  const maxQuantity = getSwapExpenses({ quantity: maxBuyQuantity, price: sellPrice });
 
-  const finalQuantity = orderQuantity({
-    ourQuantity: ourQuantityToBuy, maxQuantity: maxBuyQuantity,
-  });
+  const finalQuantity = orderQuantity({ ourQuantity: swapBalance, maxQuantity });
 
   const conditionToOrder = orderCondition(finalQuantity);
   if (!conditionToOrder || previousOrder) return;
 
   await redisSetter.setExpireTTL({
-    key: redisBuyKey,
-    data: bookBot.account,
     expire: REDIS_BOOK.EXPIRE_SECONDS,
+    data: bookBot.account,
+    key: redisBuyKey,
   });
   return getMarketBuyParams({
     symbol: bookBot.symbol,
@@ -361,17 +368,17 @@ const handleBotRc = ({ rcLeft, bookBot }) => {
 };
 
 const handleLimitBuy = async ({
-  operations,
-  bookBot,
-  quantity,
-  balance,
   tokenPrecision,
-  tradeFeeMul,
-  dieselPool,
-  position,
-  book,
-  profitPercent,
   lastOrderEXKey,
+  profitPercent,
+  tradeFeeMul,
+  operations,
+  dieselPool,
+  quantity,
+  position,
+  bookBot,
+  balance,
+  book,
 }) => {
   if (BigNumber(balance).eq(0)) {
     return { limitBuyOperations: operations, limitBuyCounter: position };
@@ -392,9 +399,9 @@ const handleLimitBuy = async ({
     type: MARKET_CONTRACT.BUY,
     pool: dieselPool,
     tokenPrecision,
+    profitPercent,
     tradeFeeMul,
     bookBot,
-    profitPercent,
   });
 
   const expenses = getSwapExpenses({ quantity: currentQuantity, price });
@@ -403,9 +410,9 @@ const handleLimitBuy = async ({
   const outOfBalance = BigNumber(newBalance).lte(0);
   if (outOfBalance) {
     currentQuantity = getQuantityToBuy({
-      price,
       total: BigNumber(balance).toFixed(),
       precision: tokenPrecision,
+      price,
     });
     newBalance = 0;
   }
@@ -422,16 +429,16 @@ const handleLimitBuy = async ({
     }
 
     const needUpdatePrice = isNeedToUpdatePrice({
-      currentPrice: price,
-      previousPrice: previousOrder.price,
       priceDiffPercent: bookBot.priceDiffPercent,
+      previousPrice: previousOrder.price,
       type: MARKET_CONTRACT.BUY,
+      currentPrice: price,
     });
 
     const needUpdateQuantity = isNeedToUpdateQuantity({
-      previousOrderQuantity: previousOrder.quantity,
-      bookQuantity: _.get(orderInBook, 'quantity'),
       updateQuantityPercent: bookBot.updateQuantityPercent,
+      bookQuantity: _.get(orderInBook, 'quantity'),
+      previousOrderQuantity: previousOrder.quantity,
     });
 
     const cancelCondition = !lastOrder && (needUpdateQuantity || needUpdatePrice);
@@ -448,9 +455,9 @@ const handleLimitBuy = async ({
   const newOrderCondition = orderCondition(currentQuantity) && (!previousOrder || needRenewOrder);
   if (newOrderCondition) {
     operations.push(getLimitBuyParams({
+      quantity: BigNumber(currentQuantity).toFixed(tokenPrecision),
       symbol: bookBot.symbol,
       price,
-      quantity: BigNumber(currentQuantity).toFixed(tokenPrecision),
     }));
     await redisSetter.hmsetAsync(
       redisKey,
@@ -459,32 +466,32 @@ const handleLimitBuy = async ({
     );
   }
   return handleLimitBuy({
-    operations,
-    bookBot,
+    profitPercent: BigNumber(profitPercent).plus(bookBot.profitUpdateStep).toNumber(),
     quantity: currentQuantity,
+    position: ++position,
     balance: newBalance,
     tokenPrecision,
+    lastOrderEXKey,
     tradeFeeMul,
     dieselPool,
-    position: ++position,
+    operations,
+    bookBot,
     book,
-    profitPercent: BigNumber(profitPercent).plus(bookBot.profitUpdateStep).toNumber(),
-    lastOrderEXKey,
   });
 };
 
 const handleLimitSell = async ({
-  operations,
-  bookBot,
-  quantity,
-  balance,
   tokenPrecision,
-  tradeFeeMul,
-  dieselPool,
-  position,
-  book,
-  profitPercent,
   lastOrderEXKey,
+  profitPercent,
+  tradeFeeMul,
+  operations,
+  dieselPool,
+  quantity,
+  position,
+  bookBot,
+  balance,
+  book,
 }) => {
   if (BigNumber(balance).eq(0)) {
     return { limitSellOperations: operations, limitSellCounter: position };
@@ -506,9 +513,9 @@ const handleLimitSell = async ({
     type: MARKET_CONTRACT.SELL,
     pool: dieselPool,
     tokenPrecision,
+    profitPercent,
     tradeFeeMul,
     bookBot,
-    profitPercent,
   });
 
   let newBalance = BigNumber(balance).minus(currentQuantity).toFixed();
@@ -529,16 +536,16 @@ const handleLimitSell = async ({
       });
     }
     const needUpdatePrice = isNeedToUpdatePrice({
-      currentPrice: price,
-      previousPrice: previousOrder.price,
       priceDiffPercent: bookBot.priceDiffPercent,
+      previousPrice: previousOrder.price,
       type: MARKET_CONTRACT.SELL,
+      currentPrice: price,
     });
 
     const needUpdateQuantity = isNeedToUpdateQuantity({
+      updateQuantityPercent: bookBot.updateQuantityPercent,
       previousOrderQuantity: previousOrder.quantity,
       bookQuantity: _.get(orderInBook, 'quantity'),
-      updateQuantityPercent: bookBot.updateQuantityPercent,
     });
 
     const cancelCondition = !lastOrder && (needUpdateQuantity || needUpdatePrice);
@@ -554,9 +561,9 @@ const handleLimitSell = async ({
   const newOrderCondition = orderCondition(currentQuantity) && (!previousOrder || needRenewOrder);
   if (newOrderCondition) {
     operations.push(getLimitSellParams({
+      quantity: BigNumber(currentQuantity).toFixed(tokenPrecision),
       symbol: bookBot.symbol,
       price,
-      quantity: BigNumber(currentQuantity).toFixed(tokenPrecision),
     }));
     await redisSetter.hmsetAsync(
       redisKey,
@@ -565,17 +572,17 @@ const handleLimitSell = async ({
     );
   }
   return handleLimitSell({
-    operations,
-    bookBot,
+    profitPercent: BigNumber(profitPercent).plus(bookBot.profitUpdateStep).toNumber(),
     quantity: currentQuantity,
+    position: ++position,
     balance: newBalance,
     tokenPrecision,
-    tradeFeeMul,
-    dieselPool,
-    position: ++position,
-    book,
-    profitPercent: BigNumber(profitPercent).plus(bookBot.profitUpdateStep).toNumber(),
     lastOrderEXKey,
+    tradeFeeMul,
+    operations,
+    dieselPool,
+    bookBot,
+    book,
   });
 };
 
@@ -652,13 +659,13 @@ const calcProfitPrice = ({
   const slippage = 0.005;
   if (type === MARKET_CONTRACT.BUY) {
     const result = poolSwapHelper.getSwapOutput({
-      from: true,
-      symbol: bookBot.symbol,
-      tradeFeeMul,
-      amountIn: quantity,
-      pool,
       precision: HIVE_PEGGED_PRECISION,
+      symbol: bookBot.symbol,
+      amountIn: quantity,
+      tradeFeeMul,
+      from: true,
       slippage,
+      pool,
     });
     const hiveQuantity = BigNumber(result.minAmountOut)
       .times(BigNumber(1).minus(profitPercent));
@@ -668,13 +675,13 @@ const calcProfitPrice = ({
 
   if (type === MARKET_CONTRACT.SELL) {
     const result = poolSwapHelper.getSwapOutput({
-      from: false,
-      symbol: bookBot.symbol,
-      tradeFeeMul,
-      amountIn: quantity,
-      pool,
       precision: tokenPrecision,
+      symbol: bookBot.symbol,
+      amountIn: quantity,
+      from: false,
+      tradeFeeMul,
       slippage,
+      pool,
     });
     const hiveAmountWithoutSlippage = BigNumber(result.amountOut)
       .times(BigNumber(1).minus(slippage))
