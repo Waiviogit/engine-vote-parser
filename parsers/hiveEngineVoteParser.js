@@ -54,9 +54,13 @@ exports.formatVotesAndRewards = ({ transactions, blockNumber, timestamps }) => _
       return acc;
     }
     for (const event of events) {
-      const parseVoteCondition = _.get(event, 'event') === ENGINE_EVENTS.NEW_VOTE
+      const eventType = _.get(event, 'event');
+      const parseVoteCondition = _.includes([ENGINE_EVENTS.NEW_VOTE, ENGINE_EVENTS.UPDATE_VOTE], eventType)
         && _.includes(_.map(ENGINE_TOKENS, 'SYMBOL'), _.get(event, 'data.symbol'))
-        && parseFloat(_.get(event, 'data.rshares')) !== 0;
+        && (
+          (eventType === ENGINE_EVENTS.NEW_VOTE && parseFloat(_.get(event, 'data.rshares')) !== 0)
+              || eventType === ENGINE_EVENTS.UPDATE_VOTE
+        );
       const parseRewardsCondition = _.includes(POST_REWARD_EVENTS, _.get(event, 'event'))
         && _.includes(_.map(ENGINE_TOKENS, 'SYMBOL'), _.get(event, 'data.symbol'))
         && parseFloat(_.get(event, 'data.quantity')) !== 0;
@@ -177,22 +181,20 @@ const addRsharesToPost = async ({ votes, posts }) => {
 
   for (const vote of votes) {
     if (!vote.type) continue;
-    const processed = _.find(votesProcessedOnApi, (el) => _.isEqual(vote, el));
-    if (processed) continue;
     const post = _.find(posts,
       (p) => (p.author === vote.author || p.author === vote.guest_author)
-        && p.permlink === vote.permlink);
-    if (!post) continue;
+            && p.permlink === vote.permlink);
+    const voteInPost = _.find(post.active_votes, (v) => v.voter === vote.voter);
+    const processed = _.find(votesProcessedOnApi, (el) => _.isEqual(vote, el));
+    if (processed || !post) continue;
     const createdOverAWeek = moment().diff(moment(_.get(post, 'createdAt')), 'day') > 7;
     if (!createdOverAWeek) {
-      post[`net_rshares_${vote.symbol}`] = BigNumber(_.get(post, `net_rshares_${vote.symbol}`, 0))
-        .plus(vote.rshares)
-        .toNumber();
+      post[`net_rshares_${vote.symbol}`] = getPostNetRshares({ post, vote, voteInPost });
+
       post[`total_payout_${vote.symbol}`] = BigNumber(post[`net_rshares_${vote.symbol}`])
         .times(rewards[vote.symbol])
         .toNumber();
     }
-    const voteInPost = _.find(post.active_votes, (v) => v.voter === vote.voter);
     voteInPost
       ? voteInPost[`rshares${vote.symbol}`] = vote.rshares
       : post.active_votes.push({
@@ -203,6 +205,23 @@ const addRsharesToPost = async ({ votes, posts }) => {
   }
   await updatePostsRshares(posts);
   return { processedPosts: posts };
+};
+
+const getPostNetRshares = ({ vote, voteInPost, post }) => {
+  if (voteInPost && vote.weight === 0) {
+    return BigNumber(post[`net_rshares_${vote.symbol}`])
+      .minus(_.get(voteInPost, `rshares${vote.symbol}`, 0))
+      .toNumber();
+  }
+  if (voteInPost) {
+    return BigNumber(post[`net_rshares_${vote.symbol}`])
+      .minus(_.get(voteInPost, `rshares${vote.symbol}`, 0))
+      .plus(vote.rshares)
+      .toNumber();
+  }
+  return BigNumber(_.get(post, `net_rshares_${vote.symbol}`, 0))
+    .plus(vote.rshares)
+    .toNumber();
 };
 
 const updatePostsRshares = async (posts) => {

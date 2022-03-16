@@ -33,6 +33,7 @@ exports.ENGINE_CONTRACT_ACTIONS = {
 
 exports.ENGINE_EVENTS = {
   NEW_VOTE: 'newVote',
+  UPDATE_VOTE: 'updateVote',
   CURATION_REWARD: 'curationReward',
   AUTHOR_REWARD: 'authorReward',
   BENEFICIARY_REWARD: 'beneficiaryReward',
