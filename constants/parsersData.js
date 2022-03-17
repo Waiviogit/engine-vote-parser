@@ -82,5 +82,5 @@ exports.MEMO_ID = {
 };
 
 exports.REDIS_KEYS = {
-  PROCESSED_LIKES: 'processed_likes',
+  PROCESSED_LIKES: 'processed_likes:engine',
 };
