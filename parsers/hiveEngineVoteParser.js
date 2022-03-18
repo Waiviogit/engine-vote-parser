@@ -9,6 +9,7 @@ const {
 const EngineAccountHistoryModel = require('models/EngineAccountHistoryModel');
 const moment = require('moment');
 const redisGetter = require('utilities/redis/redisGetter');
+const redisSetter = require('utilities/redis/redisSetter');
 const { lastBlockClient } = require('utilities/redis/redis');
 const jsonHelper = require('utilities/helpers/jsonHelper');
 const _ = require('lodash');
@@ -178,6 +179,7 @@ const getCashedRewards = async () => {
 const addRsharesToPost = async ({ votes, posts }) => {
   const votesProcessedOnApi = await getProcessedVotes(votes);
   const rewards = await getCashedRewards();
+  const votesToRemoveFromRedis = [];
 
   for (const vote of votes) {
     if (!vote.type) continue;
@@ -186,7 +188,11 @@ const addRsharesToPost = async ({ votes, posts }) => {
             && p.permlink === vote.permlink);
     const voteInPost = _.find(post.active_votes, (v) => v.voter === vote.voter);
     const processed = _.find(votesProcessedOnApi, (el) => _.isEqual(vote, el));
-    if (processed || !post) continue;
+    if (processed) {
+      votesToRemoveFromRedis.push(vote);
+      continue;
+    }
+    if (!post) continue;
     const createdOverAWeek = moment().diff(moment(_.get(post, 'createdAt')), 'day') > 7;
     if (!createdOverAWeek) {
       post[`net_rshares_${vote.symbol}`] = getPostNetRshares({ post, vote, voteInPost });
@@ -202,6 +208,12 @@ const addRsharesToPost = async ({ votes, posts }) => {
         percent: vote.weight,
         [`rshares${vote.symbol}`]: vote.rshares,
       });
+  }
+  for (const removeVote of votesToRemoveFromRedis) {
+    await redisSetter.zrem({
+      key: REDIS_KEYS.PROCESSED_LIKES,
+      member: `${removeVote.voter}:${removeVote.author}:${removeVote.permlink}`,
+    });
   }
   await updatePostsRshares(posts);
   return { processedPosts: posts };
