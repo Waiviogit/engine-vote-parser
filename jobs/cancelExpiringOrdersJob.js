@@ -1,33 +1,34 @@
 const cron = require('cron');
-const {
-  BOOK_BOTS,
-  REDIS_BOOK,
-} = require('../constants/bookBot');
+const { BOOK_BOTS } = require('../constants/bookBot');
 const engineMarket = require('../utilities/hiveEngine/market');
 const { handleOrders } = require('../utilities/helpers/cancelExpiringOrdersHelper');
+const { MARKET_CONTRACT } = require('../constants/hiveEngine');
+const { bookBroadcastToChain } = require('../utilities/helpers/bookBroadcastToChainHelper');
 
-// не забудь поменять на отработку раз в день в полночь!!!
-exports.cancelExpiringOrders = cron.job('*/5 * * * * *', async () => {
-   console.log('here!');
+exports.cancelExpiringOrders = cron.job('0 0 * * *', async () => {
   for (const bot of BOOK_BOTS) {
+    const operations = [];
+
     const buyBook = await engineMarket.getBuyBook({ query: { symbol: bot.symbol } });
     if (buyBook.length) {
-      await handleOrders({
+      const expiringBuyOperations = await handleOrders({
         book: buyBook,
-        type: REDIS_BOOK.BUY,
+        type: MARKET_CONTRACT.BUY,
         bookBot: bot,
       });
+      if (expiringBuyOperations.length) operations.push(...expiringBuyOperations);
     }
 
     const sellBook = await engineMarket.getSellBook({ query: { symbol: bot.symbol } });
     if (sellBook.length) {
-      await handleOrders({
+      const expiringSellOperations = await handleOrders({
         book: sellBook,
-        type: REDIS_BOOK.SELL,
+        type: MARKET_CONTRACT.SELL,
         bookBot: bot,
       });
+      if (expiringSellOperations.length) operations.push(...expiringSellOperations);
     }
-  }
 
-  // cделать бродкаст на все
+    if (operations.length) await bookBroadcastToChain({ bookBot: bot, operations });
+  }
 });
