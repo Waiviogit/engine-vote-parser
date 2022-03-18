@@ -3,9 +3,12 @@ const bookEmttter = require('utilities/bookBot/bookEvents');
 const { BOOK_BOTS } = require('constants/bookBot');
 const { sendBotRCNotification } = require('utilities/telegramApi/telegramApiRequsts');
 const bookBot = require('utilities/bookBot/bookBot');
+const { BOOK_EMITTER_EVENTS } = require('../constants/bookBot');
 
 exports.botRcEmmiterUpdate = cron.job('30 */1 * * *', async () => {
-  bookEmttter.once('bot-rc', sendBotRCNotification);
+  bookEmttter.removeListener(BOOK_EMITTER_EVENTS.RC, sendBotRCNotification);
+
+  bookEmttter.once(BOOK_EMITTER_EVENTS.RC, sendBotRCNotification);
 }, null, false, null, null, false);
 
 exports.checkBook = cron.job('*/1 * * * *', async () => {

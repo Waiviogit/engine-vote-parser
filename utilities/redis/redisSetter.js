@@ -41,3 +41,7 @@ exports.delKey = async (key, client = expiredPostsClient) => client.delAsync(key
 exports.sadd = async (key, member, client = expiredPostsClient) => client.saddAsync(key, member);
 
 exports.srem = async (key, member, client = expiredPostsClient) => client.sremAsync(key, member);
+
+exports.zrem = async ({
+  key, member, client = expiredPostsClient,
+}) => client.zremAsync(key, member);
