@@ -107,7 +107,7 @@ const handleBookEvent = async ({ bookBot, events }) => {
       tradeFeeMul,
       bookBot,
     });
-    if (BigNumber(buyPrice).gt(profitablePrice)) {
+    if (BigNumber(buyPrice).gt(profitablePrice) && !BigNumber(profitablePrice).eq('0')) {
       const marketSell = await handleMarketSell({
         symbolBalance, bookBot, maxSellQuantity: buyQuantity,
       });
@@ -126,7 +126,7 @@ const handleBookEvent = async ({ bookBot, events }) => {
       tradeFeeMul,
       bookBot,
     });
-    if (BigNumber(sellPrice).lt(profitablePrice)) {
+    if (BigNumber(sellPrice).lt(profitablePrice) && !BigNumber(profitablePrice).eq('0')) {
       const marketBuy = await handleMarketBuy({
         sellPrice, swapBalance, bookBot, maxBuyQuantity: sellQuantity,
       });
@@ -403,6 +403,9 @@ const handleLimitBuy = async ({
     tradeFeeMul,
     bookBot,
   });
+  if (BigNumber(price).eq('0')) {
+    return { limitBuyOperations: operations, limitBuyCounter: position };
+  }
 
   const expenses = getSwapExpenses({ quantity: currentQuantity, price });
 
@@ -517,6 +520,9 @@ const handleLimitSell = async ({
     tradeFeeMul,
     bookBot,
   });
+  if (BigNumber(price).eq('0')) {
+    return { limitSellOperations: operations, limitSellCounter: position };
+  }
 
   let newBalance = BigNumber(balance).minus(currentQuantity).toFixed();
   const outOfBalance = BigNumber(newBalance).lte(0);
@@ -669,6 +675,7 @@ const calcProfitPrice = ({
     });
     const hiveQuantity = BigNumber(result.minAmountOut)
       .times(BigNumber(1).minus(profitPercent));
+    if (BigNumber(result.priceImpact).gte(90) || result.priceImpact === 'Infinity') return '0';
     const price = BigNumber(hiveQuantity).dividedBy(quantity).toFixed(HIVE_PEGGED_PRECISION);
     return price;
   }
@@ -683,6 +690,7 @@ const calcProfitPrice = ({
       slippage,
       pool,
     });
+    if (BigNumber(result.priceImpact).gte(90) || result.priceImpact === 'Infinity') return '0';
     const hiveAmountWithoutSlippage = BigNumber(result.amountOut)
       .times(BigNumber(1).minus(slippage))
       .toFixed(HIVE_PEGGED_PRECISION);
