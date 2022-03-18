@@ -1,6 +1,24 @@
 const BOOK_WAIV = {
-  account: process.env.BOOK_BOT_WAIV_ACCOUNT,
-  key: process.env.BOOK_BOT_WAIV_KEY,
+  // account: process.env.BOOK_BOT_WAIV_ACCOUNT,
+  // key: process.env.BOOK_BOT_WAIV_KEY,
+  // symbol: 'WAIV',
+  // tokenPair: 'SWAP.HIVE:WAIV',
+  // updateQuantityPercent: 70,
+  // priceDiffPercent: 1,
+  // buyDiffPercent: 0.02,
+  // sellDiffPercent: 0.02,
+  // buyRatio: 3,
+  // sellRatio: 3,
+  // startBuyQuantity: 30,
+  // startSellQuantity: 30,
+  // swapBalanceUsage: 1,
+  // symbolBalanceUsage: 1,
+  // untouchedSwapPercent: 0.1,
+  // untouchedSymbolPercent: 0.1,
+  // profitPercent: 0.005,
+  // profitUpdateStep: 0.01,
+  account: 'swap.call',
+  key: 'vbbv',
   symbol: 'WAIV',
   tokenPair: 'SWAP.HIVE:WAIV',
   updateQuantityPercent: 70,
@@ -40,3 +58,5 @@ exports.REDIS_BOOK = {
 exports.BOOK_BOTS = [
   BOOK_WAIV,
 ];
+
+exports.UNIX_TIMESTAMP_CONVERTER = 1000;

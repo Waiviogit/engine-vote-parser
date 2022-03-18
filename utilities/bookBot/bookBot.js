@@ -239,6 +239,7 @@ const handleBookEvent = async ({ bookBot, events }) => {
    */
   operations.sort((a, b) => (b.contractAction === MARKET_CONTRACT.CANCEL) - (a.contractAction === MARKET_CONTRACT.CANCEL));
 
+  // этот метод мне тоже нужен
   return bookBroadcastToChain({ bookBot, operations });
 };
 
@@ -621,7 +622,7 @@ const closeOrdersDifferentFromBot = async ({ book, type, bookBot }) => {
 };
 
 const closeNoFundOrders = async ({
-  positions, type, book, bookBot,
+  positions = [], type, book, bookBot,
 }) => {
   const operations = [];
   const redisPositions = `${REDIS_BOOK.MAIN}:${type}:${bookBot.symbol}:${bookBot.account}:${REDIS_BOOK.POSITIONS}`;
