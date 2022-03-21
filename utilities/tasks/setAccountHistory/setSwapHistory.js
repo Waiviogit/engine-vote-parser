@@ -1,5 +1,5 @@
 const api = require('api/hiveEngine');
-const { runCustomStream } = require('utilities/bookBot/helpers/customStreamHelper');
+const { runCustomStream } = require('utilities/helpers/customStreamHelper');
 const swapHistoryHelper = require('./swapHistoryHelper');
 
 (async () => {

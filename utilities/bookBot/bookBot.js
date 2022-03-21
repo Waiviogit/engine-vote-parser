@@ -11,7 +11,7 @@ const { calculateRcPercent } = require('utilities/hiveApi/hiveOperations');
 const redisGetter = require('utilities/redis/redisGetter');
 const redisSetter = require('utilities/redis/redisSetter');
 const { expiredPostsClient } = require('utilities/redis/redis');
-const poolSwapHelper = require('./poolSwapHelper');
+const poolSwapHelper = require('./helpers/poolSwapHelper');
 const bookEmitter = require('./bookEvents');
 const {
   getQuantityToBuy,
@@ -27,7 +27,7 @@ const {
   countTotalBalance,
   validateBookBot,
   getSwapExpenses,
-} = require('./bookHelpers');
+} = require('./helpers/bookHelpers');
 const { closeNoFundOrExpiringOrders } = require('./helpers/closeNoFundExpiringOrdersHelper');
 const { bookBroadcastToChain } = require('./helpers/bookBroadcastToChainHelper');
 

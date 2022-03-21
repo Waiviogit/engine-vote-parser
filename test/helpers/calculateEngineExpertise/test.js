@@ -3,7 +3,7 @@ const { sinon } = require('test/testHelper');
 const BigNumber = require('bignumber.js');
 const { expect } = require('../../testHelper');
 const { redisGetter } = require('../../../utilities/redis');
-const calculateEngineExpertise = require('../../../utilities/bookBot/helpers/calculateEngineExpertise');
+const calculateEngineExpertise = require('../../../utilities/helpers/calculateEngineExpertise');
 
 describe('Calculate Engine Expertise', async () => {
   let value, check;

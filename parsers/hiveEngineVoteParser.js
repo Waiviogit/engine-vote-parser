@@ -11,12 +11,12 @@ const moment = require('moment');
 const redisGetter = require('utilities/redis/redisGetter');
 const redisSetter = require('utilities/redis/redisSetter');
 const { lastBlockClient } = require('utilities/redis/redis');
-const jsonHelper = require('utilities/bookBot/helpers/jsonHelper');
+const jsonHelper = require('utilities/helpers/jsonHelper');
 const _ = require('lodash');
 const BigNumber = require('bignumber.js');
 const userValidator = require('validator/userValidator');
-const calculateEngineExpertise = require('utilities/bookBot/helpers/calculateEngineExpertise');
-const appHelper = require('utilities/bookBot/helpers/appHelper');
+const calculateEngineExpertise = require('utilities/helpers/calculateEngineExpertise');
+const appHelper = require('utilities/helpers/appHelper');
 
 exports.parse = async ({ transactions, blockNumber, timestamps }) => {
   const { votes, rewards } = this.formatVotesAndRewards({ transactions, blockNumber, timestamps });

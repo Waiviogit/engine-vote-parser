@@ -1,7 +1,7 @@
 const { UserWobjects } = require('models');
 const _ = require('lodash');
-const calculateEngineExpertise = require('utilities/bookBot/helpers/calculateEngineExpertise');
-const appHelper = require('utilities/bookBot/helpers/appHelper');
+const calculateEngineExpertise = require('utilities/helpers/calculateEngineExpertise');
+const appHelper = require('utilities/helpers/appHelper');
 
 let blackList = [];
 const getBlackList = async () => {

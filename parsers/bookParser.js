@@ -2,7 +2,7 @@ const _ = require('lodash');
 const {
   ENGINE_CONTRACTS, MARKET_CONTRACT, MARKET_CONTRACT_BOOKBOT_EVENT, TOKENS_CONTRACT,
 } = require('constants/hiveEngine');
-const jsonHelper = require('utilities/bookBot/helpers/jsonHelper');
+const jsonHelper = require('utilities/helpers/jsonHelper');
 const { BOOK_BOTS } = require('constants/bookBot');
 const bookBot = require('utilities/bookBot/bookBot');
 

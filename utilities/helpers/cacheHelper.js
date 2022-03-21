@@ -6,7 +6,7 @@ const {
 } = require('constants/hiveEngine');
 
 const _ = require('lodash');
-const marketPools = require('../../hiveEngine/marketPools');
+const marketPools = require('../hiveEngine/marketPools');
 
 exports.cachePoolState = async () => {
   for (const TOKEN of ENGINE_TOKENS) {

@@ -1,6 +1,6 @@
 const _ = require('lodash');
 const { EngineAccountHistory } = require('models');
-const { parseJson } = require('utilities/bookBot/helpers/jsonHelper');
+const { parseJson } = require('utilities/helpers/jsonHelper');
 const moment = require('moment');
 const { ENGINE_CONTRACT_ACTIONS } = require('constants/hiveEngine');
 

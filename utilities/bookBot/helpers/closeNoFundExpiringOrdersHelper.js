@@ -6,7 +6,7 @@ const {
   redisSetter,
 } = require('../../redis');
 const { expiredPostsClient } = require('../../redis/redis');
-const { getCancelParams } = require('../bookHelpers');
+const { getCancelParams } = require('./bookHelpers');
 
 exports.closeNoFundOrExpiringOrders = async ({
   positions = [], type, book, bookBot,

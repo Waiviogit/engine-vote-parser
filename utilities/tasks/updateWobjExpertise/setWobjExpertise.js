@@ -1,6 +1,6 @@
 const { Wobj } = require('models');
 const _ = require('lodash');
-const calculateEngineExpertise = require('utilities/bookBot/helpers/calculateEngineExpertise');
+const calculateEngineExpertise = require('utilities/helpers/calculateEngineExpertise');
 
 let records = 0;
 exports.setExpertise = async (tokenSymbol, direction = 'up') => {
