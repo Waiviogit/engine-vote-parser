@@ -6,7 +6,7 @@ const {
 } = require('constants/hiveEngine');
 const { CACHE_KEY } = require('constants/hiveConstants');
 const BigNumber = require('bignumber.js');
-const { redisGetter } = require('../redis');
+const { redisGetter } = require('../../redis');
 
 module.exports = async (expertise, symbol) => {
   const {

@@ -1,4 +1,4 @@
-const cacheHelper = require('utilities/helpers/cacheHelper');
+const cacheHelper = require('utilities/bookBot/helpers/cacheHelper');
 const cron = require('cron');
 
 exports.cachePoolState = cron.job('*/1 * * * *', async () => {

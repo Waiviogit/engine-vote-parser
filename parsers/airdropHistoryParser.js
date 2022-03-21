@@ -1,5 +1,5 @@
 const _ = require('lodash');
-const { parseJson } = require('utilities/helpers/jsonHelper');
+const { parseJson } = require('utilities/bookBot/helpers/jsonHelper');
 const moment = require('moment');
 const { ENGINE_CONTRACT_ACTIONS } = require('constants/hiveEngine');
 const { EngineAccountHistory } = require('../models');

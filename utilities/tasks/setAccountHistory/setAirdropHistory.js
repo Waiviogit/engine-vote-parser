@@ -1,6 +1,6 @@
 // const airdropHistoryParser = require('parsers/airdropHistoryParser');
 const api = require('api/hiveEngine');
-const { runCustomStream } = require('utilities/helpers/customStreamHelper');
+const { runCustomStream } = require('utilities/bookBot/helpers/customStreamHelper');
 const airdropHistoryHelper = require('./airdropHistoryHelper');
 
 (async () => {
