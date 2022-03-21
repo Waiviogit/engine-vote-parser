@@ -40,5 +40,3 @@ exports.REDIS_BOOK = {
 exports.BOOK_BOTS = [
   BOOK_WAIV,
 ];
-
-exports.UNIX_TIMESTAMP_CONVERTER = 1000;

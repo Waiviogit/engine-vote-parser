@@ -1,4 +1,4 @@
-const broadcastUtil = require('../hiveApi/broadcastUtil');
+const broadcastUtil = require('../../hiveApi/broadcastUtil');
 
 exports.bookBroadcastToChain = async ({ bookBot, operations }) => {
   const { result } = await broadcastUtil.broadcastJson({

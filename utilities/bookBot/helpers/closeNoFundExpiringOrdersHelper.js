@@ -1,10 +1,12 @@
 const _ = require('lodash');
 const BigNumber = require('bignumber.js');
-const { REDIS_BOOK } = require('../../constants/bookBot');
-const redisGetter = require('../redis/redisGetter');
-const { expiredPostsClient } = require('../redis/redis');
-const { getCancelParams } = require('../bookBot/bookHelpers');
-const redisSetter = require('../redis/redisSetter');
+const { REDIS_BOOK } = require('../../../constants/bookBot');
+const {
+  redisGetter,
+  redisSetter,
+} = require('../../redis');
+const { expiredPostsClient } = require('../../redis/redis');
+const { getCancelParams } = require('../bookHelpers');
 
 exports.closeNoFundOrExpiringOrders = async ({
   positions = [], type, book, bookBot,

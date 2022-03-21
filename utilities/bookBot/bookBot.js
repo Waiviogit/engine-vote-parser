@@ -28,8 +28,8 @@ const {
   validateBookBot,
   getSwapExpenses,
 } = require('./bookHelpers');
-const { closeNoFundOrExpiringOrders } = require('../helpers/closeNoFundOrExpiringOrdersHelper');
-const { bookBroadcastToChain } = require('../helpers/bookBroadcastToChainHelper');
+const { closeNoFundOrExpiringOrders } = require('./helpers/closeNoFundExpiringOrdersHelper');
+const { bookBroadcastToChain } = require('./helpers/bookBroadcastToChainHelper');
 
 exports.sendBookEvent = async ({ symbol, events }) => {
   const bookBot = _.find(BOOK_BOTS, (bot) => bot.symbol === symbol);

@@ -1,9 +1,9 @@
 const cron = require('cron');
 const { BOOK_BOTS } = require('../constants/bookBot');
 const engineMarket = require('../utilities/hiveEngine/market');
-const { handleOrders } = require('../utilities/helpers/cancelExpiringOrdersHelper');
 const { MARKET_CONTRACT } = require('../constants/hiveEngine');
-const { bookBroadcastToChain } = require('../utilities/helpers/bookBroadcastToChainHelper');
+const { handleOrders } = require('../utilities/bookBot/helpers/cancelExpiringOrdersHelper');
+const { bookBroadcastToChain } = require('../utilities/bookBot/helpers/bookBroadcastToChainHelper');
 
 exports.cancelExpiringOrders = cron.job('0 0 * * *', async () => {
   for (const bot of BOOK_BOTS) {
