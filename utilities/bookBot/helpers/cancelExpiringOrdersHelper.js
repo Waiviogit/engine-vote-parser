@@ -10,7 +10,6 @@ exports.handleOrders = async ({ book, type, bookBot }) => {
   const ordersExpiringTomorrow = book.filter((order) => checkIfOrderExpiresTomorrow(
     moment.unix(order.expiration),
   ));
-  console.log('ordersExpiringTomorrow', ordersExpiringTomorrow);
   if (ordersExpiringTomorrow.length) {
     return closeNoFundOrExpiringOrders({
       book: ordersExpiringTomorrow,
