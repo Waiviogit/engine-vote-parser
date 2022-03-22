@@ -4,7 +4,6 @@ const {
 const engineMarket = require('utilities/hiveEngine/market');
 const enginePool = require('utilities/hiveEngine/marketPools');
 const tokensContract = require('utilities/hiveEngine/tokensContract');
-const broadcastUtil = require('utilities/hiveApi/broadcastUtil');
 const BigNumber = require('bignumber.js');
 const _ = require('lodash');
 const { MARKET_CONTRACT } = require('constants/hiveEngine');
@@ -12,7 +11,7 @@ const { calculateRcPercent } = require('utilities/hiveApi/hiveOperations');
 const redisGetter = require('utilities/redis/redisGetter');
 const redisSetter = require('utilities/redis/redisSetter');
 const { expiredPostsClient } = require('utilities/redis/redis');
-const poolSwapHelper = require('./poolSwapHelper');
+const poolSwapHelper = require('./helpers/poolSwapHelper');
 const bookEmitter = require('./bookEvents');
 const {
   getQuantityToBuy,
@@ -28,7 +27,9 @@ const {
   countTotalBalance,
   validateBookBot,
   getSwapExpenses,
-} = require('./bookHelpers');
+} = require('./helpers/bookHelpers');
+const { closeNoFundOrExpiringOrders } = require('./helpers/closeNoFundExpiringOrdersHelper');
+const { bookBroadcastToChain } = require('./helpers/bookBroadcastToChainHelper');
 
 exports.sendBookEvent = async ({ symbol, events }) => {
   const bookBot = _.find(BOOK_BOTS, (bot) => bot.symbol === symbol);
@@ -216,14 +217,14 @@ const handleBookEvent = async ({ bookBot, events }) => {
    * Close orders if liquidity removed and we have have  different positions
    */
 
-  const noFundLimitBuy = await closeNoFundOrders({
+  const noFundLimitBuy = await closeNoFundOrExpiringOrders({
     positions: makePositionsArray(limitBuyCounter),
     type: MARKET_CONTRACT.BUY,
     book: buyBook,
     bookBot,
   });
 
-  const noFundLimitSell = await closeNoFundOrders({
+  const noFundLimitSell = await closeNoFundOrExpiringOrders({
     positions: makePositionsArray(limitSellCounter),
     type: MARKET_CONTRACT.SELL,
     book: sellBook,
@@ -240,15 +241,6 @@ const handleBookEvent = async ({ bookBot, events }) => {
   operations.sort((a, b) => (b.contractAction === MARKET_CONTRACT.CANCEL) - (a.contractAction === MARKET_CONTRACT.CANCEL));
 
   return bookBroadcastToChain({ bookBot, operations });
-};
-
-const bookBroadcastToChain = async ({ bookBot, operations }) => {
-  const { result } = await broadcastUtil.broadcastJson({
-    json: JSON.stringify(operations),
-    required_auths: [bookBot.account],
-    key: bookBot.key,
-  });
-  console.log(result);
 };
 
 const isNeedToUpdateQuantity = ({
@@ -622,31 +614,6 @@ const closeOrdersDifferentFromBot = async ({ book, type, bookBot }) => {
       await redisSetter.delKey(redisKey);
     }
     await redisSetter.delKey(redisPositions);
-  }
-  return operations;
-};
-
-const closeNoFundOrders = async ({
-  positions, type, book, bookBot,
-}) => {
-  const operations = [];
-  const redisPositions = `${REDIS_BOOK.MAIN}:${type}:${bookBot.symbol}:${bookBot.account}:${REDIS_BOOK.POSITIONS}`;
-  const currentPositions = await redisGetter.smembers(redisPositions);
-  const diff = _.difference(currentPositions, positions);
-  if (_.isEmpty(diff)) return operations;
-  for (const diffElement of diff) {
-    const redisKey = `${REDIS_BOOK.MAIN}:${type}:${bookBot.symbol}:${bookBot.account}:${diffElement}`;
-    const orderCache = await redisGetter.getHashAll(redisKey, expiredPostsClient);
-    const orderInBook = _.find(book,
-      (order) => order.account === bookBot.account && BigNumber(order.price).eq(orderCache.price));
-    if (orderInBook) {
-      operations.push(getCancelParams({
-        id: _.get(orderInBook, 'txId'),
-        type,
-      }));
-    }
-    await redisSetter.delKey(redisKey);
-    await redisSetter.srem(redisPositions, diffElement);
   }
   return operations;
 };
