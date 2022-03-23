@@ -186,7 +186,7 @@ const addRsharesToPost = async ({ votes, posts }) => {
     const post = _.find(posts,
       (p) => (p.author === vote.author || p.author === vote.guest_author)
             && p.permlink === vote.permlink);
-    const voteInPost = _.find(post.active_votes, (v) => v.voter === vote.voter);
+    const voteInPost = _.find(_.get(post, 'active_votes', []), (v) => v.voter === vote.voter);
     const processed = _.find(votesProcessedOnApi, (el) => _.isEqual(vote, el));
     if (processed) {
       votesToRemoveFromRedis.push(vote);
