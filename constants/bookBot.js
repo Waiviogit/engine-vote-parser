@@ -9,8 +9,7 @@ const BOOK_WAIV = {
   sellDiffPercent: 0.02,
   buyRatio: 3,
   sellRatio: 3,
-  startBuyQuantity: 30,
-  startSellQuantity: 30,
+  startLimitOrderQuantity: 0.005,
   swapBalanceUsage: 1,
   symbolBalanceUsage: 1,
   untouchedSwapPercent: 0.1,
@@ -40,3 +39,5 @@ exports.REDIS_BOOK = {
 exports.BOOK_BOTS = [
   BOOK_WAIV,
 ];
+
+exports.ONE_HUNDRED_PERCENT = 100;
