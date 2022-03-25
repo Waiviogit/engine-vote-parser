@@ -253,9 +253,9 @@ const isNeedToUpdateQuantity = ({
 };
 
 const isNeedToUpdatePrice = ({
-  currentPrice, priceDiffPercent, previousPrice, type,
+  currentPrice, priceDiffPercent, previousPrice, type, lowerBoundPrice,
 }) => {
-  const priceDiff = BigNumber(previousPrice).minus(currentPrice).toFixed();
+  const priceDiff = BigNumber(previousPrice).minus(lowerBoundPrice).toFixed();
   const immediatelyUpdate = type === MARKET_CONTRACT.BUY
     ? BigNumber(priceDiff).gt(0)
     : BigNumber(priceDiff).lt(0);
@@ -435,7 +435,8 @@ const handleLimitBuy = async ({
       priceDiffPercent: bookBot.priceDiffPercent,
       previousPrice: previousOrder.price,
       type: MARKET_CONTRACT.BUY,
-      currentPrice: lowerBoundPrice,
+      currentPrice: price,
+      lowerBoundPrice,
     });
 
     const needUpdateQuantity = isNeedToUpdateQuantity({
@@ -544,7 +545,7 @@ const handleLimitSell = async ({
 
     const lowerBoundPrice = calcProfitPrice({
       quantity: BigNumber(currentQuantity).plus(previousOrders).toFixed(tokenPrecision),
-      type: MARKET_CONTRACT.BUY,
+      type: MARKET_CONTRACT.SELL,
       pool: dieselPool,
       tokenPrecision,
       profitPercent: BigNumber(profitPercent).dividedBy(LOWER_BOUND_PROFIT_PERCENT.DIVIDER)
@@ -557,7 +558,8 @@ const handleLimitSell = async ({
       priceDiffPercent: bookBot.priceDiffPercent,
       previousPrice: previousOrder.price,
       type: MARKET_CONTRACT.SELL,
-      currentPrice: lowerBoundPrice,
+      currentPrice: price,
+      lowerBoundPrice,
     });
 
     const needUpdateQuantity = isNeedToUpdateQuantity({
