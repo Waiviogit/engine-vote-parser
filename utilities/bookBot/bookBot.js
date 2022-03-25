@@ -30,7 +30,6 @@ const {
 } = require('./helpers/bookHelpers');
 const { closeNoFundOrExpiringOrders } = require('./helpers/closeNoFundExpiringOrdersHelper');
 const { bookBroadcastToChain } = require('./helpers/bookBroadcastToChainHelper');
-const { ONE_HUNDRED_PERCENT } = require('../../constants/bookBot');
 
 exports.sendBookEvent = async ({ symbol, events }) => {
   const bookBot = _.find(BOOK_BOTS, (bot) => bot.symbol === symbol);
@@ -161,10 +160,12 @@ const handleBookEvent = async ({ bookBot, events }) => {
     .minus(BigNumber(symbolTotalBalance).times(bookBot.untouchedSymbolPercent))
     .toFixed(tokenPrecision);
 
-  const startLimitBuyQuantity = BigNumber(poolQuantity * bookBot.startLimitOrderQuantity)
-    .dividedBy(ONE_HUNDRED_PERCENT).toFixed(tokenPrecision);
-  const startLimitSellQuantity = BigNumber(poolQuantity * bookBot.startLimitOrderQuantity)
-    .dividedBy(ONE_HUNDRED_PERCENT).toFixed(tokenPrecision);
+  const startLimitBuyQuantity = BigNumber(BigNumber(poolQuantity)
+    .multipliedBy(bookBot.startQuantityCoefficient)).dividedBy(bookBot.buyRatio)
+    .toFixed(tokenPrecision);
+  const startLimitSellQuantity = BigNumber(BigNumber(poolQuantity)
+    .multipliedBy(bookBot.startQuantityCoefficient)).dividedBy(bookBot.sellRatio)
+    .toFixed(tokenPrecision);
 
   const lastOrderBuyEXKey = `${REDIS_BOOK.MAIN}:${REDIS_BOOK.BUY}:${bookBot.symbol}:${bookBot.account}`;
   const lastOrderSellEXKey = `${REDIS_BOOK.MAIN}:${REDIS_BOOK.SELL}:${bookBot.symbol}:${bookBot.account}`;

@@ -11,7 +11,7 @@ exports.bookBotSchema = Joi.object({
   sellDiffPercent: Joi.number().min(0.001).max(1000).required(),
   buyRatio: Joi.number().min(2).max(1000).required(),
   sellRatio: Joi.number().min(2).max(1000).required(),
-  startLimitOrderQuantity: Joi.number().min(0.001).required(),
+  startQuantityCoefficient: Joi.number().min(0.00001).required(),
   swapBalanceUsage: Joi.number().min(0.001).max(1).required(),
   symbolBalanceUsage: Joi.number().min(0.001).max(1).required(),
   untouchedSwapPercent: Joi.number().min(0.001).max(0.999).required(),
