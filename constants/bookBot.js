@@ -39,3 +39,8 @@ exports.REDIS_BOOK = {
 exports.BOOK_BOTS = [
   BOOK_WAIV,
 ];
+
+exports.LOWER_BOUND_PROFIT_PERCENT = {
+  DIVIDER: 2,
+  PRECISION: 3,
+};
