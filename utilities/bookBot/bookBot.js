@@ -30,6 +30,7 @@ const {
 } = require('./helpers/bookHelpers');
 const { closeNoFundOrExpiringOrders } = require('./helpers/closeNoFundExpiringOrdersHelper');
 const { bookBroadcastToChain } = require('./helpers/bookBroadcastToChainHelper');
+const { LOWER_BOUND_PROFIT_PERCENT } = require('../../constants/bookBot');
 
 exports.sendBookEvent = async ({ symbol, events }) => {
   const bookBot = _.find(BOOK_BOTS, (bot) => bot.symbol === symbol);
@@ -254,19 +255,16 @@ const isNeedToUpdateQuantity = ({
 const isNeedToUpdatePrice = ({
   currentPrice, priceDiffPercent, previousPrice, type,
 }) => {
-  let needUpdatePrice = false;
   const priceDiff = BigNumber(previousPrice).minus(currentPrice).toFixed();
   const immediatelyUpdate = type === MARKET_CONTRACT.BUY
     ? BigNumber(priceDiff).gt(0)
     : BigNumber(priceDiff).lt(0);
 
-  if (immediatelyUpdate) {
-    needUpdatePrice = true;
-  } else {
-    const changePricePercent = getChangePricePercent({ currentPrice, previousPrice });
-    needUpdatePrice = BigNumber(changePricePercent).gt(priceDiffPercent);
-  }
-  return needUpdatePrice;
+  if (immediatelyUpdate) return true;
+
+  const changePricePercent = getChangePricePercent({ currentPrice, previousPrice });
+
+  return BigNumber(changePricePercent).gt(priceDiffPercent);
 };
 
 const getChangePricePercent = ({ currentPrice, previousPrice }) => BigNumber(currentPrice)
@@ -422,11 +420,22 @@ const handleLimitBuy = async ({
       });
     }
 
+    const lowerBoundPrice = calcProfitPrice({
+      quantity: BigNumber(currentQuantity).plus(previousOrders).toFixed(tokenPrecision),
+      type: MARKET_CONTRACT.BUY,
+      pool: dieselPool,
+      tokenPrecision,
+      profitPercent: BigNumber(profitPercent).dividedBy(LOWER_BOUND_PROFIT_PERCENT.DIVIDER)
+        .toFixed(LOWER_BOUND_PROFIT_PERCENT.PRECISION),
+      tradeFeeMul,
+      bookBot,
+    });
+
     const needUpdatePrice = isNeedToUpdatePrice({
       priceDiffPercent: bookBot.priceDiffPercent,
       previousPrice: previousOrder.price,
       type: MARKET_CONTRACT.BUY,
-      currentPrice: price,
+      currentPrice: lowerBoundPrice,
     });
 
     const needUpdateQuantity = isNeedToUpdateQuantity({
@@ -532,11 +541,23 @@ const handleLimitSell = async ({
         operations, bookBot, quantity, balance, tokenPrecision, tradeFeeMul, dieselPool, position, book, profitPercent, lastOrderEXKey,
       });
     }
+
+    const lowerBoundPrice = calcProfitPrice({
+      quantity: BigNumber(currentQuantity).plus(previousOrders).toFixed(tokenPrecision),
+      type: MARKET_CONTRACT.BUY,
+      pool: dieselPool,
+      tokenPrecision,
+      profitPercent: BigNumber(profitPercent).dividedBy(LOWER_BOUND_PROFIT_PERCENT.DIVIDER)
+        .toFixed(LOWER_BOUND_PROFIT_PERCENT.PRECISION),
+      tradeFeeMul,
+      bookBot,
+    });
+
     const needUpdatePrice = isNeedToUpdatePrice({
       priceDiffPercent: bookBot.priceDiffPercent,
       previousPrice: previousOrder.price,
       type: MARKET_CONTRACT.SELL,
-      currentPrice: price,
+      currentPrice: lowerBoundPrice,
     });
 
     const needUpdateQuantity = isNeedToUpdateQuantity({
