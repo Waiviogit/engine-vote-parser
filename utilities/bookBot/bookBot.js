@@ -77,7 +77,7 @@ const handleBookEvent = async ({ bookBot, events }) => {
     balance: symbolBalance,
   });
 
-  const poolPrice = getDieselPoolPrice({ dieselPool, bookBot });
+  const { poolPrice, poolQuantity } = getDieselPoolPrice({ dieselPool, bookBot });
   const buyPrice = _.get(buyBook, '[0].price', '0');
   const sellPrice = _.get(sellBook, '[0].price', '0');
 
@@ -160,12 +160,11 @@ const handleBookEvent = async ({ bookBot, events }) => {
     .minus(BigNumber(symbolTotalBalance).times(bookBot.untouchedSymbolPercent))
     .toFixed(tokenPrecision);
 
-  const startLimitBuyQuantity = BigNumber(bookBot.startBuyQuantity)
-    .dividedBy(bookBot.buyRatio)
+  const startLimitBuyQuantity = BigNumber(BigNumber(poolQuantity)
+    .multipliedBy(bookBot.startQuantityCoefficient)).dividedBy(bookBot.buyRatio)
     .toFixed(tokenPrecision);
-
-  const startLimitSellQuantity = BigNumber(bookBot.startSellQuantity)
-    .dividedBy(bookBot.sellRatio)
+  const startLimitSellQuantity = BigNumber(BigNumber(poolQuantity)
+    .multipliedBy(bookBot.startQuantityCoefficient)).dividedBy(bookBot.sellRatio)
     .toFixed(tokenPrecision);
 
   const lastOrderBuyEXKey = `${REDIS_BOOK.MAIN}:${REDIS_BOOK.BUY}:${bookBot.symbol}:${bookBot.account}`;

@@ -17,9 +17,10 @@ exports.getFormattedBalance = (balances, symbol = 'SWAP.HIVE') => {
 
 exports.getDieselPoolPrice = ({ dieselPool, bookBot }) => {
   const [base] = dieselPool.tokenPair.split(':');
+
   return base === bookBot.symbol
-    ? dieselPool.basePrice
-    : dieselPool.quotePrice;
+    ? { poolPrice: dieselPool.basePrice, poolQuantity: dieselPool.baseQuantity }
+    : { poolPrice: dieselPool.quotePrice, poolQuantity: dieselPool.quoteQuantity };
 };
 
 // limit orders
