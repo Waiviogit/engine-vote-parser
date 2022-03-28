@@ -81,5 +81,5 @@ const getRequestData = async (transaction, blockNumber) => {
 exports.parse = async (transaction, blockNumber) => {
   const requestData = await getRequestData(transaction, blockNumber);
   if (_.isEmpty(requestData)) return;
-  await sendNotification(requestData);
+  sendNotification(requestData);
 };
