@@ -78,8 +78,17 @@ const getRequestData = async (transaction, blockNumber) => {
   }
 };
 
+const makeMemoString = (data) => {
+  if (!data.memo) Object.assign(data, { memo: '' });
+  else if (typeof data.memo !== 'string') {
+    Object.assign(data, { memo: JSON.stringify(data.memo) });
+  }
+};
+
 exports.parse = async (transaction, blockNumber) => {
   const requestData = await getRequestData(transaction, blockNumber);
   if (_.isEmpty(requestData)) return;
+
+  if (transaction.action === ENGINE_CONTRACT_ACTIONS.TRANSFER) makeMemoString(requestData.data);
   sendNotification(requestData);
 };
