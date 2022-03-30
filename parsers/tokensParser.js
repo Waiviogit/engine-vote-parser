@@ -27,7 +27,6 @@ const getRequestData = async (transaction, blockNumber) => {
           from: _.get(transaction, 'sender'),
           to: _.get(payload, 'to'),
           amount: `${_.get(payload, 'quantity')} ${_.get(payload, 'symbol')}`,
-          memo: _.get(payload, 'memo'),
         },
       };
     case ENGINE_CONTRACT_ACTIONS.UNDELEGATE:
