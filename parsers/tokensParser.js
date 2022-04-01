@@ -3,7 +3,7 @@ const { parseJson } = require('utilities/helpers/jsonHelper');
 const { ENGINE_CONTRACT_ACTIONS } = require('constants/hiveEngine');
 const { sendNotification } = require('../utilities/notificationsApi/notificationsUtil');
 
-const getRequestData = async (transaction, blockNumber) => {
+const getRequestData = (transaction, blockNumber) => {
   const payload = parseJson(_.get(transaction, 'payload'));
   const action = _.get(transaction, 'action');
   if (_.isEmpty(payload)) return;
@@ -27,7 +27,7 @@ const getRequestData = async (transaction, blockNumber) => {
           from: _.get(transaction, 'sender'),
           to: _.get(payload, 'to'),
           amount: `${_.get(payload, 'quantity')} ${_.get(payload, 'symbol')}`,
-          memo: _.get(payload, 'memo'),
+          memo: makeMemoString(_.get(payload, 'memo')),
         },
       };
     case ENGINE_CONTRACT_ACTIONS.UNDELEGATE:
@@ -79,16 +79,14 @@ const getRequestData = async (transaction, blockNumber) => {
 };
 
 const makeMemoString = (data) => {
-  if (!data.memo) Object.assign(data, { memo: '' });
-  else if (typeof data.memo !== 'string') {
-    Object.assign(data, { memo: JSON.stringify(data.memo) });
-  }
+  if (!data) return '';
+
+  if (typeof data !== 'string') return data.toString();
 };
 
 exports.parse = async (transaction, blockNumber) => {
-  const requestData = await getRequestData(transaction, blockNumber);
+  const requestData = getRequestData(transaction, blockNumber);
   if (_.isEmpty(requestData)) return;
 
-  if (transaction.action === ENGINE_CONTRACT_ACTIONS.TRANSFER) makeMemoString(requestData.data);
   sendNotification(requestData);
 };
