@@ -81,7 +81,7 @@ const getRequestData = (transaction, blockNumber) => {
 const makeMemoString = (data) => {
   if (!data) return '';
 
-  if (typeof data !== 'string') return data.toString();
+  if (typeof data !== 'string') return JSON.stringify(data);
 };
 
 exports.parse = async (transaction, blockNumber) => {
