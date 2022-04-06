@@ -40,7 +40,4 @@ exports.BOOK_BOTS = [
   BOOK_WAIV,
 ];
 
-exports.LOWER_BOUND_PROFIT_PERCENT = {
-  DIVIDER: 2,
-  PRECISION: 3,
-};
+exports.LOWER_BOUND_PROFIT_PERCENT = 0.9;

@@ -425,8 +425,7 @@ const handleLimitBuy = async ({
       type: MARKET_CONTRACT.BUY,
       pool: dieselPool,
       tokenPrecision,
-      profitPercent: BigNumber(profitPercent).dividedBy(LOWER_BOUND_PROFIT_PERCENT.DIVIDER)
-        .toFixed(LOWER_BOUND_PROFIT_PERCENT.PRECISION),
+      profitPercent: BigNumber(profitPercent).multipliedBy(LOWER_BOUND_PROFIT_PERCENT).toFixed(),
       tradeFeeMul,
       bookBot,
     });
@@ -548,8 +547,7 @@ const handleLimitSell = async ({
       type: MARKET_CONTRACT.SELL,
       pool: dieselPool,
       tokenPrecision,
-      profitPercent: BigNumber(profitPercent).dividedBy(LOWER_BOUND_PROFIT_PERCENT.DIVIDER)
-        .toFixed(LOWER_BOUND_PROFIT_PERCENT.PRECISION),
+      profitPercent: BigNumber(profitPercent).multipliedBy(LOWER_BOUND_PROFIT_PERCENT).toFixed(),
       tradeFeeMul,
       bookBot,
     });
