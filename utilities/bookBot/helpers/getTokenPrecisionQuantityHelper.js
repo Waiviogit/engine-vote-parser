@@ -7,5 +7,6 @@ exports.getTokenPrecisionQuantity = (precision) => {
     }
     string += '0';
   }
+
   return string;
 };
