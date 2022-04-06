@@ -9,13 +9,13 @@ const BOOK_WAIV = {
   sellDiffPercent: 0.02,
   buyRatio: 3,
   sellRatio: 3,
-  startQuantityCoefficient: 0.00005,
+  startQuantityCoefficient: 0.00001,
   swapBalanceUsage: 1,
   symbolBalanceUsage: 1,
   untouchedSwapPercent: 0.1,
   untouchedSymbolPercent: 0.1,
   profitPercent: 0.005,
-  profitUpdateStep: 0.01,
+  profitUpdateStep: 0.005,
 };
 
 exports.POOL_FEE = 0.9975;
