@@ -9,12 +9,12 @@ const BOOK_WAIV = {
   sellDiffPercent: 0.02,
   buyRatio: 3,
   sellRatio: 3,
-  startQuantityCoefficient: 0.00001,
+  startQuantityCoefficient: 0.00005,
   swapBalanceUsage: 1,
   symbolBalanceUsage: 1,
   untouchedSwapPercent: 0.1,
   untouchedSymbolPercent: 0.1,
-  profitPercent: 0.005,
+  profitPercent: 0.001,
   profitUpdateStep: 0.005,
 };
 
