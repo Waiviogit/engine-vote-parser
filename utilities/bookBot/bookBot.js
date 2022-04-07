@@ -59,7 +59,6 @@ const handleBookEvent = async ({ bookBot, events }) => {
   if (_.isEmpty(dieselPool)) return;
 
   const tokenPrecision = _.get(token, '[0].precision', 8);
-
   const swapBalance = getFormattedBalance(balances);
   const symbolBalance = getFormattedBalance(balances, bookBot.symbol);
 
@@ -70,7 +69,6 @@ const handleBookEvent = async ({ bookBot, events }) => {
     precision: HIVE_PEGGED_PRECISION,
     balance: swapBalance,
   });
-
   const symbolTotalBalance = countTotalBalance({
     book: sellBook,
     botName: bookBot.account,
@@ -383,15 +381,22 @@ const handleLimitBuy = async ({
     bookBot, position, type: MARKET_CONTRACT.BUY, tokenPrecision,
   });
 
-  const price = calcProfitPrice({
-    quantity: BigNumber(currentQuantity).plus(previousOrders).toFixed(tokenPrecision),
+  const pricesAndPreviousOrders = [];
+  getProfitPriceWithPreviousOrders({
+    currentQuantity,
     type: MARKET_CONTRACT.BUY,
     pool: dieselPool,
     tokenPrecision,
     profitPercent,
     tradeFeeMul,
     bookBot,
+    book,
+    previousBotOrders: previousOrders,
+    pricesAndPreviousOrders,
   });
+  /** Getting the last object out of array because of the recursion return */
+  const { price, actualPreviousOrders } = pricesAndPreviousOrders[pricesAndPreviousOrders.length - 1];
+
   if (BigNumber(price).eq('0')) {
     return { limitBuyOperations: operations, limitBuyCounter: position };
   }
@@ -421,7 +426,7 @@ const handleLimitBuy = async ({
     }
 
     const lowerBoundPrice = calcProfitPrice({
-      quantity: BigNumber(currentQuantity).plus(previousOrders).toFixed(tokenPrecision),
+      quantity: BigNumber(currentQuantity).plus(actualPreviousOrders).toFixed(tokenPrecision),
       type: MARKET_CONTRACT.BUY,
       pool: dieselPool,
       tokenPrecision,
@@ -511,15 +516,22 @@ const handleLimitSell = async ({
     bookBot, position, type: MARKET_CONTRACT.SELL, tokenPrecision,
   });
 
-  const price = calcProfitPrice({
-    quantity: BigNumber(currentQuantity).plus(previousOrders).toFixed(tokenPrecision),
+  const pricesAndPreviousOrders = [];
+  getProfitPriceWithPreviousOrders({
+    currentQuantity,
     type: MARKET_CONTRACT.SELL,
     pool: dieselPool,
     tokenPrecision,
     profitPercent,
     tradeFeeMul,
     bookBot,
+    book,
+    previousBotOrders: previousOrders,
+    pricesAndPreviousOrders,
   });
+  /** Getting the last object out of array because of the recursion return */
+  const { price, actualPreviousOrders } = pricesAndPreviousOrders[pricesAndPreviousOrders.length - 1];
+
   if (BigNumber(price).eq('0')) {
     return { limitSellOperations: operations, limitSellCounter: position };
   }
@@ -543,7 +555,7 @@ const handleLimitSell = async ({
     }
 
     const lowerBoundPrice = calcProfitPrice({
-      quantity: BigNumber(currentQuantity).plus(previousOrders).toFixed(tokenPrecision),
+      quantity: BigNumber(currentQuantity).plus(actualPreviousOrders).toFixed(tokenPrecision),
       type: MARKET_CONTRACT.SELL,
       pool: dieselPool,
       tokenPrecision,
@@ -687,4 +699,63 @@ const calcProfitPrice = ({
     const price = BigNumber(hiveQuantity).dividedBy(quantity).toFixed(HIVE_PEGGED_PRECISION);
     return price;
   }
+};
+
+const getProfitPriceWithPreviousOrders = ({
+  currentQuantity, type, pool, tokenPrecision, profitPercent, tradeFeeMul, bookBot,
+  previousOrders = 0, book, previousBotOrders, pricesAndPreviousOrders,
+}) => {
+  const price = calcProfitPrice({
+    quantity: BigNumber(currentQuantity).plus(previousOrders).toFixed(tokenPrecision),
+    type,
+    pool,
+    tokenPrecision,
+    profitPercent,
+    tradeFeeMul,
+    bookBot,
+  });
+
+  const previousOrdersInBook = getActualPreviousOrders({
+    type,
+    book,
+    bookBot,
+    price,
+    tokenPrecision,
+  });
+
+  const actualPreviousOrders = BigNumber(previousBotOrders).plus(previousOrdersInBook)
+    .toFixed(tokenPrecision);
+  pricesAndPreviousOrders.push({ price, actualPreviousOrders });
+  if (BigNumber(actualPreviousOrders).eq(previousOrders)) return;
+
+  getProfitPriceWithPreviousOrders({
+    currentQuantity,
+    type,
+    pool,
+    tokenPrecision,
+    profitPercent,
+    tradeFeeMul,
+    bookBot,
+    previousOrders: actualPreviousOrders,
+    book,
+    previousBotOrders,
+    pricesAndPreviousOrders,
+  });
+};
+
+const getActualPreviousOrders = ({
+  type, book, bookBot, price, tokenPrecision,
+}) => {
+  const ordersBeforeInBook = type === MARKET_CONTRACT.BUY
+    ? _.filter(book, (order) => order.account !== bookBot.account && order.price > price)
+    : _.filter(book, (order) => order.account !== bookBot.account && order.price < price);
+
+  if (!ordersBeforeInBook.length) return '0';
+
+  let quantity = BigNumber(0);
+  for (const order of ordersBeforeInBook) {
+    quantity = quantity.plus(_.get(order, 'quantity', 0));
+  }
+
+  return quantity.toFixed(tokenPrecision);
 };
