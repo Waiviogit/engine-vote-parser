@@ -59,6 +59,7 @@ const handleBookEvent = async ({ bookBot, events }) => {
   if (_.isEmpty(dieselPool)) return;
 
   const tokenPrecision = _.get(token, '[0].precision', 8);
+
   const swapBalance = getFormattedBalance(balances);
   const symbolBalance = getFormattedBalance(balances, bookBot.symbol);
 
@@ -69,6 +70,7 @@ const handleBookEvent = async ({ bookBot, events }) => {
     precision: HIVE_PEGGED_PRECISION,
     balance: swapBalance,
   });
+
   const symbolTotalBalance = countTotalBalance({
     book: sellBook,
     botName: bookBot.account,
