@@ -6,4 +6,9 @@ exports.helper = async (transactions, blockNumber, timestamps) => {
     if (transaction.contract !== ENGINE_CONTRACTS.MARKETPOOLS) continue;
     await swapHistoryParser.parse(transaction, blockNumber, timestamps);
   }
+
+  const totalParse = +process.argv[4] - +process.argv[3];
+  const alreadyParsed = +process.argv[4] - blockNumber;
+  const completed = (alreadyParsed * 100) / totalParse;
+  console.info(`completed: ${completed}%`);
 };

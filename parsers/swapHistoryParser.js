@@ -20,8 +20,6 @@ exports.parse = async (transaction, blockNumber, timestamp) => {
 *    check to include only WAIV transactions
 * */
 
-  if (symbolOut !== 'WAIV' && symbolIn !== 'WAIV') return;
-
   if (!swapTo || !swapFrom || !symbols) return;
   const data = {
     blockNumber,
