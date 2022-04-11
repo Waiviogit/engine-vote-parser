@@ -9,7 +9,7 @@ const { getBalancesDifference } = require('../utilities/bookBot/helpers/getBalan
 const { MARKET_CONTRACT } = require('../constants/hiveEngine');
 const { bookBroadcastToChain } = require('../utilities/bookBot/helpers/bookBroadcastToChainHelper');
 
-exports.transferTokensToSwapBank = cron.job('0 0 * * *', async () => {
+exports.transferTokensToBank = cron.job('0 0 * * *', async () => {
   for (const bot of BOOK_BOTS) {
     const operations = [];
     const balances = await tokensContract.getTokenBalances({
