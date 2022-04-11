@@ -11,7 +11,8 @@
     "setWobjExpertise": "NODE_PATH=. node utilities/tasks/updateWobjExpertise/run.js",
     "setUserExpertise": "NODE_PATH=. node utilities/tasks/updateUserExpertise/run.js",
     "setUserWobjExpertise": "NODE_PATH=. node utilities/tasks/updateUserWobjExpertise/run.js",
-    "parseEngineVotes": "NODE_PATH=. node ./utilities/tasks/parseVotes/run.js"
+    "parseEngineVotes": "NODE_PATH=. node ./utilities/tasks/parseVotes/run.js",
+    "fillSwapHistory": "NODE_PATH=. node ./utilities/tasks/setAccountHistory/fillAccountsSwapHistory.js"
   },
   "keywords": [],
   "author": "",
