@@ -6,7 +6,8 @@ const { sendNotification } = require('../utilities/notificationsApi/notification
 const getRequestData = (transaction, blockNumber) => {
   const payload = parseJson(_.get(transaction, 'payload'));
   const action = _.get(transaction, 'action');
-  if (_.isEmpty(payload)) return;
+  const logs = parseJson(_.get(transaction, 'logs'));
+  if (_.isEmpty(payload) || logs.errors) return;
 
   switch (action) {
     case ENGINE_CONTRACT_ACTIONS.DELEGATE:
@@ -61,7 +62,6 @@ const getRequestData = (transaction, blockNumber) => {
         },
       };
     case ENGINE_CONTRACT_ACTIONS.CANCEL_UNSTAKE:
-      const logs = parseJson(_.get(transaction, 'logs'));
       if (_.isEmpty(logs)) return;
       const eventsData = _.get(logs, 'events.[0].data');
 

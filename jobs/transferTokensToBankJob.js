@@ -1,7 +1,7 @@
 const cron = require('cron');
 const {
   BOOK_BOTS,
-  TRANSFER_CONSTANTS,
+  HIVE_PEGGED,
 } = require('../constants/bookBot');
 const engineMarket = require('../utilities/hiveEngine/market');
 const tokensContract = require('../utilities/hiveEngine/tokensContract');
@@ -14,7 +14,7 @@ exports.transferTokensToBank = cron.job('0 0 * * *', async () => {
     const operations = [];
     const balances = await tokensContract.getTokenBalances({
       query: {
-        symbol: { $in: [TRANSFER_CONSTANTS.swapHiveSymbol, bot.symbol] },
+        symbol: { $in: [HIVE_PEGGED, bot.symbol] },
         account: bot.account,
       },
     });

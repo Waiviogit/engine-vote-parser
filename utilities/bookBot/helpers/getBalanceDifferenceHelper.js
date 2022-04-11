@@ -6,10 +6,14 @@ const {
 } = require('./bookHelpers');
 const {
   HIVE_PEGGED_PRECISION,
-  TRANSFER_CONSTANTS,
+  HIVE_PEGGED,
 } = require('../../../constants/bookBot');
 const tokensContract = require('../../hiveEngine/tokensContract');
-const { MARKET_CONTRACT } = require('../../../constants/hiveEngine');
+const {
+  MARKET_CONTRACT,
+  ENGINE_CONTRACTS,
+  TOKENS_CONTRACT,
+} = require('../../../constants/hiveEngine');
 
 exports.getBalancesDifference = async ({
   book, type, balances, bot,
@@ -37,11 +41,11 @@ const getSwapBalanceDifference = ({ book, balances, account }) => {
 
   if (BigNumber(swapTotalBalance).isGreaterThan(process.env.INITIAL_SWAP_HIVE_BALANCE)) {
     return {
-      contractName: TRANSFER_CONSTANTS.contractName,
-      contractAction: TRANSFER_CONSTANTS.contractAction,
+      contractName: ENGINE_CONTRACTS.TOKENS,
+      contractAction: TOKENS_CONTRACT.TRANSFER,
       contractPayload:
         {
-          symbol: TRANSFER_CONSTANTS.swapHiveSymbol,
+          symbol: HIVE_PEGGED,
           to: process.env.BANK_BOT_ACCOUNT,
           quantity: BigNumber(swapTotalBalance)
             .minus(process.env.INITIAL_SWAP_HIVE_BALANCE).toFixed(),
@@ -64,13 +68,13 @@ const getSymbolBalanceDifference = async ({ book, balances, bot }) => {
 
   if (BigNumber(symbolTotalBalance).isGreaterThan(process.env.INITIAL_WAIV_BALANCE)) {
     return {
-      contractName: TRANSFER_CONSTANTS.contractName,
-      contractAction: TRANSFER_CONSTANTS.contractAction,
+      contractName: ENGINE_CONTRACTS.TOKENS,
+      contractAction: TOKENS_CONTRACT.TRANSFER,
       contractPayload: {
         symbol: bot.symbol,
         to: process.env.BANK_BOT_ACCOUNT,
         quantity: BigNumber(symbolTotalBalance)
-          .minus(process.env.INITIAL_SWAP_HIVE_BALANCE).toFixed(),
+          .minus(process.env.INITIAL_WAIV_BALANCE).toFixed(),
       },
     };
   }
