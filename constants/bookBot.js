@@ -41,3 +41,9 @@ exports.BOOK_BOTS = [
 ];
 
 exports.LOWER_BOUND_PROFIT_PERCENT = 0.9;
+
+exports.TRANSFER_CONSTANTS = {
+  contractName: 'tokens',
+  contractAction: 'transfer',
+  swapHiveSymbol: 'SWAP.HIVE',
+};
