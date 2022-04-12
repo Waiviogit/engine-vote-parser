@@ -33,7 +33,7 @@ exports.REDIS_BOOK = {
   SELL: 'sell',
   BUY: 'buy',
   POSITIONS: 'positions',
-  EXPIRE_SECONDS: 60,
+  EXPIRE_SECONDS: 30,
 };
 
 exports.BOOK_BOTS = [
