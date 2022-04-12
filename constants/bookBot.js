@@ -16,7 +16,7 @@ const BOOK_WAIV = {
   untouchedSymbolPercent: 0.1,
   profitPercent: 0.001,
   profitUpdateStep: 0.005,
-  initialWaivBalance: 3300,
+  initialTokenBalance: 3400,
   initialSwapHiveBalance: 500,
 };
 

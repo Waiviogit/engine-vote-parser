@@ -72,7 +72,7 @@ const getSymbolBalanceDifference = async ({ balances, bot }) => {
     balance: symbolBalance,
   });
 
-  if (BigNumber(symbolTotalBalance).isGreaterThan(bot.initialWaivBalance)) {
+  if (BigNumber(symbolTotalBalance).isGreaterThan(bot.initialTokenBalance)) {
     return {
       contractName: ENGINE_CONTRACTS.TOKENS,
       contractAction: TOKENS_CONTRACT.TRANSFER,
@@ -80,7 +80,7 @@ const getSymbolBalanceDifference = async ({ balances, bot }) => {
         symbol: bot.symbol,
         to: process.env.BANK_BOT_ACCOUNT,
         quantity: BigNumber(symbolTotalBalance)
-          .minus(bot.initialWaivBalance).toFixed(),
+          .minus(bot.initialTokenBalance).toFixed(),
       },
     };
   }
