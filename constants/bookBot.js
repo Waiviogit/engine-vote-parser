@@ -4,7 +4,7 @@ const BOOK_WAIV = {
   symbol: 'WAIV',
   tokenPair: 'SWAP.HIVE:WAIV',
   updateQuantityPercent: 70,
-  priceDiffPercent: 1,
+  priceDiffPercent: 0.5,
   buyDiffPercent: 0.02,
   sellDiffPercent: 0.02,
   buyRatio: 3,
