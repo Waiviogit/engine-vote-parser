@@ -3,7 +3,6 @@ const { EngineAccountHistory } = require('models');
 const { parseJson } = require('utilities/helpers/jsonHelper');
 const moment = require('moment');
 const { ENGINE_CONTRACT_ACTIONS } = require('constants/hiveEngine');
-const { ObjectId } = require('mongoose').Types;
 
 exports.parse = async (transaction, blockNumber, timestamp) => {
   if (transaction.action !== ENGINE_CONTRACT_ACTIONS.SWAP_TOKENS) return;
@@ -19,7 +18,6 @@ exports.parse = async (transaction, blockNumber, timestamp) => {
 
   if (!swapTo || !swapFrom || !symbols) return;
   const data = {
-    _id: new ObjectId(moment.utc(timestamp).unix()),
     blockNumber,
     transactionId: transaction.transactionId,
     account: transaction.sender,
