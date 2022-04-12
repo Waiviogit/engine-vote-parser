@@ -10,29 +10,32 @@ const {
 } = require('../../../constants/bookBot');
 const tokensContract = require('../../hiveEngine/tokensContract');
 const {
-  MARKET_CONTRACT,
   ENGINE_CONTRACTS,
   TOKENS_CONTRACT,
 } = require('../../../constants/hiveEngine');
+const engineMarket = require('../../hiveEngine/market');
 
-exports.getBalancesDifference = async ({
-  book, type, balances, bot,
-}) => {
-  if (type === MARKET_CONTRACT.BUY) {
-    return getSwapBalanceDifference({
-      book,
-      balances,
-      bot,
-    });
-  }
+exports.getBalancesDifference = async ({ balances, bot }) => {
+  const operations = [];
+  const swapBalanceDifference = await getSwapBalanceDifference({
+    balances,
+    bot,
+  });
+  if (swapBalanceDifference) operations.push(swapBalanceDifference);
 
-  return getSymbolBalanceDifference({ book, balances, bot });
+  const symbolBalanceDifference = await getSymbolBalanceDifference({ balances, bot });
+  if (symbolBalanceDifference) operations.push(symbolBalanceDifference);
+
+  return operations;
 };
 
-const getSwapBalanceDifference = ({ book, balances, bot }) => {
+const getSwapBalanceDifference = async ({ balances, bot }) => {
+  const buyBook = await engineMarket.getBuyBook({ query: { symbol: bot.symbol } });
+  if (!buyBook.length) return null;
+
   const swapBalance = getFormattedBalance(balances);
   const swapTotalBalance = countTotalBalance({
-    book,
+    book: buyBook,
     hivePegged: true,
     botName: bot.account,
     precision: HIVE_PEGGED_PRECISION,
@@ -56,11 +59,14 @@ const getSwapBalanceDifference = ({ book, balances, bot }) => {
   return null;
 };
 
-const getSymbolBalanceDifference = async ({ book, balances, bot }) => {
+const getSymbolBalanceDifference = async ({ balances, bot }) => {
+  const sellBook = await engineMarket.getSellBook({ query: { symbol: bot.symbol } });
+  if (!sellBook.length) return null;
+
   const token = await tokensContract.getTokensParams({ query: { symbol: bot.symbol } });
   const symbolBalance = getFormattedBalance(balances, bot.symbol);
   const symbolTotalBalance = countTotalBalance({
-    book,
+    book: sellBook,
     botName: bot.account,
     precision: _.get(token, '[0].precision', 8),
     balance: symbolBalance,
