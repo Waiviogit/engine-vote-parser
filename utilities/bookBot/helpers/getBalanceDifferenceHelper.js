@@ -22,24 +22,24 @@ exports.getBalancesDifference = async ({
     return getSwapBalanceDifference({
       book,
       balances,
-      account: bot.account,
+      bot,
     });
   }
 
   return getSymbolBalanceDifference({ book, balances, bot });
 };
 
-const getSwapBalanceDifference = ({ book, balances, account }) => {
+const getSwapBalanceDifference = ({ book, balances, bot }) => {
   const swapBalance = getFormattedBalance(balances);
   const swapTotalBalance = countTotalBalance({
     book,
     hivePegged: true,
-    botName: account,
+    botName: bot.account,
     precision: HIVE_PEGGED_PRECISION,
     balance: swapBalance,
   });
 
-  if (BigNumber(swapTotalBalance).isGreaterThan(process.env.INITIAL_SWAP_HIVE_BALANCE)) {
+  if (BigNumber(swapTotalBalance).isGreaterThan(bot.initialSwapHiveBalance)) {
     return {
       contractName: ENGINE_CONTRACTS.TOKENS,
       contractAction: TOKENS_CONTRACT.TRANSFER,
@@ -48,7 +48,7 @@ const getSwapBalanceDifference = ({ book, balances, account }) => {
           symbol: HIVE_PEGGED,
           to: process.env.BANK_BOT_ACCOUNT,
           quantity: BigNumber(swapTotalBalance)
-            .minus(process.env.INITIAL_SWAP_HIVE_BALANCE).toFixed(),
+            .minus(bot.initialSwapHiveBalance).toFixed(),
         },
     };
   }
@@ -66,7 +66,7 @@ const getSymbolBalanceDifference = async ({ book, balances, bot }) => {
     balance: symbolBalance,
   });
 
-  if (BigNumber(symbolTotalBalance).isGreaterThan(process.env.INITIAL_WAIV_BALANCE)) {
+  if (BigNumber(symbolTotalBalance).isGreaterThan(bot.initialWaivBalance)) {
     return {
       contractName: ENGINE_CONTRACTS.TOKENS,
       contractAction: TOKENS_CONTRACT.TRANSFER,
@@ -74,7 +74,7 @@ const getSymbolBalanceDifference = async ({ book, balances, bot }) => {
         symbol: bot.symbol,
         to: process.env.BANK_BOT_ACCOUNT,
         quantity: BigNumber(symbolTotalBalance)
-          .minus(process.env.INITIAL_WAIV_BALANCE).toFixed(),
+          .minus(bot.initialWaivBalance).toFixed(),
       },
     };
   }
