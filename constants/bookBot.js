@@ -16,6 +16,8 @@ const BOOK_WAIV = {
   untouchedSymbolPercent: 0.1,
   profitPercent: 0.001,
   profitUpdateStep: 0.005,
+  initialTokenBalance: 3400,
+  initialSwapHiveBalance: 500,
 };
 
 exports.POOL_FEE = 0.9975;
@@ -41,3 +43,5 @@ exports.BOOK_BOTS = [
 ];
 
 exports.LOWER_BOUND_PROFIT_PERCENT = 0.9;
+
+exports.HIVE_PEGGED = 'SWAP.HIVE';
