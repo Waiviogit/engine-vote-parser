@@ -24,13 +24,14 @@ const setSwaps = async ({ name, page }) => {
   const response = await swapRequest(name, page);
   if (!response) return;
   if (_.isEmpty(_.get(response, 'results'))) return;
+  if (!_.get(response, 'pages')) return;
   await createSwapRecord({
     records: _.get(response, 'results', []),
     account: name,
   });
   console.info(`${name} ${_.get(response, 'results.length')} swap records updated`);
 
-  if (_.get(response, 'pages') === page || !_.get(response, 'pages')) {
+  if (_.get(response, 'pages') === page) {
     return;
   }
   return setSwaps({ name, page: ++page });

@@ -17,10 +17,7 @@ const {
   getDieselPoolPrice,
   getLimitBuyParams,
   getLimitSellParams,
-  getMarketBuyParams,
-  getMarketSellParams,
   getCancelParams,
-  orderQuantity,
   orderCondition,
   countTotalBalance,
   validateBookBot,
@@ -242,54 +239,6 @@ const handleDeal = async ({
   return bookBroadcastToChain({ bookBot, operations });
   // if buy quantityTokens swap на hive (spent hive)
   // if sell quantityHive swap на tokens (spent token)
-};
-
-const handleMarketSell = async ({
-  symbolBalance, maxSellQuantity, bookBot,
-}) => {
-  const redisSellKey = `${REDIS_BOOK.MAIN}:${REDIS_BOOK.MARKET_SELL}:${bookBot.symbol}:${bookBot.account}`;
-  const previousOrder = await redisGetter.getAsync({ key: redisSellKey });
-
-  const finalQuantity = orderQuantity({
-    ourQuantity: symbolBalance, maxQuantity: maxSellQuantity,
-  });
-
-  const conditionToOrder = orderCondition(finalQuantity);
-  if (!conditionToOrder || previousOrder) return;
-
-  await redisSetter.setExpireTTL({
-    expire: REDIS_BOOK.EXPIRE_SECONDS,
-    data: bookBot.account,
-    key: redisSellKey,
-  });
-  return getMarketSellParams({
-    symbol: bookBot.symbol,
-    quantity: finalQuantity,
-  });
-};
-
-const handleMarketBuy = async ({
-  sellPrice, swapBalance, bookBot, maxBuyQuantity,
-}) => {
-  const redisBuyKey = `${REDIS_BOOK.MAIN}:${REDIS_BOOK.MARKET_BUY}:${bookBot.symbol}:${bookBot.account}`;
-  const previousOrder = await redisGetter.getAsync({ key: redisBuyKey });
-
-  const maxQuantity = getSwapExpenses({ quantity: maxBuyQuantity, price: sellPrice });
-
-  const finalQuantity = orderQuantity({ ourQuantity: swapBalance, maxQuantity });
-
-  const conditionToOrder = orderCondition(finalQuantity);
-  if (!conditionToOrder || previousOrder) return;
-
-  await redisSetter.setExpireTTL({
-    expire: REDIS_BOOK.EXPIRE_SECONDS,
-    data: bookBot.account,
-    key: redisBuyKey,
-  });
-  return getMarketBuyParams({
-    symbol: bookBot.symbol,
-    quantity: finalQuantity,
-  });
 };
 
 const handleLimitBuy = async ({
