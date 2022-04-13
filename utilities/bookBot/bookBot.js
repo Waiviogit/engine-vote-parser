@@ -85,10 +85,12 @@ const handleBookEvent = async ({ bookBot, events }) => {
   /**
    * Del redis keys if our order resolved
    */
-  await Promise.all([
+  const cancelOrders = await Promise.all([
     delIrrelevantRedisKeys({ book: buyBook, type: MARKET_CONTRACT.BUY, bookBot }),
     delIrrelevantRedisKeys({ book: sellBook, type: MARKET_CONTRACT.SELL, bookBot }),
   ]);
+  const [buyCancel, sellCancel] = cancelOrders;
+  operations.push(...buyCancel, ...sellCancel);
 
   /**
    * Handle Limit Buy Limit Sell
@@ -523,19 +525,33 @@ const previousOrdersQuantity = async ({
 };
 
 const delIrrelevantRedisKeys = async ({ book, type, bookBot }) => {
-  const redisPositions = `${REDIS_BOOK.MAIN}:${type}:${bookBot.symbol}:${bookBot.account}:${REDIS_BOOK.POSITIONS}`;
-  const currentPositions = await redisGetter.smembers(redisPositions);
+  const redisPositionsKey = `${REDIS_BOOK.MAIN}:${type}:${bookBot.symbol}:${bookBot.account}:${REDIS_BOOK.POSITIONS}`;
+  const currentPositions = await redisGetter.smembers(redisPositionsKey);
   const bookOrders = _.filter(book, (order) => order.account === bookBot.account);
   if (currentPositions.length !== bookOrders.length) {
+    const existOrders = [];
     for (const position of currentPositions) {
       const redisKey = `${REDIS_BOOK.MAIN}:${type}:${bookBot.symbol}:${bookBot.account}:${position}`;
       const redisOrder = await redisGetter.getHashAll(redisKey, expiredPostsClient);
       const bookOrder = _.find(book,
         (order) => order.price === redisOrder.price && order.account === bookBot.account);
+
       if (!bookOrder) {
         await redisSetter.delKey(redisKey);
-        await redisSetter.srem(redisPositions, position);
+        await redisSetter.srem(redisPositionsKey, position);
+        continue;
       }
+
+      existOrders.push(bookOrder.txId);
+    }
+
+    const cancelOrders = _.filter(bookOrders, (order) => !_.includes(existOrders, order.txId));
+
+    if (!_.isEmpty(cancelOrders)) {
+      return _.map(cancelOrders, (cancel) => getCancelParams({
+        id: _.get(cancel, 'txId'),
+        type,
+      }));
     }
   }
 };
