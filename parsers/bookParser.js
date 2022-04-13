@@ -1,6 +1,6 @@
 const _ = require('lodash');
 const {
-  ENGINE_CONTRACTS, MARKET_CONTRACT, MARKET_CONTRACT_BOOKBOT_EVENT, TOKENS_CONTRACT,
+  ENGINE_CONTRACTS, MARKET_CONTRACT_BOOKBOT_EVENT, TOKENS_CONTRACT,
 } = require('constants/hiveEngine');
 const jsonHelper = require('utilities/helpers/jsonHelper');
 const { BOOK_BOTS } = require('constants/bookBot');
@@ -11,17 +11,14 @@ const { getTokenPrecisionQuantity } = require('../utilities/bookBot/helpers/getT
 exports.parse = async ({ transactions }) => {
   if (process.env.NODE_ENV !== 'staging') return;
   const { market, marketPool } = _.reduce(transactions, (acc, transaction) => {
-    const cancelCondition = transaction.contract === ENGINE_CONTRACTS.MARKET
-      && transaction.action === MARKET_CONTRACT.CANCEL;
     const marketCondition = transaction.contract === ENGINE_CONTRACTS.MARKET
     && _.includes(MARKET_CONTRACT_BOOKBOT_EVENT, transaction.action);
     const marketPoolCondition = transaction.contract === ENGINE_CONTRACTS.MARKETPOOLS;
 
     if (marketCondition) acc.market.push(transaction);
     if (marketPoolCondition) acc.marketPool.push(transaction);
-    if (cancelCondition) acc.marketCancel.push(transaction);
     return acc;
-  }, { market: [], marketPool: [], marketCancel: [] });
+  }, { market: [], marketPool: [] });
 
   const usualEvent = [];
   const tradeEvent = [];
