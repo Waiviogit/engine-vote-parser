@@ -12,6 +12,7 @@ exports.cachePoolState = async () => {
   for (const TOKEN of ENGINE_TOKENS) {
     const pool = await commentContract.getRewardPools({ query: { _id: TOKEN.POOL_ID } });
     if (_.isEmpty(pool)) continue;
+    if (_.has(pool, 'error')) continue;
     const { rewardPool, pendingClaims } = pool[0];
     const rewards = parseFloat(rewardPool) / parseFloat(pendingClaims);
     await hmsetAsync(
@@ -25,6 +26,7 @@ exports.cacheMarketPool = async () => {
   for (const TOKEN of ENGINE_TOKENS) {
     const marketPool = await marketPools.getMarketPools({ query: { _id: TOKEN.MARKET_POOL_ID } });
     if (_.isEmpty(marketPool)) continue;
+    if (_.has(marketPool, 'error')) continue;
     await hmsetAsync(
       `${CACH_MARKET_POOL_KEY}:${TOKEN.SYMBOL}`,
       marketPool[0],
