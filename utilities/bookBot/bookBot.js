@@ -90,7 +90,8 @@ const handleBookEvent = async ({ bookBot, events }) => {
     delIrrelevantRedisKeys({ book: sellBook, type: MARKET_CONTRACT.SELL, bookBot }),
   ]);
   const [buyCancel, sellCancel] = cancelOrders;
-  operations.push(...buyCancel, ...sellCancel);
+  if (sellCancel)operations.push(...sellCancel);
+  if (buyCancel)operations.push(...buyCancel);
 
   /**
    * Handle Limit Buy Limit Sell

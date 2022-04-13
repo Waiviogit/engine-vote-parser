@@ -10,9 +10,9 @@ const marketPools = require('../hiveEngine/marketPools');
 
 exports.cachePoolState = async () => {
   for (const TOKEN of ENGINE_TOKENS) {
-    const [pool = null] = await commentContract.getRewardPools({ query: { _id: TOKEN.POOL_ID } });
-    if (!pool) return;
-    const { rewardPool, pendingClaims } = pool;
+    const pool = await commentContract.getRewardPools({ query: { _id: TOKEN.POOL_ID } });
+    if (_.isEmpty(pool)) continue;
+    const { rewardPool, pendingClaims } = pool[0];
     const rewards = parseFloat(rewardPool) / parseFloat(pendingClaims);
     await hmsetAsync(
       `${CACHE_POOL_KEY}:${TOKEN.SYMBOL}`,
@@ -20,10 +20,11 @@ exports.cachePoolState = async () => {
     );
   }
 };
+
 exports.cacheMarketPool = async () => {
   for (const TOKEN of ENGINE_TOKENS) {
     const marketPool = await marketPools.getMarketPools({ query: { _id: TOKEN.MARKET_POOL_ID } });
-    if (_.isEmpty(marketPool)) return;
+    if (_.isEmpty(marketPool)) continue;
     await hmsetAsync(
       `${CACH_MARKET_POOL_KEY}:${TOKEN.SYMBOL}`,
       marketPool[0],
