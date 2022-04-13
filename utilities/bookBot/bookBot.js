@@ -82,16 +82,6 @@ const handleBookEvent = async ({ bookBot, events }) => {
     });
   }
 
-  /**
-   * Del redis keys if our order resolved
-   */
-  const cancelOrders = await Promise.all([
-    delIrrelevantRedisKeys({ book: buyBook, type: MARKET_CONTRACT.BUY, bookBot }),
-    delIrrelevantRedisKeys({ book: sellBook, type: MARKET_CONTRACT.SELL, bookBot }),
-  ]);
-  const [buyCancel, sellCancel] = cancelOrders;
-  if (sellCancel)operations.push(...sellCancel);
-  if (buyCancel)operations.push(...buyCancel);
 
   /**
    * Handle Limit Buy Limit Sell
