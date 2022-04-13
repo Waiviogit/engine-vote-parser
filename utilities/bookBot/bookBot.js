@@ -27,7 +27,7 @@ const { closeNoFundOrExpiringOrders } = require('./helpers/closeNoFundExpiringOr
 const { bookBroadcastToChain } = require('./helpers/bookBroadcastToChainHelper');
 const { LOWER_BOUND_PROFIT_PERCENT } = require('../../constants/bookBot');
 
-exports.sendBookEvent = async ({ symbol, events = true }) => {
+exports.sendBookEvent = async ({ symbol, events }) => {
   const bookBot = _.find(BOOK_BOTS, (bot) => bot.symbol === symbol);
   if (!bookBot) return;
   if (!validateBookBot(bookBot)) return console.error(`Invalid ${bookBot.account} bot params`);
