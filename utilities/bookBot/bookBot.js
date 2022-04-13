@@ -47,12 +47,22 @@ const handleBookEvent = async ({ bookBot, events }) => {
     enginePool.getMarketPools({ query: { tokenPair: bookBot.tokenPair } }),
     enginePool.getMarketPoolsParams(),
   ]);
+
+  for (const request of requests) {
+    if (_.has(request, 'error')) {
+      console.error('-------error in bookBot request');
+      return;
+    }
+  }
   const [balances, token, buyBook, sellBook, marketPools, params] = requests;
 
   const tradeFeeMul = _.get(params, '[0].tradeFeeMul', POOL_FEE);
 
   const dieselPool = _.get(marketPools, '[0]');
-  if (_.isEmpty(dieselPool)) return;
+
+  if (_.isEmpty(dieselPool)) {
+    return;
+  }
 
   const tokenPrecision = _.get(token, '[0].precision', 8);
 
