@@ -27,14 +27,40 @@ const { closeNoFundOrExpiringOrders } = require('./helpers/closeNoFundExpiringOr
 const { bookBroadcastToChain } = require('./helpers/bookBroadcastToChainHelper');
 const { LOWER_BOUND_PROFIT_PERCENT } = require('../../constants/bookBot');
 
-exports.sendBookEvent = async ({ symbol, events }) => {
+exports.sendBookEvent = async ({ symbol, events = true }) => {
   const bookBot = _.find(BOOK_BOTS, (bot) => bot.symbol === symbol);
   if (!bookBot) return;
   if (!validateBookBot(bookBot)) return console.error(`Invalid ${bookBot.account} bot params`);
-  await handleBookEvent({ bookBot: _.cloneDeep(bookBot), events });
+
+  if (events) return handleMarketBuySell({ bookBot, events });
+  await handleBookEvent({ bookBot });
 };
 
-const handleBookEvent = async ({ bookBot, events }) => {
+const handleMarketBuySell = async ({ bookBot, events }) => {
+  const requests = await Promise.all([
+    enginePool.getMarketPools({ query: { tokenPair: bookBot.tokenPair } }),
+    tokensContract.getTokensParams({ query: { symbol: bookBot.symbol } }),
+    enginePool.getMarketPoolsParams(),
+  ]);
+
+  for (const request of requests) {
+    if (_.has(request, 'error')) {
+      console.error('-------error in bookBot request');
+      return;
+    }
+  }
+  const [marketPools, token, params] = requests;
+
+  return handleDeal({
+    bookBot,
+    dieselPool: marketPools[0],
+    events,
+    tradeFeeMul: _.get(params, '[0].tradeFeeMul', POOL_FEE),
+    tokenPrecision: _.get(token, '[0].precision', 8),
+  });
+};
+
+const handleBookEvent = async ({ bookBot }) => {
   const operations = [];
 
   const requests = await Promise.all([
@@ -60,10 +86,6 @@ const handleBookEvent = async ({ bookBot, events }) => {
 
   const dieselPool = _.get(marketPools, '[0]');
 
-  if (_.isEmpty(dieselPool)) {
-    return;
-  }
-
   const tokenPrecision = _.get(token, '[0].precision', 8);
 
   const swapBalance = getFormattedBalance(balances);
@@ -85,13 +107,6 @@ const handleBookEvent = async ({ bookBot, events }) => {
   });
 
   const { poolQuantity } = getDieselPoolPrice({ dieselPool, bookBot });
-
-  if (events) {
-    return handleDeal({
-      bookBot, dieselPool, events, tradeFeeMul, tokenPrecision,
-    });
-  }
-
   /**
    * Handle Limit Buy Limit Sell
    */
