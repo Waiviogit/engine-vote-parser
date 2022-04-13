@@ -82,7 +82,6 @@ const handleBookEvent = async ({ bookBot, events }) => {
     });
   }
 
-
   /**
    * Handle Limit Buy Limit Sell
    */
@@ -255,6 +254,7 @@ const handleLimitBuy = async ({
   const redisPositions = `${REDIS_BOOK.MAIN}:${REDIS_BOOK.BUY}:${bookBot.symbol}:${bookBot.account}:${REDIS_BOOK.POSITIONS}`;
 
   const previousOrder = await redisGetter.getHashAll(redisKey, expiredPostsClient);
+  const lastOrder = await redisGetter.getAsync({ key: lastOrderEXKey });
 
   let currentQuantity = BigNumber(quantity).times(bookBot.buyRatio).toFixed(tokenPrecision);
   const previousOrders = await previousOrdersQuantity({
@@ -297,7 +297,6 @@ const handleLimitBuy = async ({
   if (previousOrder) {
     const orderInBook = _.find(book,
       (order) => order.account === bookBot.account && BigNumber(order.price).eq(previousOrder.price));
-    const lastOrder = await redisGetter.getAsync({ key: lastOrderEXKey });
     if (!orderInBook && !lastOrder) {
       await redisSetter.delKey(redisKey);
       await redisSetter.srem(redisPositions, `position${position}`);
@@ -342,7 +341,10 @@ const handleLimitBuy = async ({
     }
   }
 
-  const newOrderCondition = orderCondition(currentQuantity) && (!previousOrder || needRenewOrder);
+  const newOrderCondition = orderCondition(currentQuantity)
+      && (!previousOrder || needRenewOrder)
+      && !lastOrder;
+
   if (newOrderCondition) {
     operations.push(getLimitBuyParams({
       quantity: BigNumber(currentQuantity).toFixed(tokenPrecision),
@@ -394,6 +396,7 @@ const handleLimitSell = async ({
   const redisPositions = `${REDIS_BOOK.MAIN}:${REDIS_BOOK.SELL}:${bookBot.symbol}:${bookBot.account}:${REDIS_BOOK.POSITIONS}`;
 
   const previousOrder = await redisGetter.getHashAll(redisKey, expiredPostsClient);
+  const lastOrder = await redisGetter.getAsync({ key: lastOrderEXKey });
 
   const previousOrders = await previousOrdersQuantity({
     bookBot, position, type: MARKET_CONTRACT.SELL, tokenPrecision,
@@ -429,7 +432,6 @@ const handleLimitSell = async ({
   if (previousOrder) {
     const orderInBook = _.find(book,
       (order) => order.account === bookBot.account && BigNumber(order.price).eq(previousOrder.price));
-    const lastOrder = await redisGetter.getAsync({ key: lastOrderEXKey });
     if (!orderInBook && !lastOrder) {
       await redisSetter.delKey(redisKey);
       await redisSetter.srem(redisPositions, `position${position}`);
@@ -473,7 +475,9 @@ const handleLimitSell = async ({
       needRenewOrder = true;
     }
   }
-  const newOrderCondition = orderCondition(currentQuantity) && (!previousOrder || needRenewOrder);
+  const newOrderCondition = orderCondition(currentQuantity)
+      && (!previousOrder || needRenewOrder)
+      && !lastOrder;
   if (newOrderCondition) {
     operations.push(getLimitSellParams({
       quantity: BigNumber(currentQuantity).toFixed(tokenPrecision),
