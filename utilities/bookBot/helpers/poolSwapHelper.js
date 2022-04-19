@@ -94,6 +94,7 @@ exports.getSwapOutput = ({
     : BigNumber(tokenToExchange).minus(amountIn);
 
   const tokenExchangedOnNewBalance = absoluteValue.div(tokenToExchangeNewBalance);
+  // правильно считается?
   const amountOut = BigNumber(tokenExchangedOn)
     .minus(tokenExchangedOnNewBalance)
     .absoluteValue();
@@ -138,7 +139,7 @@ exports.getSwapOutput = ({
   const tokenAmount = from ? BigNumber(amountIn).toFixed() : amountOut;
 
   const slippageAmount = from ? amountOut.times(slippage) : BigNumber(amountIn).times(slippage);
-
+// может не учитываем fee?
   const fee = calcFee({
     tokenAmount, liquidityIn, liquidityOut, precision, tradeFeeMul,
   });
@@ -147,7 +148,8 @@ exports.getSwapOutput = ({
     : BigNumber(amountIn).minus(slippageAmount);
 
   // plus fee when from: false???
-  const amountOutToFixed = amountOut.toFixed(precision, BigNumber.ROUND_DOWN);
+  const amountOutToFixed = from ? amountOut.minus(fee).toFixed(precision, BigNumber.ROUND_DOWN)
+    : amountOut.plus(slippageAmount).toFixed(precision, BigNumber.ROUND_DOWN);
   const minAmountOutToFixed = minAmountOut.minus(fee).toFixed(precision, BigNumber.ROUND_DOWN);
 
   const json = operationForJson({

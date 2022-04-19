@@ -4,12 +4,12 @@ const {
 } = require('../constants/hiveEngine');
 const jsonHelper = require('../utilities/helpers/jsonHelper');
 const { PYRAMIDAL_BOTS } = require('../constants/pyramidalBot');
+const { startPyramidalBot } = require('../utilities/pyramidalBot/pyramidalBot');
 
 exports.parse = async ({ transactions }) => {
   console.log('inside poolsParser!!!');
-//  if (process.env.NODE_ENV !== 'staging') return;
+  //  if (process.env.NODE_ENV !== 'staging') return;
 
-  // возможно, маркет не нужен
   const { marketPool } = _.reduce(transactions, (acc, transaction) => {
     const marketPoolCondition = transaction.contract === ENGINE_CONTRACTS.MARKETPOOLS;
     if (marketPoolCondition) acc.marketPool.push(transaction);
@@ -17,13 +17,11 @@ exports.parse = async ({ transactions }) => {
     return acc;
   }, { marketPool: [] });
 
-  console.log('marketPool', marketPool);
-
-  const events = [];
-  handleSwapEvents({ marketPool, events });
+  const tokenPair = handleSwapEvents(marketPool);
+  if (tokenPair) await startPyramidalBot(tokenPair);
 };
 
-const handleSwapEvents = ({ marketPool, events }) => {
+const handleSwapEvents = (marketPool) => {
   for (const marketPoolElement of marketPool) {
     const payload = jsonHelper.parseJson(_.get(marketPoolElement, 'payload'));
     const logs = jsonHelper.parseJson(_.get(marketPoolElement, 'logs'));
@@ -31,20 +29,14 @@ const handleSwapEvents = ({ marketPool, events }) => {
 
     const imbalancedPool = _.find(_.flatten((_.map(PYRAMIDAL_BOTS, 'tokenPairs'))),
       (pair) => _.includes(pair, _.get(payload, 'tokenPair')));
-    console.log('imbalancedPool', imbalancedPool);
-    if (!imbalancedPool) continue;
+    if (imbalancedPool) return imbalancedPool;
 
-
-     // то это тригер для бота! нужно ли здесь смотреть аут и ин? или достаточно тут же дергать бота?
-    // номер блока для такого тригера с одним из пулов 16484360 (как пример)
-    const symbols = _.find(logs.events, (e) => e.event === 'swapTokens');
-
-    const symbolOut = _.get(symbols, 'data.symbolOut');
-    console.log('symbolOut', symbolOut);
-    const symbolIn = _.get(symbols, 'data.symbolIn');
-    console.log('symbolIn', symbolIn);
-    // если аут здесь не БИ, то пойти и посмотреть не купить ли в этом пуле БИ (чтоб продать в другом)
-    const bookSymbol = !_.includes(_.map(PYRAMIDAL_BOTS, 'imbalancedToken'), symbolOut) ? symbolIn : symbolOut;
-    events.push({ symbol: bookSymbol });
+    // const symbols = _.find(logs.events, (e) => e.event === 'swapTokens');
+    // //  может тут будет достаточно не идти в цикле до конца, а делать ретерн и тригер бота (все равно там все 3 пула тянуть)
+    // events.push({
+    //   tokenPair: imbalancedPool,
+    //   symbolOut: _.get(symbols, 'data.symbolOut'),
+    //   symbolIn: _.get(symbols, 'data.symbolIn'),
+    // });
   }
 };
