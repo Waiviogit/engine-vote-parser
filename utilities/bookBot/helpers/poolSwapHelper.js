@@ -147,7 +147,7 @@ exports.getSwapOutput = ({
     : BigNumber(amountIn).minus(slippageAmount);
 
   // plus fee when from: false???
-  const amountOutToFixed = amountOut.toFixed(precision, BigNumber.ROUND_DOWN);
+  const amountOutToFixed = amountOut.minus(fee).toFixed(precision, BigNumber.ROUND_DOWN);
   const minAmountOutToFixed = minAmountOut.minus(fee).toFixed(precision, BigNumber.ROUND_DOWN);
 
   const json = operationForJson({
