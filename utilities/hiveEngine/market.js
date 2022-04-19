@@ -1,6 +1,6 @@
-const engineQuery = require('utilities/hiveEngine/engineQuery');
+const { engineProxy } = require('utilities/hiveEngine/engineQuery');
 
-exports.getSellBook = async ({ query }) => engineQuery({
+exports.getSellBook = async ({ query }) => engineProxy({
   params: {
     contract: 'market',
     query,
@@ -16,7 +16,7 @@ exports.getSellBook = async ({ query }) => engineQuery({
   },
 });
 
-exports.getBuyBook = async ({ query }) => engineQuery({
+exports.getBuyBook = async ({ query }) => engineProxy({
   params: {
     contract: 'market',
     query,

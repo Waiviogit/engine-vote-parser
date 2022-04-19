@@ -1,4 +1,4 @@
-const engineQuery = require('utilities/hiveEngine/engineQuery');
+const { engineQuery, engineProxy } = require('utilities/hiveEngine/engineQuery');
 
 exports.getBlockInfo = async (blockNumber, hostUrl) => engineQuery({
   method: 'getBlockInfo',
@@ -7,12 +7,12 @@ exports.getBlockInfo = async (blockNumber, hostUrl) => engineQuery({
   params: { blockNumber },
 });
 
-exports.getLatestBlockInfo = async () => engineQuery({
+exports.getLatestBlockInfo = async () => engineProxy({
   method: 'getLatestBlockInfo',
   endpoint: '/blockchain',
 });
 
-exports.getTransactionInfo = async ({ params }) => engineQuery({
+exports.getTransactionInfo = async ({ params }) => engineProxy({
   method: 'getTransactionInfo',
   endpoint: '/blockchain',
   params,

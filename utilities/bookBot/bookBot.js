@@ -31,10 +31,36 @@ exports.sendBookEvent = async ({ symbol, events }) => {
   const bookBot = _.find(BOOK_BOTS, (bot) => bot.symbol === symbol);
   if (!bookBot) return;
   if (!validateBookBot(bookBot)) return console.error(`Invalid ${bookBot.account} bot params`);
-  await handleBookEvent({ bookBot: _.cloneDeep(bookBot), events });
+
+  if (events) return handleMarketBuySell({ bookBot, events });
+  await handleBookEvent({ bookBot });
 };
 
-const handleBookEvent = async ({ bookBot, events }) => {
+const handleMarketBuySell = async ({ bookBot, events }) => {
+  const requests = await Promise.all([
+    enginePool.getMarketPools({ query: { tokenPair: bookBot.tokenPair } }),
+    tokensContract.getTokensParams({ query: { symbol: bookBot.symbol } }),
+    enginePool.getMarketPoolsParams(),
+  ]);
+
+  for (const request of requests) {
+    if (_.has(request, 'error')) {
+      console.error('-------error in bookBot request');
+      return;
+    }
+  }
+  const [marketPools, token, params] = requests;
+
+  return handleDeal({
+    bookBot,
+    dieselPool: marketPools[0],
+    events,
+    tradeFeeMul: _.get(params, '[0].tradeFeeMul', POOL_FEE),
+    tokenPrecision: _.get(token, '[0].precision', 8),
+  });
+};
+
+const handleBookEvent = async ({ bookBot }) => {
   const operations = [];
 
   const requests = await Promise.all([
@@ -47,12 +73,18 @@ const handleBookEvent = async ({ bookBot, events }) => {
     enginePool.getMarketPools({ query: { tokenPair: bookBot.tokenPair } }),
     enginePool.getMarketPoolsParams(),
   ]);
+
+  for (const request of requests) {
+    if (_.has(request, 'error')) {
+      console.error('-------error in bookBot request');
+      return;
+    }
+  }
   const [balances, token, buyBook, sellBook, marketPools, params] = requests;
 
   const tradeFeeMul = _.get(params, '[0].tradeFeeMul', POOL_FEE);
 
   const dieselPool = _.get(marketPools, '[0]');
-  if (_.isEmpty(dieselPool)) return;
 
   const tokenPrecision = _.get(token, '[0].precision', 8);
 
@@ -75,21 +107,6 @@ const handleBookEvent = async ({ bookBot, events }) => {
   });
 
   const { poolQuantity } = getDieselPoolPrice({ dieselPool, bookBot });
-
-  if (events) {
-    return handleDeal({
-      bookBot, dieselPool, events, tradeFeeMul, tokenPrecision,
-    });
-  }
-
-  /**
-   * Del redis keys if our order resolved
-   */
-  await Promise.all([
-    delIrrelevantRedisKeys({ book: buyBook, type: MARKET_CONTRACT.BUY, bookBot }),
-    delIrrelevantRedisKeys({ book: sellBook, type: MARKET_CONTRACT.SELL, bookBot }),
-  ]);
-
   /**
    * Handle Limit Buy Limit Sell
    */
@@ -262,6 +279,7 @@ const handleLimitBuy = async ({
   const redisPositions = `${REDIS_BOOK.MAIN}:${REDIS_BOOK.BUY}:${bookBot.symbol}:${bookBot.account}:${REDIS_BOOK.POSITIONS}`;
 
   const previousOrder = await redisGetter.getHashAll(redisKey, expiredPostsClient);
+  const lastOrder = await redisGetter.getAsync({ key: lastOrderEXKey });
 
   let currentQuantity = BigNumber(quantity).times(bookBot.buyRatio).toFixed(tokenPrecision);
   const previousOrders = await previousOrdersQuantity({
@@ -304,7 +322,6 @@ const handleLimitBuy = async ({
   if (previousOrder) {
     const orderInBook = _.find(book,
       (order) => order.account === bookBot.account && BigNumber(order.price).eq(previousOrder.price));
-    const lastOrder = await redisGetter.getAsync({ key: lastOrderEXKey });
     if (!orderInBook && !lastOrder) {
       await redisSetter.delKey(redisKey);
       await redisSetter.srem(redisPositions, `position${position}`);
@@ -349,7 +366,10 @@ const handleLimitBuy = async ({
     }
   }
 
-  const newOrderCondition = orderCondition(currentQuantity) && (!previousOrder || needRenewOrder);
+  const newOrderCondition = orderCondition(currentQuantity)
+      && (!previousOrder || needRenewOrder)
+      && !lastOrder;
+
   if (newOrderCondition) {
     operations.push(getLimitBuyParams({
       quantity: BigNumber(currentQuantity).toFixed(tokenPrecision),
@@ -401,6 +421,7 @@ const handleLimitSell = async ({
   const redisPositions = `${REDIS_BOOK.MAIN}:${REDIS_BOOK.SELL}:${bookBot.symbol}:${bookBot.account}:${REDIS_BOOK.POSITIONS}`;
 
   const previousOrder = await redisGetter.getHashAll(redisKey, expiredPostsClient);
+  const lastOrder = await redisGetter.getAsync({ key: lastOrderEXKey });
 
   const previousOrders = await previousOrdersQuantity({
     bookBot, position, type: MARKET_CONTRACT.SELL, tokenPrecision,
@@ -436,7 +457,6 @@ const handleLimitSell = async ({
   if (previousOrder) {
     const orderInBook = _.find(book,
       (order) => order.account === bookBot.account && BigNumber(order.price).eq(previousOrder.price));
-    const lastOrder = await redisGetter.getAsync({ key: lastOrderEXKey });
     if (!orderInBook && !lastOrder) {
       await redisSetter.delKey(redisKey);
       await redisSetter.srem(redisPositions, `position${position}`);
@@ -480,7 +500,9 @@ const handleLimitSell = async ({
       needRenewOrder = true;
     }
   }
-  const newOrderCondition = orderCondition(currentQuantity) && (!previousOrder || needRenewOrder);
+  const newOrderCondition = orderCondition(currentQuantity)
+      && (!previousOrder || needRenewOrder)
+      && !lastOrder;
   if (newOrderCondition) {
     operations.push(getLimitSellParams({
       quantity: BigNumber(currentQuantity).toFixed(tokenPrecision),
@@ -523,19 +545,33 @@ const previousOrdersQuantity = async ({
 };
 
 const delIrrelevantRedisKeys = async ({ book, type, bookBot }) => {
-  const redisPositions = `${REDIS_BOOK.MAIN}:${type}:${bookBot.symbol}:${bookBot.account}:${REDIS_BOOK.POSITIONS}`;
-  const currentPositions = await redisGetter.smembers(redisPositions);
+  const redisPositionsKey = `${REDIS_BOOK.MAIN}:${type}:${bookBot.symbol}:${bookBot.account}:${REDIS_BOOK.POSITIONS}`;
+  const currentPositions = await redisGetter.smembers(redisPositionsKey);
   const bookOrders = _.filter(book, (order) => order.account === bookBot.account);
   if (currentPositions.length !== bookOrders.length) {
+    const existOrders = [];
     for (const position of currentPositions) {
       const redisKey = `${REDIS_BOOK.MAIN}:${type}:${bookBot.symbol}:${bookBot.account}:${position}`;
       const redisOrder = await redisGetter.getHashAll(redisKey, expiredPostsClient);
       const bookOrder = _.find(book,
         (order) => order.price === redisOrder.price && order.account === bookBot.account);
+
       if (!bookOrder) {
         await redisSetter.delKey(redisKey);
-        await redisSetter.srem(redisPositions, position);
+        await redisSetter.srem(redisPositionsKey, position);
+        continue;
       }
+
+      existOrders.push(bookOrder.txId);
+    }
+
+    const cancelOrders = _.filter(bookOrders, (order) => !_.includes(existOrders, order.txId));
+
+    if (!_.isEmpty(cancelOrders)) {
+      return _.map(cancelOrders, (cancel) => getCancelParams({
+        id: _.get(cancel, 'txId'),
+        type,
+      }));
     }
   }
 };
@@ -562,7 +598,7 @@ const calcProfitPrice = ({
       slippage,
       pool,
     });
-    const hiveQuantity = BigNumber(result.minAmountOut)
+    const hiveQuantity = BigNumber(result.amountOut)
       .times(BigNumber(1).minus(profitPercent));
     if (BigNumber(result.priceImpact).gte(90) || result.priceImpact === 'Infinity') return '0';
     const price = BigNumber(hiveQuantity).dividedBy(quantity).toFixed(HIVE_PEGGED_PRECISION);
@@ -580,12 +616,7 @@ const calcProfitPrice = ({
       pool,
     });
     if (BigNumber(result.priceImpact).gte(90) || result.priceImpact === 'Infinity') return '0';
-    const hiveAmountWithoutSlippage = BigNumber(result.amountOut)
-      .times(BigNumber(1).minus(slippage))
-      .toFixed(HIVE_PEGGED_PRECISION);
-    const hiveQuantity = BigNumber(hiveAmountWithoutSlippage)
-      .plus(result.fee)
-      .times(BigNumber(1).plus(profitPercent));
+    const hiveQuantity = BigNumber(result.amountOut).times(BigNumber(1).plus(profitPercent));
     const price = BigNumber(hiveQuantity).dividedBy(quantity).toFixed(HIVE_PEGGED_PRECISION);
     return price;
   }
