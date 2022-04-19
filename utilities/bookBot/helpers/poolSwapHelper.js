@@ -146,10 +146,15 @@ exports.getSwapOutput = ({
     ? amountOut.minus(slippageAmount)
     : BigNumber(amountIn).minus(slippageAmount);
 
-  // plus fee when from: false???
   const amountOutToFixed = from
     ? amountOut.minus(fee).toFixed(precision, BigNumber.ROUND_DOWN)
-    : amountOut.plus(slippageAmount).toFixed(precision, BigNumber.ROUND_DOWN);
+    : amountOut.plus(calcFee({
+      tokenAmount: BigNumber(amountIn).toFixed(),
+      liquidityIn: liquidityOut,
+      liquidityOut: liquidityIn,
+      precision,
+      tradeFeeMul,
+    })).toFixed(precision, BigNumber.ROUND_DOWN);
 
   const minAmountOutToFixed = minAmountOut.minus(fee).toFixed(precision, BigNumber.ROUND_DOWN);
 

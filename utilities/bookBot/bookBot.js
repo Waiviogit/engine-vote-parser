@@ -598,7 +598,7 @@ const calcProfitPrice = ({
       slippage,
       pool,
     });
-    const hiveQuantity = BigNumber(result.minAmountOut)
+    const hiveQuantity = BigNumber(result.amountOut)
       .times(BigNumber(1).minus(profitPercent));
     if (BigNumber(result.priceImpact).gte(90) || result.priceImpact === 'Infinity') return '0';
     const price = BigNumber(hiveQuantity).dividedBy(quantity).toFixed(HIVE_PEGGED_PRECISION);
@@ -616,12 +616,7 @@ const calcProfitPrice = ({
       pool,
     });
     if (BigNumber(result.priceImpact).gte(90) || result.priceImpact === 'Infinity') return '0';
-    const hiveAmountWithoutSlippage = BigNumber(result.amountOut)
-      .times(BigNumber(1).minus(slippage))
-      .toFixed(HIVE_PEGGED_PRECISION);
-    const hiveQuantity = BigNumber(hiveAmountWithoutSlippage)
-      .plus(result.fee)
-      .times(BigNumber(1).plus(profitPercent));
+    const hiveQuantity = BigNumber(result.amountOut).times(BigNumber(1).plus(profitPercent));
     const price = BigNumber(hiveQuantity).dividedBy(quantity).toFixed(HIVE_PEGGED_PRECISION);
     return price;
   }
