@@ -146,15 +146,26 @@ exports.getSwapOutput = ({
     ? amountOut.minus(slippageAmount)
     : BigNumber(amountIn).minus(slippageAmount);
 
-  const amountOutToFixed = from
-    ? amountOut.minus(fee).toFixed(precision, BigNumber.ROUND_DOWN)
-    : amountOut.plus(calcFee({
-      tokenAmount: BigNumber(amountIn).toFixed(),
-      liquidityIn: liquidityOut,
-      liquidityOut: liquidityIn,
+  let amountOutToFixed;
+  if (from) {
+    amountOutToFixed = amountOut.minus(fee).toFixed(precision, BigNumber.ROUND_DOWN);
+  } else {
+    const feeAmount = calcFee({
+      tokenAmount: amountIn,
+      liquidityIn: tokenToExchangeNewBalance.toFixed(),
+      liquidityOut: tokenExchangedOnNewBalance.toFixed(),
       precision,
       tradeFeeMul,
-    })).toFixed(precision, BigNumber.ROUND_DOWN);
+    });
+    const tradeFee = BigNumber(feeAmount).times(0.025);
+    const priceImpactFee = BigNumber(priceImpact).div(100).times(feeAmount);
+
+    amountOutToFixed = BigNumber(amountOut)
+      .plus(tradeFee)
+      .plus(feeAmount)
+      .plus(priceImpactFee)
+      .toFixed();
+  }
 
   const minAmountOutToFixed = minAmountOut.minus(fee).toFixed(precision, BigNumber.ROUND_DOWN);
 
