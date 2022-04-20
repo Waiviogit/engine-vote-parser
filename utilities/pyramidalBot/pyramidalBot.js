@@ -2,19 +2,14 @@ const _ = require('lodash');
 const BigNumber = require('bignumber.js');
 const {
   PYRAMIDAL_BOTS,
-  SLIPPAGE,
-  TEST_POOLS,
 } = require('../../constants/pyramidalBot');
 const { validatePyramidalBot } = require('./helpers/validatePyramidalBotHelper');
 const enginePool = require('../hiveEngine/marketPools');
 const { POOL_FEE } = require('../../constants/bookBot');
-const poolSwapHelper = require('../bookBot/helpers/poolSwapHelper');
 const { bookBroadcastToChain } = require('../bookBot/helpers/bookBroadcastToChainHelper');
 const tokensContract = require('../hiveEngine/tokensContract');
 const { getPoolToSwap } = require('./helpers/getPoolToSwapHelper');
-const { getObjectForTransfer,
-  getJsonsToBroadcast
-} = require('./helpers/getObjectForBroadcastingHelper');
+const { getJsonsToBroadcast } = require('./helpers/getObjectForBroadcastingHelper');
 const { calculateOutputs } = require('./helpers/calculateOutputsHelper');
 
 exports.startPyramidalBot = async (tokenPair) => {
@@ -33,9 +28,9 @@ exports.startPyramidalBot = async (tokenPair) => {
 
 const handleSwaps = async (bot) => {
   const requests = await Promise.all([
-    // enginePool.getMarketPools({
-    //   query: { tokenPair: { $in: bot.tokenPairs } },
-    // }),
+    enginePool.getMarketPools({
+      query: { tokenPair: { $in: bot.tokenPairs } },
+    }),
     enginePool.getMarketPoolsParams(),
     tokensContract.getTokensParams({
       query: {
@@ -49,8 +44,7 @@ const handleSwaps = async (bot) => {
       query: { symbol: { $in: bot.stableTokens }, account: bot.account },
     }),
   ]);
-  const [params, tokens, balances] = requests;
-  const pools = TEST_POOLS;
+  const [pools, params, tokens, balances] = requests;
   const isRequestError = _.has(pools, 'error') || _.has(params, 'error')
     || _.has(tokens, 'error') || _.has(balances, 'error');
 
@@ -74,7 +68,6 @@ const handleSwaps = async (bot) => {
     tokens,
     balances,
   });
-  console.log('poolToBuy', poolToBuy);
   const poolToSell = getPoolToSwap({
     pools: poolsWithToken,
     bot,
@@ -82,7 +75,7 @@ const handleSwaps = async (bot) => {
     tokens,
     balances,
   });
-  console.log('poolToSell', poolToSell);
+
   const operations = [];
 
   getProfitableSwapsLowerBound({
@@ -93,7 +86,7 @@ const handleSwaps = async (bot) => {
     poolToSell,
     stablePool,
     operations,
-    startAmountIn: 0.39,
+    startAmountIn: poolToBuy.balance,
     prevIncomeDifference: bot.startIncomeDifference,
   });
   getProfitableSwapsUpperBound({
@@ -107,7 +100,7 @@ const handleSwaps = async (bot) => {
     multiplier: bot.startMultiplier,
     prevIncomeDifference: operations[0].incomeDifference,
   });
-  console.log('operations', operations);
+
   if (operations.length) {
     await bookBroadcastToChain({
       bookBot: bot,
@@ -117,11 +110,6 @@ const handleSwaps = async (bot) => {
         quantity: operations[operations.length - 1].incomeDifference,
       }),
     });
-    console.log('blaa', getJsonsToBroadcast({
-      object: operations[operations.length - 1],
-      symbol: poolToBuy.stableTokenSymbol,
-      quantity: operations[operations.length - 1].incomeDifference,
-    }));
   }
 };
 
@@ -129,7 +117,6 @@ const getProfitableSwapsLowerBound = ({
   poolToBuy, poolsWithToken, tradeFeeMul, bot, poolToSell, stablePool, operations, startAmountIn,
   prevIncomeDifference,
 }) => {
-  console.log('startAmountIn', startAmountIn);
   if (BigNumber(startAmountIn).isLessThan(bot.lowestAmountOutBound)) return;
 
   const { buyOutput, sellOutput, equalizeOutput } = calculateOutputs({
@@ -144,14 +131,8 @@ const getProfitableSwapsLowerBound = ({
   if (isAmountOutGreater) {
     const incomeDifference = BigNumber(equalizeOutput.amountOut).minus(startAmountIn)
       .toFixed(poolToBuy.stableTokenPrecision);
-    console.log('incomeDifference', incomeDifference);
     if (BigNumber(incomeDifference).isLessThan(prevIncomeDifference)) return;
 
-    // operations[0] = buyOutput.json;
-    // operations[1] = sellOutput.json;
-    // operations[2] = equalizeOutput.json;
-    // operations[3] = getObjectForTransfer(poolToBuy.stableTokenSymbol, incomeDifference);
-    // так? или пушем? если пуш - то тогда захватиться и позиция ранее
     operations[0] = {
       incomeDifference,
       startAmountIn,
@@ -193,19 +174,15 @@ const getProfitableSwapsUpperBound = ({
   poolToBuy, poolsWithToken, tradeFeeMul, bot, poolToSell, stablePool, operations, multiplier,
   prevIncomeDifference,
 }) => {
-  console.log('multiplier', multiplier);
   const startAmountIn = BigNumber(operations[0].startAmountIn).multipliedBy(multiplier)
     .toFixed(poolToBuy.stableTokenPrecision);
-  if (BigNumber(startAmountIn).isGreaterThan(0.39)) return;
+  if (BigNumber(startAmountIn).isGreaterThan(poolToBuy.balance)) return;
 
-  console.log('startAmountIn in up', startAmountIn);
   const { buyOutput, sellOutput, equalizeOutput } = calculateOutputs({
     poolToBuy, startAmountIn, poolsWithToken, tradeFeeMul, bot, poolToSell, stablePool,
   });
-  console.log('equalizeOutput', equalizeOutput);
   const incomeDifference = BigNumber(equalizeOutput.amountOut).minus(startAmountIn)
     .toFixed(poolToBuy.stableTokenPrecision);
-  console.log('incomeDifference in up', incomeDifference);
   const isAmountOutGreater = BigNumber(incomeDifference).isGreaterThan(operations[0].incomeDifference)
     && BigNumber(incomeDifference).isGreaterThan(prevIncomeDifference);
 

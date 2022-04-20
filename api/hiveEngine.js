@@ -71,7 +71,6 @@ const loadNextBlock = async ({
 
 // return true if block exist and parsed, else - false
 const loadBlock = async (blockNum, transactionsParserCallback) => {
-  console.log('blockNum', blockNum);
   const block = await blockchain.getBlockInfo(blockNum, CURRENT_NODE);
 
   if (_.has(block, 'error')) {

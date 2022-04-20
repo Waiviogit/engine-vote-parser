@@ -7,7 +7,7 @@ const { PYRAMIDAL_BOTS } = require('../constants/pyramidalBot');
 const { startPyramidalBot } = require('../utilities/pyramidalBot/pyramidalBot');
 
 exports.parse = async ({ transactions }) => {
-  //if (process.env.NODE_ENV !== 'staging') return;
+  if (process.env.NODE_ENV !== 'staging') return;
 
   const marketPool = _.filter(transactions,
     (transaction) => transaction.contract === ENGINE_CONTRACTS.MARKETPOOLS);

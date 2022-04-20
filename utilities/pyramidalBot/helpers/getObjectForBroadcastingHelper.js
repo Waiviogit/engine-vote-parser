@@ -18,5 +18,5 @@ exports.getJsonsToBroadcast = ({ object, symbol, quantity }) => [
   object.buyOutputJson,
   object.sellOutputJson,
   object.equalizeOutputJson,
-  //getObjectForTransfer(symbol, quantity),
+  getObjectForTransfer(symbol, quantity),
 ];
