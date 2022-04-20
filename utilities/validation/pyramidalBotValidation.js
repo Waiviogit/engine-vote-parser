@@ -7,5 +7,5 @@ exports.pyramidalBotSchema = Joi.object({
   stableTokens: Joi.array().items(Joi.string()).min(1).required(),
   stablePair: Joi.string().required(),
   tokenSymbol: Joi.string().required(),
-  startAmountIn: Joi.number().max(500).required(),
+  lowestAmountOutBound: Joi.number().min(0.01).required(),
 });

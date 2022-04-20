@@ -23,9 +23,7 @@ exports.engineSwitcher = async (transactions, blockNumber, timestamps) => {
     timestamps,
   });
   await bookParser.parse({ transactions });
-  console.log('before poolsParser');
   await poolsParser.parse({ transactions });
-  console.log('after poolsParser');
 };
 
 const parseTransaction = ({

@@ -1,0 +1,15 @@
+const {
+  ENGINE_CONTRACTS,
+  TOKENS_CONTRACT,
+} = require('../../../constants/hiveEngine');
+
+exports.getObjectForTransfer = (symbol, quantity) => ({
+  contractName: ENGINE_CONTRACTS.TOKENS,
+  contractAction: TOKENS_CONTRACT.TRANSFER,
+  contractPayload:
+    {
+      symbol,
+      to: process.env.BANK_BOT_ACCOUNT,
+      quantity,
+    },
+});
