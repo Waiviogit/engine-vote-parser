@@ -7,14 +7,11 @@ const { PYRAMIDAL_BOTS } = require('../constants/pyramidalBot');
 const { startPyramidalBot } = require('../utilities/pyramidalBot/pyramidalBot');
 
 exports.parse = async ({ transactions }) => {
-  if (process.env.NODE_ENV !== 'staging') return;
+  //if (process.env.NODE_ENV !== 'staging') return;
 
-  const { marketPool } = _.reduce(transactions, (acc, transaction) => {
-    const marketPoolCondition = transaction.contract === ENGINE_CONTRACTS.MARKETPOOLS;
-    if (marketPoolCondition) acc.marketPool.push(transaction);
-
-    return acc;
-  }, { marketPool: [] });
+  const marketPool = _.filter(transactions,
+    (transaction) => transaction.contract === ENGINE_CONTRACTS.MARKETPOOLS);
+  if (!marketPool.length) return;
 
   const tokenPair = handleSwapEvents(marketPool);
   if (tokenPair) await startPyramidalBot(tokenPair);

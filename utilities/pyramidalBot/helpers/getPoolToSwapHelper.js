@@ -18,9 +18,9 @@ exports.getPoolToSwap = ({
             .toFixed(stablePool.precision),
         tokenPair: pool.tokenPair,
         stableTokenSymbol: quote,
-        tokenPrecision: _.find(tokens, (token) => token.symbol === base).precision,
         stableTokenPrecision: _.find(tokens, (token) => token.symbol === quote).precision,
         balance: _.find(balances, (balance) => balance.symbol === quote).balance,
+        poolPrecision: pool.precision,
       })
       : dataToCompare.push({
         coefficient: pool.tokenPair.includes(stableBase)
@@ -30,9 +30,9 @@ exports.getPoolToSwap = ({
             .toFixed(stablePool.precision),
         tokenPair: pool.tokenPair,
         stableTokenSymbol: base,
-        tokenPrecision: _.find(tokens, (token) => token.symbol === quote).precision,
         stableTokenPrecision: _.find(tokens, (token) => token.symbol === base).precision,
         balance: _.find(balances, (balance) => balance.symbol === base).balance,
+        poolPrecision: pool.precision,
       });
   }
 

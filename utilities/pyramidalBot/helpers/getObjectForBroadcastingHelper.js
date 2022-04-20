@@ -3,7 +3,7 @@ const {
   TOKENS_CONTRACT,
 } = require('../../../constants/hiveEngine');
 
-exports.getObjectForTransfer = (symbol, quantity) => ({
+const getObjectForTransfer = (symbol, quantity) => ({
   contractName: ENGINE_CONTRACTS.TOKENS,
   contractAction: TOKENS_CONTRACT.TRANSFER,
   contractPayload:
@@ -13,3 +13,10 @@ exports.getObjectForTransfer = (symbol, quantity) => ({
       quantity,
     },
 });
+
+exports.getJsonsToBroadcast = ({ object, symbol, quantity }) => [
+  object.buyOutputJson,
+  object.sellOutputJson,
+  object.equalizeOutputJson,
+  //getObjectForTransfer(symbol, quantity),
+];
