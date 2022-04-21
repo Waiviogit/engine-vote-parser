@@ -204,8 +204,8 @@ const approachMostProfitableSwapPoint = ({
     upperStartAmountIn = BigNumber(upperStartAmountIn)
       .dividedBy(approachCoefficient).toFixed(poolToBuy.stableTokenPrecision);
 
-    const isOutOfRange = BigNumber(upperStartAmountIn)
-      .isGreaterThan(BigNumber(operations[0].startAmountIn).times(2));
+    const isOutOfRange = BigNumber(upperStartAmountIn).isGreaterThan(BigNumber(operations[0].startAmountIn).times(2))
+      || BigNumber(upperStartAmountIn).isGreaterThan(poolToBuy.balance);
     if (isOutOfRange) return;
 
     upperIncomeDifferenceObject = getIncomeDifference({
