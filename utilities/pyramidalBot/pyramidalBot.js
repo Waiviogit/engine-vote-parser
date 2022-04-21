@@ -78,7 +78,7 @@ const handleSwaps = async (bot) => {
 
   const operations = [];
 
-  getProfitableSwapsLowerBound({
+  getFirstProfitableSwapPoint({
     poolToBuy,
     poolsWithToken,
     tradeFeeMul,
@@ -91,7 +91,7 @@ const handleSwaps = async (bot) => {
   });
 
   if (operations.length) {
-    getProfitableSwapsUpperBound({
+    approachMostProfitableSwapPoint({
       poolToBuy,
       poolsWithToken,
       tradeFeeMul,
@@ -99,8 +99,10 @@ const handleSwaps = async (bot) => {
       poolToSell,
       stablePool,
       operations,
-      multiplier: bot.startMultiplier,
+      approachCoefficient: bot.approachCoefficient,
       prevIncomeDifference: operations[0].incomeDifference,
+      lowerStartAmountIn: operations[0].startAmountIn,
+      upperStartAmountIn: operations[0].startAmountIn,
     });
 
     await bookBroadcastToChain({
@@ -114,7 +116,7 @@ const handleSwaps = async (bot) => {
   }
 };
 
-const getProfitableSwapsLowerBound = ({
+const getFirstProfitableSwapPoint = ({
   poolToBuy, poolsWithToken, tradeFeeMul, bot, poolToSell, stablePool, operations, startAmountIn,
   prevIncomeDifference,
 }) => {
@@ -142,7 +144,7 @@ const getProfitableSwapsLowerBound = ({
       equalizeOutputJson: equalizeOutput.json,
     };
 
-    getProfitableSwapsLowerBound({
+    getFirstProfitableSwapPoint({
       poolToBuy,
       poolsWithToken,
       tradeFeeMul,
@@ -156,7 +158,7 @@ const getProfitableSwapsLowerBound = ({
       prevIncomeDifference: incomeDifference,
     });
   } else if (isAmountOutLess) {
-    getProfitableSwapsLowerBound({
+    getFirstProfitableSwapPoint({
       poolToBuy,
       poolsWithToken,
       tradeFeeMul,
@@ -172,32 +174,54 @@ const getProfitableSwapsLowerBound = ({
   }
 };
 
-const getProfitableSwapsUpperBound = ({
-  poolToBuy, poolsWithToken, tradeFeeMul, bot, poolToSell, stablePool, operations, multiplier,
-  prevIncomeDifference,
+const approachMostProfitableSwapPoint = ({
+  poolToBuy, poolsWithToken, tradeFeeMul, bot, poolToSell, stablePool, operations,
+  approachCoefficient, prevIncomeDifference, lowerStartAmountIn, upperStartAmountIn,
 }) => {
-  const startAmountIn = BigNumber(operations[0].startAmountIn).multipliedBy(multiplier)
-    .toFixed(poolToBuy.stableTokenPrecision);
-  if (BigNumber(startAmountIn).isGreaterThan(poolToBuy.balance)) return;
+  lowerStartAmountIn = BigNumber(lowerStartAmountIn)
+    .multipliedBy(approachCoefficient).toFixed(poolToBuy.stableTokenPrecision);
+  upperStartAmountIn = BigNumber(upperStartAmountIn)
+    .dividedBy(approachCoefficient).toFixed(poolToBuy.stableTokenPrecision);
 
-  const { buyOutput, sellOutput, equalizeOutput } = calculateOutputs({
-    poolToBuy, startAmountIn, poolsWithToken, tradeFeeMul, bot, poolToSell, stablePool,
+  const isOutOfBalance = BigNumber(upperStartAmountIn).isGreaterThan(poolToBuy.balance)
+  || BigNumber(lowerStartAmountIn).isLessThan(bot.lowestAmountOutBound);
+  if (isOutOfBalance) return;
+
+  const lowerIncomeDifferenceObject = getIncomeDifference({
+    poolToBuy,
+    startAmountIn: lowerStartAmountIn,
+    poolsWithToken,
+    tradeFeeMul,
+    bot,
+    poolToSell,
+    stablePool,
   });
-  const incomeDifference = BigNumber(equalizeOutput.amountOut).minus(startAmountIn)
-    .toFixed(poolToBuy.stableTokenPrecision);
-  const isAmountOutGreater = BigNumber(incomeDifference).isGreaterThan(operations[0].incomeDifference)
-    && BigNumber(incomeDifference).isGreaterThan(prevIncomeDifference);
+  const upperIncomeDifferenceObject = getIncomeDifference({
+    poolToBuy,
+    startAmountIn: upperStartAmountIn,
+    poolsWithToken,
+    tradeFeeMul,
+    bot,
+    poolToSell,
+    stablePool,
+  });
+  const incomeDifferenceObject = BigNumber(lowerIncomeDifferenceObject.incomeDifference)
+    .isGreaterThan(upperIncomeDifferenceObject.incomeDifference)
+    ? lowerIncomeDifferenceObject : upperIncomeDifferenceObject;
+
+  const isAmountOutGreater = BigNumber(incomeDifferenceObject.incomeDifference).isGreaterThan(operations[0].incomeDifference)
+    && BigNumber(incomeDifferenceObject.incomeDifference).isGreaterThan(prevIncomeDifference);
 
   if (isAmountOutGreater) {
     operations[1] = {
-      incomeDifference,
-      startAmountIn,
-      buyOutputJson: buyOutput.json,
-      sellOutputJson: sellOutput.json,
-      equalizeOutputJson: equalizeOutput.json,
+      incomeDifference: incomeDifferenceObject.incomeDifference,
+      startAmountIn: incomeDifferenceObject.startAmountIn,
+      buyOutputJson: incomeDifferenceObject.buyOutputJson,
+      sellOutputJson: incomeDifferenceObject.sellOutputJson,
+      equalizeOutputJson: incomeDifferenceObject.equalizeOutputJson,
     };
 
-    getProfitableSwapsUpperBound({
+    approachMostProfitableSwapPoint({
       poolToBuy,
       poolsWithToken,
       tradeFeeMul,
@@ -205,8 +229,33 @@ const getProfitableSwapsUpperBound = ({
       poolToSell,
       stablePool,
       operations,
-      multiplier: multiplier - 0.1,
-      prevIncomeDifference: incomeDifference,
+      approachCoefficient,
+      prevIncomeDifference: incomeDifferenceObject.incomeDifference,
+      lowerStartAmountIn: lowerIncomeDifferenceObject.startAmountIn,
+      upperStartAmountIn: upperIncomeDifferenceObject.startAmountIn,
     });
   }
+};
+
+const getIncomeDifference = ({
+  poolToBuy, startAmountIn, poolsWithToken, tradeFeeMul, bot, poolToSell, stablePool,
+}) => {
+  const { buyOutput, sellOutput, equalizeOutput } = calculateOutputs({
+    poolToBuy,
+    startAmountIn,
+    poolsWithToken,
+    tradeFeeMul,
+    bot,
+    poolToSell,
+    stablePool,
+  });
+
+  return {
+    incomeDifference: BigNumber(equalizeOutput.amountOut).minus(startAmountIn)
+      .toFixed(poolToBuy.stableTokenPrecision),
+    startAmountIn,
+    buyOutputJson: buyOutput.json,
+    sellOutputJson: sellOutput.json,
+    equalizeOutputJson: equalizeOutput.json,
+  };
 };

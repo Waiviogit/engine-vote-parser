@@ -10,5 +10,5 @@ exports.pyramidalBotSchema = Joi.object({
   lowestAmountOutBound: Joi.number().min(0.01).required(),
   startIncomeDifference: Joi.number().equal(0).required(),
   tokenPrecision: Joi.number().min(1).required(),
-  startMultiplier: Joi.number().equal(1.5).required(),
+  approachCoefficient: Joi.number().equal(0.99).required(),
 });

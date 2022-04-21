@@ -8,7 +8,7 @@ const BEE_HBD_HIVE = {
   lowestAmountOutBound: 0.1,
   startIncomeDifference: 0,
   tokenPrecision: 8,
-  startMultiplier: 1.5,
+  approachCoefficient: 0.99,
 };
 
 exports.PYRAMIDAL_BOTS = [
