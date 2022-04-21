@@ -167,6 +167,7 @@ const getProfitableSwapsLowerBound = ({
       startAmountIn: BigNumber(startAmountIn)
         .dividedBy(2)
         .toFixed(poolToBuy.stableTokenPrecision),
+      prevIncomeDifference,
     });
   }
 };
