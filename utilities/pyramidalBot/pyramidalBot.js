@@ -178,36 +178,51 @@ const approachMostProfitableSwapPoint = ({
   poolToBuy, poolsWithToken, tradeFeeMul, bot, poolToSell, stablePool, operations,
   approachCoefficient, prevIncomeDifference, lowerStartAmountIn, upperStartAmountIn,
 }) => {
-  lowerStartAmountIn = BigNumber(lowerStartAmountIn)
-    .multipliedBy(approachCoefficient).toFixed(poolToBuy.stableTokenPrecision);
-  upperStartAmountIn = BigNumber(upperStartAmountIn)
-    .dividedBy(approachCoefficient).toFixed(poolToBuy.stableTokenPrecision);
+  let lowerIncomeDifferenceObject;
+  let upperIncomeDifferenceObject;
 
-  const isOutOfBalance = BigNumber(upperStartAmountIn).isGreaterThan(poolToBuy.balance)
-  || BigNumber(lowerStartAmountIn).isLessThan(bot.lowestAmountOutBound);
-  if (isOutOfBalance) return;
+  if (lowerStartAmountIn) {
+    lowerStartAmountIn = BigNumber(lowerStartAmountIn)
+      .multipliedBy(approachCoefficient).toFixed(poolToBuy.stableTokenPrecision);
 
-  const lowerIncomeDifferenceObject = getIncomeDifference({
-    poolToBuy,
-    startAmountIn: lowerStartAmountIn,
-    poolsWithToken,
-    tradeFeeMul,
-    bot,
-    poolToSell,
-    stablePool,
-  });
-  const upperIncomeDifferenceObject = getIncomeDifference({
-    poolToBuy,
-    startAmountIn: upperStartAmountIn,
-    poolsWithToken,
-    tradeFeeMul,
-    bot,
-    poolToSell,
-    stablePool,
-  });
-  const incomeDifferenceObject = BigNumber(lowerIncomeDifferenceObject.incomeDifference)
-    .isGreaterThan(upperIncomeDifferenceObject.incomeDifference)
-    ? lowerIncomeDifferenceObject : upperIncomeDifferenceObject;
+    const isOutOfRange = BigNumber(lowerStartAmountIn)
+      .isLessThan(BigNumber(operations[0].startAmountIn).div(2));
+    if (isOutOfRange) return;
+
+    lowerIncomeDifferenceObject = getIncomeDifference({
+      poolToBuy,
+      startAmountIn: lowerStartAmountIn,
+      poolsWithToken,
+      tradeFeeMul,
+      bot,
+      poolToSell,
+      stablePool,
+    });
+  }
+
+  if (upperStartAmountIn) {
+    upperStartAmountIn = BigNumber(upperStartAmountIn)
+      .dividedBy(approachCoefficient).toFixed(poolToBuy.stableTokenPrecision);
+
+    const isOutOfRange = BigNumber(upperStartAmountIn)
+      .isGreaterThan(BigNumber(operations[0].startAmountIn).times(2));
+    if (isOutOfRange) return;
+
+    upperIncomeDifferenceObject = getIncomeDifference({
+      poolToBuy,
+      startAmountIn: upperStartAmountIn,
+      poolsWithToken,
+      tradeFeeMul,
+      bot,
+      poolToSell,
+      stablePool,
+    });
+  }
+
+  const incomeDifferenceObject = pickIncomeDifferenceObject(
+    lowerIncomeDifferenceObject,
+    upperIncomeDifferenceObject,
+  );
 
   const isAmountOutGreater = BigNumber(incomeDifferenceObject.incomeDifference).isGreaterThan(operations[0].incomeDifference)
     && BigNumber(incomeDifferenceObject.incomeDifference).isGreaterThan(prevIncomeDifference);
@@ -231,8 +246,10 @@ const approachMostProfitableSwapPoint = ({
       operations,
       approachCoefficient,
       prevIncomeDifference: incomeDifferenceObject.incomeDifference,
-      lowerStartAmountIn: lowerIncomeDifferenceObject.startAmountIn,
-      upperStartAmountIn: upperIncomeDifferenceObject.startAmountIn,
+      lowerStartAmountIn: incomeDifferenceObject === lowerIncomeDifferenceObject
+        ? incomeDifferenceObject.startAmountIn : '',
+      upperStartAmountIn: incomeDifferenceObject === upperIncomeDifferenceObject
+        ? incomeDifferenceObject.startAmountIn : '',
     });
   }
 };
@@ -258,4 +275,14 @@ const getIncomeDifference = ({
     sellOutputJson: sellOutput.json,
     equalizeOutputJson: equalizeOutput.json,
   };
+};
+
+const pickIncomeDifferenceObject = (lowerIncomeDifferenceObject, upperIncomeDifferenceObject) => {
+  if (!lowerIncomeDifferenceObject) return upperIncomeDifferenceObject;
+
+  if (!upperIncomeDifferenceObject) return lowerIncomeDifferenceObject;
+
+  return BigNumber(lowerIncomeDifferenceObject.incomeDifference)
+    .isGreaterThan(upperIncomeDifferenceObject.incomeDifference)
+    ? lowerIncomeDifferenceObject : upperIncomeDifferenceObject;
 };
