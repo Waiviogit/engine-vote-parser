@@ -89,19 +89,20 @@ const handleSwaps = async (bot) => {
     startAmountIn: poolToBuy.balance,
     prevIncomeDifference: bot.startIncomeDifference,
   });
-  getProfitableSwapsUpperBound({
-    poolToBuy,
-    poolsWithToken,
-    tradeFeeMul,
-    bot,
-    poolToSell,
-    stablePool,
-    operations,
-    multiplier: bot.startMultiplier,
-    prevIncomeDifference: operations[0].incomeDifference,
-  });
 
   if (operations.length) {
+    getProfitableSwapsUpperBound({
+      poolToBuy,
+      poolsWithToken,
+      tradeFeeMul,
+      bot,
+      poolToSell,
+      stablePool,
+      operations,
+      multiplier: bot.startMultiplier,
+      prevIncomeDifference: operations[0].incomeDifference,
+    });
+
     await bookBroadcastToChain({
       bookBot: bot,
       operations: getJsonsToBroadcast({
