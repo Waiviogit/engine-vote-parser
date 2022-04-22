@@ -1,5 +1,6 @@
 const { lastBlockClient, postRefsClient, expiredPostsClient } = require('utilities/redis/redis');
 const { COMMENT_REF_TYPES } = require('constants/common');
+const moment = require('moment');
 
 exports.setLastBlockNum = async (blockNum, redisKey) => {
   if (blockNum) {
@@ -45,3 +46,7 @@ exports.srem = async (key, member, client = expiredPostsClient) => client.sremAs
 exports.zrem = async ({
   key, member, client = expiredPostsClient,
 }) => client.zremAsync(key, member);
+
+exports.zadd = async ({
+  key = 'pyramidal_bot_triggers', value, score = moment.utc().unix(), client = lastBlockClient,
+}) => client.zaddAsync(key, score, value);

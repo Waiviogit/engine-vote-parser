@@ -13,8 +13,8 @@ exports.parse = async ({ transactions }) => {
     (transaction) => transaction.contract === ENGINE_CONTRACTS.MARKETPOOLS);
   if (!marketPool.length) return;
 
-  const tokenPair = handleSwapEvents(marketPool);
-  if (tokenPair) await startPyramidalBot(tokenPair);
+  const trigger = handleSwapEvents(marketPool);
+  if (trigger) await startPyramidalBot(trigger);
 };
 
 const handleSwapEvents = (marketPool) => {
@@ -25,6 +25,11 @@ const handleSwapEvents = (marketPool) => {
 
     const imbalancedPool = _.find(_.flatten((_.map(PYRAMIDAL_BOTS, 'tokenPairs'))),
       (pair) => _.includes(pair, _.get(payload, 'tokenPair')));
-    if (imbalancedPool) return imbalancedPool;
+    if (imbalancedPool) {
+      return {
+        tokenPair: imbalancedPool,
+        transactionId: marketPoolElement.transactionId,
+      };
+    }
   }
 };
