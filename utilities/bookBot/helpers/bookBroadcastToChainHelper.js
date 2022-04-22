@@ -8,5 +8,5 @@ exports.bookBroadcastToChain = async ({ bookBot, operations }) => {
   });
   console.log(result);
 
-  return result;
+  return result.id;
 };
