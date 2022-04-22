@@ -11,10 +11,11 @@ const tokensContract = require('../hiveEngine/tokensContract');
 const { getPoolToSwap } = require('./helpers/getPoolToSwapHelper');
 const { getJsonsToBroadcast } = require('./helpers/getObjectForBroadcastingHelper');
 const { calculateOutputs } = require('./helpers/calculateOutputsHelper');
+const { zadd } = require('../redis/redisSetter');
 
-exports.startPyramidalBot = async (tokenPair) => {
+exports.startPyramidalBot = async (trigger) => {
   const pyramidalBots = _.filter(PYRAMIDAL_BOTS,
-    (bot) => _.includes(bot.tokenPairs, tokenPair));
+    (bot) => _.includes(bot.tokenPairs, trigger.tokenPair));
   if (!pyramidalBots.length) return;
 
   for (const bot of pyramidalBots) {
@@ -22,11 +23,11 @@ exports.startPyramidalBot = async (tokenPair) => {
       return console.error(`Invalid ${bot.account} bot params`);
     }
 
-    await handleSwaps(_.cloneDeep(bot));
+    await handleSwaps(_.cloneDeep(bot), trigger);
   }
 };
 
-const handleSwaps = async (bot) => {
+const handleSwaps = async (bot, trigger) => {
   const requests = await Promise.all([
     enginePool.getMarketPools({
       query: { tokenPair: { $in: bot.tokenPairs } },
@@ -105,7 +106,7 @@ const handleSwaps = async (bot) => {
       upperStartAmountIn: operations[0].startAmountIn,
     });
 
-    await bookBroadcastToChain({
+    const result = await bookBroadcastToChain({
       bookBot: bot,
       operations: getJsonsToBroadcast({
         object: operations[operations.length - 1],
@@ -113,6 +114,8 @@ const handleSwaps = async (bot) => {
         quantity: operations[operations.length - 1].incomeDifference,
       }),
     });
+    /** setting data to redis to check triggers */
+    await zadd({ value: `${trigger.tokenPair}|${trigger.transactionId}|${result}` });
   }
 };
 

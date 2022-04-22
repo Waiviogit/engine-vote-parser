@@ -1,3 +1,4 @@
+const _ = require('lodash');
 const broadcastUtil = require('../../hiveApi/broadcastUtil');
 
 exports.bookBroadcastToChain = async ({ bookBot, operations }) => {
@@ -7,4 +8,6 @@ exports.bookBroadcastToChain = async ({ bookBot, operations }) => {
     key: bookBot.key,
   });
   console.log(result);
+
+  return _.get(result, 'id');
 };
