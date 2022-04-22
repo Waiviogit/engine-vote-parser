@@ -17,7 +17,7 @@ exports.calculateOutputs = ({
   });
   const sellOutput = poolSwapHelper.getSwapOutput({
     symbol: bot.tokenSymbol,
-    amountIn: BigNumber(_.get(buyOutput, 'amountOut')).toFixed(bot.tokenPrecision),
+    amountIn: BigNumber(_.get(buyOutput, 'minAmountOut')).toFixed(bot.tokenPrecision),
     pool: _.find(poolsWithToken, (pool) => pool.tokenPair.includes(poolToSell.tokenPair)),
     slippage: SLIPPAGE,
     from: true,
@@ -26,7 +26,7 @@ exports.calculateOutputs = ({
   });
   const equalizeOutput = poolSwapHelper.getSwapOutput({
     symbol: poolToSell.stableTokenSymbol,
-    amountIn: BigNumber(_.get(sellOutput, 'amountOut')).toFixed(poolToSell.stableTokenPrecision),
+    amountIn: BigNumber(_.get(sellOutput, 'minAmountOut')).toFixed(poolToSell.stableTokenPrecision),
     pool: stablePool,
     slippage: SLIPPAGE,
     from: true,
