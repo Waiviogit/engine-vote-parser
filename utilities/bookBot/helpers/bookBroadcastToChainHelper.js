@@ -7,4 +7,6 @@ exports.bookBroadcastToChain = async ({ bookBot, operations }) => {
     key: bookBot.key,
   });
   console.log(result);
+
+  return result;
 };

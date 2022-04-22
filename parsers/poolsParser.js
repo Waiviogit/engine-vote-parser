@@ -5,7 +5,6 @@ const {
 const jsonHelper = require('../utilities/helpers/jsonHelper');
 const { PYRAMIDAL_BOTS } = require('../constants/pyramidalBot');
 const { startPyramidalBot } = require('../utilities/pyramidalBot/pyramidalBot');
-const { zadd } = require('../utilities/redis/redisSetter');
 
 exports.parse = async ({ transactions }) => {
   if (process.env.NODE_ENV !== 'staging') return;
@@ -15,18 +14,13 @@ exports.parse = async ({ transactions }) => {
   if (!marketPool.length) return;
 
   const trigger = handleSwapEvents(marketPool);
-  if (trigger) {
-    await startPyramidalBot(trigger.tokenPair);
-    /** setting data to redis to check triggers */
-    await zadd({ value: `${trigger.tokenPair}|${trigger.transactionId}` });
-  }
+  if (trigger) await startPyramidalBot(trigger);
 };
 
 const handleSwapEvents = (marketPool) => {
   for (const marketPoolElement of marketPool) {
     const payload = jsonHelper.parseJson(_.get(marketPoolElement, 'payload'));
     const logs = jsonHelper.parseJson(_.get(marketPoolElement, 'logs'));
-    console.log('payload', payload);
     if (_.isEmpty(logs) || _.has(logs, 'errors')) continue;
 
     const imbalancedPool = _.find(_.flatten((_.map(PYRAMIDAL_BOTS, 'tokenPairs'))),
