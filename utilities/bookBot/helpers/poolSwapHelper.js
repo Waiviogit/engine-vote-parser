@@ -167,7 +167,9 @@ exports.getSwapOutput = ({
       .toFixed();
   }
 
-  const minAmountOutToFixed = minAmountOut.minus(fee).toFixed(precision, BigNumber.ROUND_DOWN);
+  const priceImpactFeeForMinAmount = BigNumber(priceImpact).div(100).times(fee);
+  const minAmountOutToFixed = minAmountOut.minus(fee).minus(priceImpactFeeForMinAmount)
+    .toFixed(precision, BigNumber.ROUND_DOWN);
 
   const json = operationForJson({
     minAmountOut: minAmountOutToFixed,
