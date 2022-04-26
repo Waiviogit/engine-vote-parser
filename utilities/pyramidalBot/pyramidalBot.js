@@ -313,18 +313,11 @@ const updateDataInRedis = async ({
   /** save hashes with pools data  and set ttl to delete old hashes */
   for (let count = 0; count < 3; count++) {
     let data;
-    let key;
+    const key = `${count}:${result}-${count}`;
 
-    if (count === 0) {
-      key = `${count}:${result}-${count}`;
-      data = getObjectForRedis(poolToBuy, timestamp);
-    } else if (count === 1) {
-      key = `${count}:${result}-${count}`;
-      data = getObjectForRedis(poolToSell, timestamp);
-    } else {
-      key = `${count}:${result}-${count}`;
-      data = getObjectForRedis(stablePool, timestamp);
-    }
+    if (count === 0) data = getObjectForRedis(poolToBuy, timestamp);
+    else if (count === 1) data = getObjectForRedis(poolToSell, timestamp);
+    else data = getObjectForRedis(stablePool, timestamp);
 
     await hmsetAsync(key, data);
     await expire({ key, seconds: TWO_DAYS_IN_SECONDS });
