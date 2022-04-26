@@ -1,7 +1,9 @@
 const _ = require('lodash');
 const BigNumber = require('bignumber.js');
+const moment = require('moment');
 const {
   PYRAMIDAL_BOTS,
+  TWO_DAYS_IN_SECONDS,
 } = require('../../constants/pyramidalBot');
 const { validatePyramidalBot } = require('./helpers/validatePyramidalBotHelper');
 const enginePool = require('../hiveEngine/marketPools');
@@ -11,7 +13,13 @@ const tokensContract = require('../hiveEngine/tokensContract');
 const { getPoolToSwap } = require('./helpers/getPoolToSwapHelper');
 const { getJsonsToBroadcast } = require('./helpers/getObjectForBroadcastingHelper');
 const { calculateOutputs } = require('./helpers/calculateOutputsHelper');
-const { zadd } = require('../redis/redisSetter');
+const {
+  zadd,
+  zremrangebyscore,
+  hmsetAsync,
+  expire,
+} = require('../redis/redisSetter');
+const { getObjectForRedis } = require('./helpers/getObjectForRedisHelper');
 
 exports.startPyramidalBot = async (trigger) => {
   const pyramidalBots = _.filter(PYRAMIDAL_BOTS,
@@ -114,8 +122,10 @@ const handleSwaps = async (bot, trigger) => {
         quantity: operations[operations.length - 1].incomeDifference,
       }),
     });
-    /** setting data to redis to check triggers */
-    await zadd({ value: `${trigger.tokenPair}|${trigger.transactionId}|${result}` });
+
+    await updateDataInRedis({
+      trigger, result, poolToBuy, poolToSell, stablePool,
+    });
   }
 };
 
@@ -288,4 +298,35 @@ const pickIncomeDifferenceObject = (lowerIncomeDifferenceObject, upperIncomeDiff
   return BigNumber(lowerIncomeDifferenceObject.incomeDifference)
     .isGreaterThan(upperIncomeDifferenceObject.incomeDifference)
     ? lowerIncomeDifferenceObject : upperIncomeDifferenceObject;
+};
+
+const updateDataInRedis = async ({
+  trigger, result, poolToBuy, poolToSell, stablePool,
+}) => {
+  /** clear sorted set from members older than a day */
+  await zremrangebyscore({ min: 1, max: moment.utc().subtract(1, 'day').unix() });
+
+  /** setting data to redis to check triggers */
+  await zadd({ value: `${trigger.tokenPair}|${trigger.transactionId}|${result}` });
+
+  const timestamp = moment.utc().unix();
+  /** save hashes with pools data  and set ttl to delete old hashes */
+  for (let count = 0; count < 3; count++) {
+    let data;
+    let key;
+
+    if (count === 0) {
+      key = `${count}:${result}-${count}`;
+      data = getObjectForRedis(poolToBuy, timestamp);
+    } else if (count === 1) {
+      key = `${count}:${result}-${count}`;
+      data = getObjectForRedis(poolToSell, timestamp);
+    } else {
+      key = `${count}:${result}-${count}`;
+      data = getObjectForRedis(stablePool, timestamp);
+    }
+
+    await hmsetAsync(key, data);
+    await expire({ key, seconds: TWO_DAYS_IN_SECONDS });
+  }
 };
