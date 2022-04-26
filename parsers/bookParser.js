@@ -11,7 +11,7 @@ const { MARKET_CONTRACT } = require('../constants/hiveEngine');
 const blockchain = require('../utilities/hiveEngine/blockchain');
 
 exports.parse = async ({ transactions }) => {
-  // if (process.env.NODE_ENV !== 'staging') return;
+  if (process.env.NODE_ENV !== 'staging') return;
   const { market, marketPool } = _.reduce(transactions, (acc, transaction) => {
     const marketCondition = transaction.contract === ENGINE_CONTRACTS.MARKET
     && _.includes(MARKET_CONTRACT_BOOKBOT_EVENT, transaction.action);
