@@ -316,8 +316,8 @@ const updateDataInRedis = async ({
     const key = `${count}:${result}-${count}`;
 
     if (count === 0) data = getObjectForRedis(poolToBuy, timestamp);
-    else if (count === 1) data = getObjectForRedis(poolToSell, timestamp);
-    else data = getObjectForRedis(stablePool, timestamp);
+    if (count === 1) data = getObjectForRedis(poolToSell, timestamp);
+    if (count === 2) data = getObjectForRedis(stablePool, timestamp);
 
     await hmsetAsync(key, data);
     await expire({ key, seconds: TWO_DAYS_IN_SECONDS });
