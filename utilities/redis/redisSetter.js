@@ -50,3 +50,11 @@ exports.zrem = async ({
 exports.zadd = async ({
   key = 'pyramidal_bot_triggers', value, score = moment.utc().unix(), client = lastBlockClient,
 }) => client.zaddAsync(key, score, value);
+
+exports.zremrangebyscore = async ({
+  key = 'pyramidal_bot_triggers', min, max, client = lastBlockClient,
+}) => client.zremrangebyscoreAsync(key, min, max);
+
+exports.expire = async ({
+  key, seconds, client = lastBlockClient,
+}) => client.expireAsync(key, seconds);
