@@ -7,9 +7,11 @@ const { BOOK_BOTS } = require('constants/bookBot');
 const bookBot = require('utilities/bookBot/bookBot');
 const { tokensContract } = require('../utilities/hiveEngine');
 const { getTokenPrecisionQuantity } = require('../utilities/bookBot/helpers/getTokenPrecisionQuantityHelper');
+const { MARKET_CONTRACT } = require('../constants/hiveEngine');
+const blockchain = require('../utilities/hiveEngine/blockchain');
 
 exports.parse = async ({ transactions }) => {
-  if (process.env.NODE_ENV !== 'staging') return;
+  // if (process.env.NODE_ENV !== 'staging') return;
   const { market, marketPool } = _.reduce(transactions, (acc, transaction) => {
     const marketCondition = transaction.contract === ENGINE_CONTRACTS.MARKET
     && _.includes(MARKET_CONTRACT_BOOKBOT_EVENT, transaction.action);
@@ -121,6 +123,17 @@ const hasMarketEvents = (logs) => _.some(
 );
 
 const getEvents = async (logs) => {
+  const expired = _.find(_.get(logs, 'events', []), (el) => el.event === MARKET_CONTRACT.ORDER_EXPIRED);
+
+  const expiredIndex = _.get(logs, 'events', []).indexOf(expired);
+  if (expiredIndex > -1) {
+    const expiredTransaction = await blockchain.getTransactionInfo({ params: { txid: _.get(expired, 'data.txId') } });
+    const closedTransaction = _.find(logs.events, (el) => (
+      _.get(el, 'data.from') === 'market' && _.get(el, 'data.to') === _.get(expiredTransaction, 'sender')));
+    const closedIndex = logs.events.indexOf(closedTransaction);
+    if (closedIndex > -1) logs.events.splice(closedIndex, 1);
+  }
+
   const events = _.filter(_.get(logs, 'events', []), (el) => el.event === TOKENS_CONTRACT.TRANSFER_FROM_CONTRACT);
   if (events.length % 2 === 0) return events;
 
