@@ -125,12 +125,12 @@ const hasMarketEvents = (logs) => _.some(
 const getEvents = async (logs) => {
   const expired = _.find(_.get(logs, 'events', []), (el) => el.event === MARKET_CONTRACT.ORDER_EXPIRED);
 
-  const expiredIndex = _.get(logs, 'events', []).indexOf(expired);
+  const expiredIndex = _.indexOf(_.get(logs, 'events', []), expired);
   if (expiredIndex > -1) {
     const expiredTransaction = await blockchain.getTransactionInfo({ params: { txid: _.get(expired, 'data.txId') } });
     const closedTransaction = _.find(logs.events, (el) => (
       _.get(el, 'data.from') === 'market' && _.get(el, 'data.to') === _.get(expiredTransaction, 'sender')));
-    const closedIndex = logs.events.indexOf(closedTransaction);
+    const closedIndex = _.indexOf(logs.events, closedTransaction);
     if (closedIndex > -1) logs.events.splice(closedIndex, 1);
   }
 
