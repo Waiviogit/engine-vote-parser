@@ -43,4 +43,6 @@ exports.PYRAMIDAL_BOTS = [
   BUSD_HBD_HIVE,
 ];
 
-exports.SLIPPAGE = 0.0002;
+exports.SLIPPAGE = 0.0003;
+
+exports.TWO_DAYS_IN_SECONDS = 172800;
