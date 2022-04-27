@@ -43,7 +43,7 @@ const handleSwaps = async (bot, trigger) => {
       query: { tokenPair: { $in: bot.tokenPairs } },
       hostUrl: HIVE_ENGINE_NODES[1],
     }),
-    enginePool.getMarketPoolsParams({ hostUrl: HIVE_ENGINE_NODES[1] }),
+    enginePool.getMarketPoolsParams(),
     tokensContract.getTokensParams({
       query: {
         symbol: {
