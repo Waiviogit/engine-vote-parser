@@ -9,11 +9,10 @@ exports.getMarketPools = async ({ query, hostUrl }) => engineProxy({
   hostUrl,
 });
 
-exports.getMarketPoolsParams = async ({ query = {}, hostUrl }) => engineProxy({
+exports.getMarketPoolsParams = async ({ query } = { query: {} }) => engineProxy({
   params: {
     contract: 'marketpools',
     table: 'params',
     query,
   },
-  hostUrl,
 });
