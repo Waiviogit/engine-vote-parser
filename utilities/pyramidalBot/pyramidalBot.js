@@ -87,6 +87,7 @@ const handleSwaps = async (bot, trigger) => {
 
   const operations = [];
 
+  console.time('getFirstProfitableSwapPoint');
   getFirstProfitableSwapPoint({
     poolToBuy,
     poolsWithToken,
@@ -98,8 +99,10 @@ const handleSwaps = async (bot, trigger) => {
     startAmountIn: poolToBuy.balance,
     prevIncomeDifference: bot.startIncomeDifference,
   });
+  console.timeEnd('getFirstProfitableSwapPoint');
 
   if (operations.length) {
+    console.time('approachMostProfitableSwapPoint');
     approachMostProfitableSwapPoint({
       poolToBuy,
       poolsWithToken,
@@ -113,6 +116,7 @@ const handleSwaps = async (bot, trigger) => {
       lowerStartAmountIn: operations[0].startAmountIn,
       upperStartAmountIn: operations[0].startAmountIn,
     });
+    console.timeEnd('approachMostProfitableSwapPoint');
 
     const result = await bookBroadcastToChain({
       bookBot: bot,
