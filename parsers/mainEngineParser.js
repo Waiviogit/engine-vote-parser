@@ -5,10 +5,9 @@ const swapHistoryParser = require('./swapHistoryParser');
 const tokensParser = require('./tokensParser');
 const hiveEngineVoteParser = require('./hiveEngineVoteParser');
 const bookParser = require('./bookParser');
-const poolsParser = require('./poolsParser');
 
 exports.engineSwitcher = async (transactions, blockNumber, timestamps) => {
-  await poolsParser.parse({ transactions });
+  //await poolsParser.parse({ transactions });
 
   for (const transaction of transactions) {
     await parseTransaction({
