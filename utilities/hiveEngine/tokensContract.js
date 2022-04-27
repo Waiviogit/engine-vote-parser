@@ -13,15 +13,16 @@ const { engineProxy } = require('utilities/hiveEngine/engineQuery');
  * pendingUndelegations = quantity of tokens being undelegated
  */
 
-exports.getTokenBalances = async ({ query }) => engineProxy({
+exports.getTokenBalances = async ({ query, hostUrl }) => engineProxy({
   params: {
     contract: 'tokens',
     table: 'balances',
     query,
   },
+  hostUrl,
 });
 
-exports.getTokensParams = async ({ query }) => engineProxy({
+exports.getTokensParams = async ({ query, hostUrl }) => engineProxy({
   params: {
     contract: 'tokens',
     table: 'tokens',
@@ -29,4 +30,5 @@ exports.getTokensParams = async ({ query }) => engineProxy({
     offset: 0,
     limit: 1000,
   },
+  hostUrl,
 });

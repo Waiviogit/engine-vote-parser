@@ -1,17 +1,19 @@
 const { engineProxy } = require('utilities/hiveEngine/engineQuery');
 
-exports.getMarketPools = async ({ query }) => engineProxy({
+exports.getMarketPools = async ({ query, hostUrl }) => engineProxy({
   params: {
     contract: 'marketpools',
     table: 'pools',
     query,
   },
+  hostUrl,
 });
 
-exports.getMarketPoolsParams = async ({ query } = { query: {} }) => engineProxy({
+exports.getMarketPoolsParams = async ({ query = {}, hostUrl }) => engineProxy({
   params: {
     contract: 'marketpools',
     table: 'params',
     query,
   },
+  hostUrl,
 });
