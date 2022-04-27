@@ -76,13 +76,14 @@ const notificationsApi = {
 };
 
 // valid urls of HIVE nodes for getting blocks with transactions.
+// Average speed for requests from Europe.
 const COMMON_RPC_NODES = [
-  'https://anyx.io',
-  'https://api.hive.blog',
-  'https://api.openhive.network',
-  'https://rpc.ausbit.dev',
-  'https://rpc.ecency.com',
-  'https://hive-api.arcange.eu',
+  'https://api.openhive.network', // 30 - 70 = 50ms
+  'https://rpc.ecency.com', // 30 - 80 = 55ms
+  'https://hive-api.arcange.eu', // 40 - 100 = 70ms
+  'https://rpc.ausbit.dev', // 90 - 180 = 135ms
+  'https://anyx.io', // 270 - 500 = 385ms
+  'https://api.hive.blog', // 270 - 600 = 435ms
 ];
 
 const HIVED_NODES = [

@@ -20,6 +20,7 @@ const {
   expire,
 } = require('../redis/redisSetter');
 const { getObjectForRedis } = require('./helpers/getObjectForRedisHelper');
+const { HIVE_ENGINE_NODES } = require('../../constants/appData');
 
 exports.startPyramidalBot = async (trigger) => {
   const pyramidalBots = _.filter(PYRAMIDAL_BOTS,
@@ -36,11 +37,13 @@ exports.startPyramidalBot = async (trigger) => {
 };
 
 const handleSwaps = async (bot, trigger) => {
+  console.time('hive engine requests');
   const requests = await Promise.all([
     enginePool.getMarketPools({
       query: { tokenPair: { $in: bot.tokenPairs } },
+      hostUrl: HIVE_ENGINE_NODES[1],
     }),
-    enginePool.getMarketPoolsParams(),
+    enginePool.getMarketPoolsParams({ hostUrl: HIVE_ENGINE_NODES[1] }),
     tokensContract.getTokensParams({
       query: {
         symbol: {
@@ -48,11 +51,14 @@ const handleSwaps = async (bot, trigger) => {
             [bot.tokenSymbol, ...bot.stableTokens],
         },
       },
+      hostUrl: HIVE_ENGINE_NODES[1],
     }),
     tokensContract.getTokenBalances({
       query: { symbol: { $in: bot.stableTokens }, account: bot.account },
+      hostUrl: HIVE_ENGINE_NODES[1],
     }),
   ]);
+  console.timeEnd('hive engine requests');
   const [pools, params, tokens, balances] = requests;
   const isRequestError = _.has(pools, 'error') || _.has(params, 'error')
     || _.has(tokens, 'error') || _.has(balances, 'error');
@@ -118,6 +124,7 @@ const handleSwaps = async (bot, trigger) => {
     });
     console.timeEnd('approachMostProfitableSwapPoint');
 
+    console.time('broadcast');
     const result = await bookBroadcastToChain({
       bookBot: bot,
       operations: getJsonsToBroadcast({
@@ -126,6 +133,7 @@ const handleSwaps = async (bot, trigger) => {
         quantity: operations[operations.length - 1].incomeDifference,
       }),
     });
+    console.timeEnd('broadcast');
 
     await updateDataInRedis({
       trigger, result, poolToBuy, poolToSell, stablePool,
