@@ -12,6 +12,8 @@ const GuestWalletSchema = new Schema({
   quantity: { type: mongoose.Types.Decimal128 },
   symbol: { type: String },
   authorperm: { type: String },
+  from: { type: String },
+  to: { type: String },
 }, { versionKey: false });
 
 GuestWalletSchema.index({ account: 1 });

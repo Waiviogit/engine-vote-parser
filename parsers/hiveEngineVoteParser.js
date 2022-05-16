@@ -108,7 +108,7 @@ const checkGuestPostReward = async (rewards) => {
       refHiveBlockNumber: record.refHiveBlockNumber,
       blockNumber: record.blockNumber,
       account: post.author,
-      transactionId: record.author,
+      transactionId: record.transactionId,
       operation: GUEST_WALLET_TYPE.AUTHOR_REWARD,
       timestamp: record.timestamp,
       quantity: record.quantity,
