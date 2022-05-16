@@ -79,6 +79,10 @@ exports.TOKENS_CONTRACT = {
   ISSUE_TO_CONTRACT: 'issueToContract',
 };
 
+exports.COMMENTS_CONTRACT = {
+  BENEFICIARY_REWARD: 'comments_beneficiaryReward',
+};
+
 exports.MARKET_CONTRACT_BOOKBOT_EVENT = [
   this.MARKET_CONTRACT.MARKET_SELL,
   this.MARKET_CONTRACT.SELL,

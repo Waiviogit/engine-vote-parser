@@ -23,5 +23,6 @@ module.exports = {
     EngineAccountHistory: require('./schemas/EngineAccountHistorySchema'),
     UserWobjects: require('./schemas/UserWobjectsSchema'),
     CommentRef: require('./schemas/CommentRefSchema'),
+    GuestWallet: require('./schemas/GuestWalletSchema'),
   },
 };

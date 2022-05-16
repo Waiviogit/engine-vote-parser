@@ -92,3 +92,7 @@ exports.HIVE_ENGINE_TOKEN_TAGS = {
 };
 
 exports.VOTE_FIELDS = ['voter', 'percent', 'rshares', 'rsharesWAIV'];
+
+exports.GUEST_WALLET_TYPE = Object.freeze({
+  AUTHOR_REWARD: 'comments_authorReward',
+});

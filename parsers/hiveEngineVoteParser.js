@@ -1,10 +1,10 @@
 const {
-  Post, Wobj, User, UserWobjects,
+  Post, Wobj, User, UserWobjects, GuestWallet,
 } = require('models');
 const { commentRefGetter } = require('utilities/commentRefService');
 const { REDIS_KEYS } = require('constants/parsersData');
 const {
-  ENGINE_TOKENS, CACHE_POOL_KEY, ENGINE_EVENTS, POST_REWARD_EVENTS,
+  ENGINE_TOKENS, CACHE_POOL_KEY, ENGINE_EVENTS, POST_REWARD_EVENTS, COMMENTS_CONTRACT,
 } = require('constants/hiveEngine');
 const EngineAccountHistoryModel = require('models/EngineAccountHistoryModel');
 const moment = require('moment');
@@ -17,6 +17,7 @@ const BigNumber = require('bignumber.js');
 const userValidator = require('validator/userValidator');
 const calculateEngineExpertise = require('utilities/helpers/calculateEngineExpertise');
 const appHelper = require('utilities/helpers/appHelper');
+const { GUEST_WALLET_TYPE } = require('constants/common');
 
 exports.parse = async ({ transactions, blockNumber, timestamps }) => {
   const { votes, rewards } = this.formatVotesAndRewards({ transactions, blockNumber, timestamps });
@@ -27,6 +28,8 @@ exports.parse = async ({ transactions, blockNumber, timestamps }) => {
 
 exports.processRewards = async (rewards) => {
   if (_.isEmpty(rewards)) return;
+  await checkGuestPostReward(rewards);
+
   await EngineAccountHistoryModel.insertMany(rewards);
   const rewardsOnPosts = aggregateRewardsOnPosts(rewards);
   const { posts = [] } = await Post.getManyPosts(getConditionFromRewards(rewardsOnPosts));
@@ -87,6 +90,33 @@ exports.formatVotesAndRewards = ({ transactions, blockNumber, timestamps }) => _
     return acc;
   }, { votes: [], rewards: [] },
 );
+
+const checkGuestPostReward = async (rewards) => {
+  const beneficiaryRewards = _.filter(
+    rewards,
+    (reward) => reward.operation === COMMENTS_CONTRACT.BENEFICIARY_REWARD
+        && reward.account === process.env.GUEST_BENEFICIARY_ACC,
+  );
+  for (const record of beneficiaryRewards) {
+    const { post } = await Post.findOne({
+      root_author: record.authorperm.split('/')[0].substring(1),
+      permlink: record.authorperm.split('/')[1],
+    });
+    if (!post) continue;
+
+    await GuestWallet.create({
+      refHiveBlockNumber: record.refHiveBlockNumber,
+      blockNumber: record.blockNumber,
+      account: post.author,
+      transactionId: record.author,
+      operation: GUEST_WALLET_TYPE.AUTHOR_REWARD,
+      timestamp: record.timestamp,
+      quantity: record.quantity,
+      symbol: record.symbol,
+      authorperm: `@${post.author}/${post.permlink}`,
+    });
+  }
+};
 
 const aggregateRewardsOnPosts = (rewards) => _.reduce(rewards, (acc, reward) => {
   if (!_.has(acc, `${reward.authorperm}`)) {

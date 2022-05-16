@@ -6,4 +6,5 @@ module.exports = {
   EngineAccountHistory: require('./EngineAccountHistoryModel'),
   UserWobjects: require('./UserWobjectsModel'),
   CommentRef: require('./CommentRef'),
+  GuestWallet: require('./GuestWalletModel'),
 };

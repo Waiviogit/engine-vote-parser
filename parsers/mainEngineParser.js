@@ -38,5 +38,4 @@ const parseTransaction = ({
   return (handler[contract] || handler.default)();
 };
 
-const filterVotesCB = (vote) => vote.contract === ENGINE_CONTRACTS.COMMENTS
-  && vote.action === ENGINE_CONTRACT_ACTIONS.VOTE;
+const filterVotesCB = (vote) => vote.contract === ENGINE_CONTRACTS.COMMENTS;
