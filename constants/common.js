@@ -105,6 +105,7 @@ exports.GUEST_AVAILABLE_TOKEN = Object.freeze({
 exports.GUEST_TRANSFER_TYPE = Object.freeze({
   TO_GUEST: 'transferToGuest',
   FROM_GUEST: 'transferFromGuest',
+  GUEST_CAMPAIGN_REWARD: 'guestCampaignReward',
 });
 
 exports.SPECIAL_BENEFICIARIES_ARR = process.env.SPECIAL_BENEFICIARIES && process.env.SPECIAL_BENEFICIARIES.split(',');

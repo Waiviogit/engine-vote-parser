@@ -99,9 +99,11 @@ const parseTransfer = async (transaction, blockNumber, timestamp) => {
   switch (memoJson.id) {
     case GUEST_TRANSFER_TYPE.TO_GUEST:
     case GUEST_TRANSFER_TYPE.FROM_GUEST:
+    case GUEST_TRANSFER_TYPE.GUEST_CAMPAIGN_REWARD:
       await parseGuestTransfer({
-        transaction, payload, memo: memoJson, blockNumber, timestamp
+        transaction, payload, memo: memoJson, blockNumber, timestamp,
       });
+      break;
   }
 };
 
@@ -109,15 +111,15 @@ const parseGuestTransfer = async ({
   transaction, payload, memo, blockNumber, timestamp,
 }) => {
   if (!_.includes([transaction.sender, payload.to], process.env.GUEST_HOT_ACC)) return;
-  const to = memo.id === GUEST_TRANSFER_TYPE.TO_GUEST
-    ? memo.to
-    : payload.to;
+  const to = memo.id === GUEST_TRANSFER_TYPE.FROM_GUEST
+    ? payload.to
+    : memo.to;
 
   const from = memo.id === GUEST_TRANSFER_TYPE.FROM_GUEST
     ? memo.from
     : transaction.sender;
 
-  const account = GUEST_TRANSFER_TYPE.TO_GUEST ? to : from;
+  const account = GUEST_TRANSFER_TYPE.FROM_GUEST ? from : to;
 
   await GuestWallet.create({
     refHiveBlockNumber: transaction.refHiveBlockNumber,
