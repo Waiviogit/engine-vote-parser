@@ -17,7 +17,7 @@ const BigNumber = require('bignumber.js');
 const userValidator = require('validator/userValidator');
 const calculateEngineExpertise = require('utilities/helpers/calculateEngineExpertise');
 const appHelper = require('utilities/helpers/appHelper');
-const { GUEST_WALLET_TYPE } = require('constants/common');
+const { GUEST_WALLET_TYPE, GUEST_AVAILABLE_TOKEN } = require('constants/common');
 
 exports.parse = async ({ transactions, blockNumber, timestamps }) => {
   const { votes, rewards } = this.formatVotesAndRewards({ transactions, blockNumber, timestamps });
@@ -97,7 +97,10 @@ const checkGuestPostReward = async (rewards) => {
     (reward) => reward.operation === COMMENTS_CONTRACT.BENEFICIARY_REWARD
         && reward.account === process.env.GUEST_BENEFICIARY_ACC,
   );
+
   for (const record of beneficiaryRewards) {
+    if (!_.includes(Object.values(GUEST_AVAILABLE_TOKEN), record.symbol)) continue;
+
     const { post } = await Post.findOne({
       root_author: record.authorperm.split('/')[0].substring(1),
       permlink: record.authorperm.split('/')[1],
