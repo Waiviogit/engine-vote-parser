@@ -18,7 +18,7 @@ const GuestWalletSchema = new Schema({
 
 GuestWalletSchema.index({ account: 1 });
 GuestWalletSchema.index({ timestamp: -1 });
-GuestWalletSchema.index({ symbol: 1, symbolOut: 1, symbolIn: 1 });
+GuestWalletSchema.index({ symbol: 1 });
 GuestWalletSchema.index({ operation: 1, transactionId: 1, account: 1 }, { unique: true });
 
 const EngineAccountHistoryModel = mongoose.model('guest_wallet', GuestWalletSchema);
