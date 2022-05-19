@@ -92,3 +92,20 @@ exports.HIVE_ENGINE_TOKEN_TAGS = {
 };
 
 exports.VOTE_FIELDS = ['voter', 'percent', 'rshares', 'rsharesWAIV'];
+
+exports.GUEST_WALLET_TYPE = Object.freeze({
+  AUTHOR_REWARD: 'comments_authorReward',
+  TRANSFER: 'tokens_transfer',
+});
+
+exports.GUEST_AVAILABLE_TOKEN = Object.freeze({
+  WAIV: 'WAIV',
+});
+
+exports.GUEST_TRANSFER_TYPE = Object.freeze({
+  TO_GUEST: 'transferToGuest',
+  FROM_GUEST: 'transferFromGuest',
+  GUEST_CAMPAIGN_REWARD: 'guestCampaignReward',
+});
+
+exports.SPECIAL_BENEFICIARIES_ARR = process.env.SPECIAL_BENEFICIARIES && process.env.SPECIAL_BENEFICIARIES.split(',');

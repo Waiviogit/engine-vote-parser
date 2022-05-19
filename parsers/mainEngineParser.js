@@ -32,11 +32,10 @@ const parseTransaction = ({
   const handler = {
     [ENGINE_CONTRACTS.AIRDROPS]: async () => airdropHistoryParser.parse(transaction, blockNumber, timestamps),
     [ENGINE_CONTRACTS.MARKETPOOLS]: async () => swapHistoryParser.parse(transaction, blockNumber, timestamps),
-    [ENGINE_CONTRACTS.TOKENS]: async () => tokensParser.parse(transaction, blockNumber),
+    [ENGINE_CONTRACTS.TOKENS]: async () => tokensParser.parse(transaction, blockNumber, timestamps),
     default: () => '',
   };
   return (handler[contract] || handler.default)();
 };
 
-const filterVotesCB = (vote) => vote.contract === ENGINE_CONTRACTS.COMMENTS
-  && vote.action === ENGINE_CONTRACT_ACTIONS.VOTE;
+const filterVotesCB = (vote) => vote.contract === ENGINE_CONTRACTS.COMMENTS;
