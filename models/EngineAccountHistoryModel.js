@@ -1,4 +1,3 @@
-const _ = require('lodash');
 const EngineAccountHistoryModel = require('database').models.EngineAccountHistory;
 
 const create = async (data) => {

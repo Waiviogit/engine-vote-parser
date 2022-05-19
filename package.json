@@ -13,7 +13,8 @@
     "setUserWobjExpertise": "NODE_PATH=. node utilities/tasks/updateUserWobjExpertise/run.js",
     "parseEngineVotes": "NODE_PATH=. node ./utilities/tasks/parseVotes/run.js",
     "fillSwapHistory": "NODE_PATH=. node ./utilities/tasks/setAccountHistory/fillAccountsSwapHistory.js",
-    "getTradingVolume": "node ./utilities/tasks/setAccountHistory/getTradingVolume.js"
+    "getTradingVolume": "node ./utilities/tasks/setAccountHistory/getTradingVolume.js",
+    "addGuestAuthorRewards": "NODE_PATH=. node ./utilities/tasks/guestWallet/addAuthorRewards.js"
   },
   "keywords": [],
   "author": "",
