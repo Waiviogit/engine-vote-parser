@@ -54,24 +54,32 @@ const notificationsApi = {
     BASE_URL: '/notifications-api',
     SET_NOTIFICATION: '/set',
     STATUS: ['relisted', 'nsfw', 'unavailable'],
+    WS: 'wss://www.waivio.com',
+    WS_SET_NOTIFICATION: 'setNotification',
   },
   staging: {
     HOST: 'https://waiviodev.com',
     BASE_URL: '/notifications-api',
     SET_NOTIFICATION: '/set',
     STATUS: ['relisted', 'nsfw', 'unavailable'],
+    WS: 'wss://waiviodev.com',
+    WS_SET_NOTIFICATION: 'setNotification',
   },
   development: {
     HOST: 'http://localhost:4000',
     BASE_URL: '/notifications-api',
     SET_NOTIFICATION: '/set',
     STATUS: ['relisted', 'nsfw', 'unavailable'],
+    WS: 'ws://localhost:4000',
+    WS_SET_NOTIFICATION: 'setNotification',
   },
   test: {
     HOST: 'http://localhost:4000',
     BASE_URL: '/notifications-api',
     SET_NOTIFICATION: '/set',
     STATUS: ['relisted', 'nsfw', 'unavailable'],
+    WS: 'ws://localhost:4000',
+    WS_SET_NOTIFICATION: 'setNotification',
   },
 };
 
