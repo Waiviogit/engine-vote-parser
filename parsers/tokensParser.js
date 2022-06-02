@@ -6,7 +6,7 @@ const {
   GuestWallet,
 } = require('models');
 const moment = require('moment');
-const { sendNotification } = require('../utilities/notificationsApi/notificationsUtil');
+const { sendNotification, sendSocketNotification } = require('../utilities/notificationsApi/notificationsUtil');
 const { GUEST_WALLET_TYPE } = require('../constants/common');
 
 const getRequestData = (transaction, blockNumber) => {
@@ -144,5 +144,5 @@ exports.parse = async (transaction, blockNumber, timestamp) => {
 
   const notificationsData = getRequestData(transaction, blockNumber);
   if (_.isEmpty(notificationsData)) return;
-  sendNotification(notificationsData);
+  sendSocketNotification(notificationsData);
 };
