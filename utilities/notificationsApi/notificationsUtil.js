@@ -1,5 +1,8 @@
-const { HOST, BASE_URL, SET_NOTIFICATION } = require('constants/appData').notificationsApi;
+const {
+  HOST, BASE_URL, SET_NOTIFICATION, WS_SET_NOTIFICATION,
+} = require('constants/appData').notificationsApi;
 const axios = require('axios');
+const { socketClient } = require('../socketClient/socketClient');
 
 const URL = HOST + BASE_URL + SET_NOTIFICATION;
 
@@ -11,4 +14,10 @@ const sendNotification = async (reqData) => {
     console.log(error.message);
   }
 };
-module.exports = { sendNotification };
+
+const sendSocketNotification = (operation) => {
+  const message = JSON.stringify({ method: WS_SET_NOTIFICATION, payload: operation });
+  socketClient.sendMessage(message);
+};
+
+module.exports = { sendNotification, sendSocketNotification };
