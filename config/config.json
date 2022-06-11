@@ -12,6 +12,11 @@
       "expiredPosts": 8,
       "tagCategories": 9
     },
+    "currenciesDB": {
+      "host": "localhost",
+      "port": 27017,
+      "database": "Currencies"
+    },
     "app": "waivio",
     "appHost": "waivio.com"
   },
@@ -27,6 +32,11 @@
       "actionsQueue": 3,
       "expiredPosts": 8,
       "tagCategories": 9
+    },
+    "currenciesDB": {
+      "host": "localhost",
+      "port": 27017,
+      "database": "Currencies"
     },
     "app": "waiviodev",
     "appHost": "waiviodev.com"
@@ -44,6 +54,11 @@
       "expiredPosts": 8,
       "tagCategories": 9
     },
+    "currenciesDB": {
+      "host": "localhost",
+      "port": 27017,
+      "database": "Currencies"
+    },
     "app": "waiviodev",
     "appHost": "waiviodev.com"
   },
@@ -59,6 +74,11 @@
       "expiredPosts": 7,
       "tagCategories": 7,
       "actionsQueue": 7
+    },
+    "currenciesDB": {
+      "host": "localhost",
+      "port": 27017,
+      "database": "CurrenciesTest"
     },
     "app": "waiviotest",
     "appHost": "waiviodev.com"
