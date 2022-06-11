@@ -1,4 +1,5 @@
 const { lastBlockClient, postRefsClient, expiredPostsClient } = require('utilities/redis/redis');
+const moment = require('moment');
 
 exports.getHashAll = async (key, client = postRefsClient) => client.hgetallAsync(key);
 
@@ -15,3 +16,7 @@ exports.zrevrange = async ({
 exports.getAsync = async ({ key, client = expiredPostsClient }) => client.getAsync(key);
 
 exports.smembers = async (key, client = expiredPostsClient) => client.smembersAsync(key);
+
+exports.zrangebyscore = async ({
+  key, min = 1, max = moment.utc().unix(), client = lastBlockClient,
+}) => client.zrangebyscoreAsync(key, min, max);
