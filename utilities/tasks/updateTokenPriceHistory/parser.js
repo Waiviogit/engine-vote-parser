@@ -88,7 +88,6 @@ const getTokenPrice = (data) => {
 
 const handlePreviousDayData = async (date, data) => {
   const averagePrice = getTokenPrice(data);
-  console.log('averagePrice', averagePrice);
   await delKey(date, lastBlockClient);
 
   return averagePrice;
