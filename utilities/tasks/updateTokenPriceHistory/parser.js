@@ -13,14 +13,7 @@ const { lastBlockClient } = require('../../redis/redis');
 const {
   zrangebyscore,
 } = require('../../redis/redisGetter');
-const {
-  STATISTIC_RECORD_TYPES,
-  DEFAULT_TOKEN_PRICES,
-} = require('../../../constants/currencyData');
-const {
-  HiveEngineRate,
-  CurrenciesStatistics,
-} = require('./models');
+const { saveDataInDB } = require('./helpers/saveDataInDBHelper');
 
 const tokenPriceSwitcher = async (transactions, blockNumber, timestamps) => {
   const date = timestamps.split('T')[0];
@@ -75,27 +68,22 @@ const tokenPriceSwitcher = async (transactions, blockNumber, timestamps) => {
 };
 
 const getTokenPrice = (data) => {
-  const highestPrice = _.reduce(data, (prev, current) => (BigNumber(prev.price)
-    .isGreaterThan(current.price) ? prev : current));
-  const lowestPrice = _.reduce(data, (prev, current) => (BigNumber(prev.price)
-    .isLessThan(current.price) ? prev : current));
-  const closingPrice = data[data.length - 1];
-
-  const typicalPrice = BigNumber(BigNumber(highestPrice.price).plus(lowestPrice.price)
-    .plus(closingPrice.price)).dividedBy(3).toFixed(8, BigNumber.ROUND_UP);
-  const volume = BigNumber(BigNumber(highestPrice.quantity).plus(lowestPrice.quantity)
-    .plus(closingPrice.quantity)).dividedBy(3).toFixed(8, BigNumber.ROUND_DOWN);
-  const cumulateVolume = _.reduce(data, (acc, el) => {
+  const dataToAdd = _.map(data, (el) => BigNumber(el.price).multipliedBy(el.quantity).toFixed());
+  const averagePrice = BigNumber(_.reduce(dataToAdd, (acc, el) => {
     if (!el) return acc;
 
-    acc = BigNumber(acc)
-      .plus(el.quantity);
+    acc = BigNumber(acc).plus(el);
 
     return acc;
-  }, new BigNumber(0)).toFixed();
+  }, new BigNumber(0))).dividedBy(data.length).toFixed(8, BigNumber.ROUND_UP);
 
-  return BigNumber(BigNumber(typicalPrice).multipliedBy(volume)).dividedBy(cumulateVolume)
-    .toFixed(8, BigNumber.ROUND_UP);
+  return BigNumber(averagePrice).dividedBy(_.reduce(data, (acc, el) => {
+    if (!el) return acc;
+
+    acc = BigNumber(acc).plus(el.quantity);
+
+    return acc;
+  }, new BigNumber(0))).toFixed(8, BigNumber.ROUND_UP);
 };
 
 const handlePreviousDayData = async (date, data) => {
@@ -104,53 +92,5 @@ const handlePreviousDayData = async (date, data) => {
 
   return averagePrice;
 };
-
-const saveDataInDB = async ({ price, currentDate, previousDate }) => {
-  console.log('currentDate', currentDate);
-  console.log('previousDate', previousDate);
-  const { result } = await CurrenciesStatistics.findOne({
-    createdAt: { $gte: currentDate },
-    type: STATISTIC_RECORD_TYPES.DAILY,
-  });
-  let dataToSave = {};
-  if (price) {
-    dataToSave = constructDataToSave({
-      price,
-      date: currentDate,
-      hivePrice: result.hive.usd,
-    });
-  } else {
-    const { result: savedData } = await HiveEngineRate.findOne({
-      base: process.argv[5],
-      type: STATISTIC_RECORD_TYPES.DAILY,
-      dateString: previousDate,
-    });
-    if (savedData) {
-      savedData.dateString = currentDate;
-      dataToSave = _.omit(savedData, ['_id']);
-    } else {
-      dataToSave = constructDataToSave({
-        priceUSD: DEFAULT_TOKEN_PRICES.WAIV,
-        date: currentDate,
-        hivePrice: result.hive.usd,
-      });
-    }
-  }
-
-  const { result: savedRate } = await HiveEngineRate.create(dataToSave);
-  console.log('savedRate', savedRate);
-};
-
-const constructDataToSave = ({
-  price, date, hivePrice, priceUSD,
-}) => ({
-  base: process.argv[5],
-  type: STATISTIC_RECORD_TYPES.DAILY,
-  dateString: date,
-  rates: {
-    HIVE: price ? Number(price) : 0,
-    USD: price ? new BigNumber(price).multipliedBy(hivePrice).toFixed() : priceUSD,
-  },
-});
 
 module.exports = { tokenPriceSwitcher };
