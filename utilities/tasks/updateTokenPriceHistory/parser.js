@@ -69,15 +69,14 @@ const tokenPriceSwitcher = async (transactions, blockNumber, timestamps) => {
 
 const getTokenPrice = (data) => {
   const dataToAdd = _.map(data, (el) => BigNumber(el.price).multipliedBy(el.quantity).toFixed());
-  const averagePrice = BigNumber(_.reduce(dataToAdd, (acc, el) => {
+
+  return BigNumber(_.reduce(dataToAdd, (acc, el) => {
     if (!el) return acc;
 
     acc = BigNumber(acc).plus(el);
 
     return acc;
-  }, new BigNumber(0))).dividedBy(data.length).toFixed(8, BigNumber.ROUND_UP);
-
-  return BigNumber(averagePrice).dividedBy(_.reduce(data, (acc, el) => {
+  }, new BigNumber(0))).dividedBy(_.reduce(data, (acc, el) => {
     if (!el) return acc;
 
     acc = BigNumber(acc).plus(el.quantity);

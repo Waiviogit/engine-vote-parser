@@ -3,15 +3,8 @@ const { runCustomStream } = require('utilities/helpers/customStreamHelper');
 const { tokenPriceSwitcher } = require('./parser');
 const { delKey } = require('../../redis/redisSetter');
 const { lastBlockClient } = require('../../redis/redis');
-const { DATE_STRINGS_TO_SET_DATA } = require('../../../constants/currencyData');
-const { saveDataInDB } = require('./helpers/saveDataInDBHelper');
 
 (async () => {
-  /** setting data before token sales started */
-  for (const date of DATE_STRINGS_TO_SET_DATA) {
-    await saveDataInDB({ currentDate: date });
-  }
-
   /** parsing blocks to set data */
   await runCustomStream(
     {
