@@ -30,7 +30,7 @@ exports.processRewards = async (rewards) => {
   if (_.isEmpty(rewards)) return;
   await checkGuestPostReward(rewards);
 
-  await EngineAccountHistoryModel.insertMany(rewards);
+  // await EngineAccountHistoryModel.insertMany(rewards);
   const rewardsOnPosts = aggregateRewardsOnPosts(rewards);
   const { posts = [] } = await Post.getManyPosts(getConditionFromRewards(rewardsOnPosts));
   for (const post of posts) {
