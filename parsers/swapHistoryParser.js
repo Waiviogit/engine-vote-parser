@@ -36,42 +36,19 @@ exports.parse = async (transaction, blockNumber, timestamp) => {
 
   const payload = parseJson(transaction.payload);
   if (payload.balances) {
-    dataToSave.push(...prepareBalancesBeforeRebalancingToSave({
-      transaction,
-      timestamp,
-      blockNumber,
-      balances: payload.balances,
-    }));
-  }
-  await EngineAccountHistory.insertMany(dataToSave);
-};
-
-const prepareBalancesBeforeRebalancingToSave = ({ transaction, timestamp, blockNumber, balances }) => {
-  const dataToSave = [];
-  const [base, quote] = balances.dbField.split('_');
-  for (const symbol of [base, quote]) {
-    symbol === base ? dataToSave.push({
+    dataToSave.push({
       account: transaction.sender,
       timestamp: moment(timestamp).unix(),
       blockNumber,
       refHiveBlockNumber: transaction.refHiveBlockNumber,
       transactionId: transaction.transactionId,
-      dbField: balances.dbField,
-      quantity: balances.base,
-      symbol: base,
-      operation: BALANCE_BEFORE_REBALANCING,
-    }) : dataToSave.push({
-      account: transaction.sender,
-      timestamp: moment(timestamp).unix(),
-      blockNumber,
-      refHiveBlockNumber: transaction.refHiveBlockNumber,
-      transactionId: transaction.transactionId.replace('-0', '-1'),
-      dbField: balances.dbField,
-      quantity: balances.quote,
-      symbol: quote,
+      dbField: payload.balances.dbField,
+      symbolInQuantity: payload.balances.symbolInQuantity,
+      symbolOutQuantity: payload.balances.symbolOutQuantity,
+      symbolIn: payload.balances.symbolIn,
+      symbolOut: payload.balances.symbolOut,
       operation: BALANCE_BEFORE_REBALANCING,
     });
   }
-
-  return dataToSave;
+  await EngineAccountHistory.insertMany(dataToSave);
 };
