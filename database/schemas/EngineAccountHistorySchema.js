@@ -18,6 +18,7 @@ const EngineAccountHistorySchema = new Schema({
   tokenState: { type: String },
   authorperm: { type: String },
   rewardPoolId: { type: Number },
+  dbField: { type: String },
 });
 
 EngineAccountHistorySchema.index({ account: 1 });
