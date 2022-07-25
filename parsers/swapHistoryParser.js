@@ -3,6 +3,7 @@ const { EngineAccountHistory } = require('models');
 const { parseJson } = require('utilities/helpers/jsonHelper');
 const moment = require('moment');
 const { ENGINE_CONTRACT_ACTIONS } = require('constants/hiveEngine');
+const { BALANCE_BEFORE_REBALANCING } = require('../constants/parsersData');
 
 exports.parse = async (transaction, blockNumber, timestamp) => {
   if (transaction.action !== ENGINE_CONTRACT_ACTIONS.SWAP_TOKENS) return;
@@ -17,6 +18,8 @@ exports.parse = async (transaction, blockNumber, timestamp) => {
   const symbolIn = _.get(symbols, 'data.symbolIn');
 
   if (!swapTo || !swapFrom || !symbols) return;
+
+  const dataToSave = [];
   const data = {
     blockNumber,
     transactionId: transaction.transactionId,
@@ -29,6 +32,23 @@ exports.parse = async (transaction, blockNumber, timestamp) => {
     symbolInQuantity: _.get(swapFrom, 'data.quantity'),
     timestamp: moment(timestamp).unix(),
   };
+  dataToSave.push(data);
 
-  await EngineAccountHistory.create(data);
+  const payload = parseJson(transaction.payload);
+  if (payload.balances) {
+    dataToSave.push({
+      account: transaction.sender,
+      timestamp: moment(timestamp).unix(),
+      blockNumber,
+      refHiveBlockNumber: transaction.refHiveBlockNumber,
+      transactionId: transaction.transactionId,
+      dbField: payload.balances.dbField,
+      symbolInQuantity: payload.balances.symbolInQuantity,
+      symbolOutQuantity: payload.balances.symbolOutQuantity,
+      symbolIn: payload.balances.symbolIn,
+      symbolOut: payload.balances.symbolOut,
+      operation: BALANCE_BEFORE_REBALANCING,
+    });
+  }
+  await EngineAccountHistory.insertMany(dataToSave);
 };
