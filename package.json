@@ -15,7 +15,8 @@
     "fillSwapHistory": "NODE_PATH=. node ./utilities/tasks/setAccountHistory/fillAccountsSwapHistory.js",
     "getTradingVolume": "node ./utilities/tasks/setAccountHistory/getTradingVolume.js",
     "addGuestAuthorRewards": "NODE_PATH=. node ./utilities/tasks/guestWallet/addAuthorRewards.js",
-    "updateTokenPriceHistory": "NODE_PATH=. node ./utilities/tasks/updateTokenPriceHistory/run.js"
+    "updateTokenPriceHistory": "NODE_PATH=. node ./utilities/tasks/updateTokenPriceHistory/run.js",
+    "swapReport": "node ./utilities/tasks/swapReport/run.js"
   },
   "keywords": [],
   "author": "",

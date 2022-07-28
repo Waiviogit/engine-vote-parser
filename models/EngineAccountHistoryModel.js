@@ -17,4 +17,22 @@ const insertMany = async (docs) => {
   }
 };
 
-module.exports = { create, insertMany };
+const findOne = async ({ filter, projection, options }) => {
+  try {
+    return { result: await EngineAccountHistoryModel.findOne(filter, projection, options).lean() };
+  } catch (error) {
+    return { error };
+  }
+};
+
+const find = async ({ filter, projection, options }) => {
+  try {
+    return { result: await EngineAccountHistoryModel.find(filter, projection, options).lean() };
+  } catch (error) {
+    return { error };
+  }
+};
+
+module.exports = {
+  create, insertMany, findOne, find,
+};
