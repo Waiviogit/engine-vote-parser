@@ -6,7 +6,7 @@ const {
   GuestWallet,
 } = require('models');
 const moment = require('moment');
-const { sendNotification, sendSocketNotification } = require('../utilities/notificationsApi/notificationsUtil');
+const { sendSocketNotification } = require('../utilities/notificationsApi/notificationsUtil');
 const { GUEST_WALLET_TYPE } = require('../constants/common');
 
 const getRequestData = (transaction, blockNumber) => {
@@ -54,7 +54,7 @@ const getRequestData = (transaction, blockNumber) => {
         data: {
           amount: `${_.get(payload, 'quantity')} ${_.get(payload, 'symbol')}`,
           to: _.get(payload, 'to'),
-          from: _.get(payload, 'to'),
+          from: _.get(transaction, 'sender'),
         },
       };
     case ENGINE_CONTRACT_ACTIONS.UNSTAKE:
