@@ -17,7 +17,7 @@ const ReportSchema = new Schema({
 
 const reportModel = mongoose.model('DEC_REPORT', ReportSchema);
 
-const symbol = 'DEC';
+const symbol = 'SPS';
 
 exports.createReport = async () => {
   const filter = { operation: 'marketpools_swapTokens', $or: [{ symbolIn: symbol, symbolOut: 'SWAP.HIVE' }, { symbolIn: 'SWAP.HIVE', symbolOut: symbol }] };
@@ -61,7 +61,7 @@ const handleRecords = async (records, endOfTheDay) => {
     priceHIVE: BigBumber(averagePriceInHive).toFixed(8),
     symbol,
   });
-  await new Promise((resolve) => setTimeout(resolve, 1000));
+  await new Promise((resolve) => setTimeout(resolve, 2000));
   console.log('tick');
 };
 
