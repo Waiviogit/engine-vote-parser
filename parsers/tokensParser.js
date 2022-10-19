@@ -1,6 +1,6 @@
 const _ = require('lodash');
 const { parseJson } = require('utilities/helpers/jsonHelper');
-const { ENGINE_CONTRACT_ACTIONS } = require('constants/hiveEngine');
+const { ENGINE_CONTRACT_ACTIONS, TOKEN_WAIV } = require('constants/hiveEngine');
 const { GUEST_TRANSFER_TYPE } = require('constants/common');
 const {
   GuestWallet,
@@ -95,6 +95,9 @@ const parseTransfer = async (transaction, blockNumber, timestamp) => {
   const logs = parseJson(_.get(transaction, 'logs'));
   if (_.isEmpty(payload) || logs.errors) return;
   const memoJson = parseJson(payload.memo);
+  if (transaction.sender === process.env.GUEST_HOT_ACC && payload.symbol !== TOKEN_WAIV.SYMBOL) {
+    await parseGuestWithdraw({ payload, transaction, blockNumber });
+  }
   if (!_.has(memoJson, 'id')) return;
   switch (memoJson.id) {
     case GUEST_TRANSFER_TYPE.TO_GUEST:
@@ -105,6 +108,33 @@ const parseTransfer = async (transaction, blockNumber, timestamp) => {
       });
       break;
   }
+};
+
+const parseGuestWithdraw = async ({ payload, transaction, blockNumber }) => {
+  const {
+    inputSymbol,
+    inputQuantity,
+    address,
+    account,
+    symbol,
+  } = payload;
+  if (!address || !inputSymbol || !inputQuantity || !account) return;
+
+  const symbolOut = symbol.replace('SWAP.', '');
+
+  await GuestWallet.create({
+    refHiveBlockNumber: transaction.refHiveBlockNumber,
+    blockNumber,
+    account,
+    transactionId: transaction.transactionId,
+    operation: GUEST_WALLET_TYPE.WITHDRAW,
+    timestamp: moment().unix(),
+    quantity: inputQuantity,
+    symbol: inputSymbol,
+    symbolOut,
+    to: address,
+    from: account,
+  });
 };
 
 const parseGuestTransfer = async ({
