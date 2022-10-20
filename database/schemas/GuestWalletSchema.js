@@ -11,6 +11,8 @@ const GuestWalletSchema = new Schema({
   timestamp: { type: Number },
   quantity: { type: mongoose.Types.Decimal128 },
   symbol: { type: String },
+  symbolOut: { type: String },
+  symbolOutQuantity: { type: String },
   authorperm: { type: String },
   from: { type: String },
   to: { type: String },
