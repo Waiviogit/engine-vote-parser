@@ -97,6 +97,7 @@ exports.VOTE_FIELDS = ['voter', 'percent', 'rshares', 'rsharesWAIV'];
 exports.GUEST_WALLET_TYPE = Object.freeze({
   AUTHOR_REWARD: 'comments_authorReward',
   TRANSFER: 'tokens_transfer',
+  WITHDRAW: 'guest_withdraw',
 });
 
 exports.GUEST_AVAILABLE_TOKEN = Object.freeze({
