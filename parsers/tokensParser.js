@@ -149,7 +149,7 @@ const parseGuestTransfer = async ({
     ? memo.from
     : transaction.sender;
 
-  const account = GUEST_TRANSFER_TYPE.FROM_GUEST ? from : to;
+  const account = memo.id === GUEST_TRANSFER_TYPE.FROM_GUEST ? from : to;
 
   await GuestWallet.create({
     refHiveBlockNumber: transaction.refHiveBlockNumber,
