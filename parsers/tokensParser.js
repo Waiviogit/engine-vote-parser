@@ -88,6 +88,7 @@ const makeMemoString = (data) => {
   if (!data) return '';
 
   if (typeof data !== 'string') return JSON.stringify(data);
+  return data;
 };
 
 const parseTransfer = async (transaction, blockNumber, timestamp) => {
