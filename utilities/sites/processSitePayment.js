@@ -5,6 +5,7 @@ const { websitePayments, websiteRefunds, App } = require('models');
 const { getPriceWaivUsd } = require('utilities/helpers/tokenPriceHelper');
 const _ = require('lodash');
 const BigNumber = require('bignumber.js');
+const sentryHelper = require('utilities/helpers/sentryHelper');
 
 module.exports = async ({
   blockNumber, type, transaction, payload,
@@ -14,7 +15,7 @@ module.exports = async ({
 
   const { price: priceWaivUsd, error } = await getPriceWaivUsd();
   if (error) {
-    console.error(error.message);
+    await sentryHelper.captureException(new Error(`Price error on transaction : ${JSON.stringify(transaction)}`));
     return;
   }
   const amount = BigNumber(priceWaivUsd).times(payload.quantity).dp(3).toNumber();

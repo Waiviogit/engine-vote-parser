@@ -1,6 +1,6 @@
 const RedisSMQ = require('rsmq');
 const config = require('config');
-// const sentryHelper = require('utilities/helpers/sentryHelper');
+const sentryHelper = require('utilities/helpers/sentryHelper');
 
 exports.rsmqClient = new RedisSMQ({ options: { db: config.redis.actionsQueue } });
 
@@ -32,11 +32,11 @@ exports.sendMessageToQueue = async ({ message, qname }) => {
   const { error } = await this.createQueue(
     { client: this.rsmqClient, qname },
   );
-  // if (error) return sentryHelper.captureException(`${qname} create queue error, message: ${message}`);
+  if (error) return sentryHelper.captureException(new Error(`${qname} create queue error, message: ${message}`));
 
   const { error: sendingError } = await this.sendMessage(
     { client: this.rsmqClient, message, qname },
   );
-  // if (sendingError) return sentryHelper.captureException(`${qname} send message to queue error, message: ${message}`);
+  if (sendingError) return sentryHelper.captureException(new Error(`${qname} create queue error, message: ${message}`));
   return true;
 };
