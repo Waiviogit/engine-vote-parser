@@ -7,3 +7,19 @@ exports.findOne = async (condition) => {
     return { error };
   }
 };
+
+exports.updateOne = async (condition, updateData) => {
+  try {
+    return { result: await App.updateOne(condition, updateData) };
+  } catch (error) {
+    return { error };
+  }
+};
+
+exports.find = async (condition, select) => {
+  try {
+    return { result: await App.find(condition, select).lean() };
+  } catch (error) {
+    return { error };
+  }
+};
