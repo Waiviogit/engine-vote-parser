@@ -1,10 +1,11 @@
 const _ = require('lodash');
 const { parseJson } = require('utilities/helpers/jsonHelper');
 const processSitePayment = require('utilities/sites/processSitePayment');
+const ticketsProcessor = require('utilities/vipTickets/ticketsProcessor');
 const { ENGINE_CONTRACT_ACTIONS, TOKEN_WAIV } = require('constants/hiveEngine');
 const { GUEST_TRANSFER_TYPE } = require('constants/common');
 const {
-  TRANSFER_ID, FEE, PARSE_MATCHING, REFUND_STATUSES, STATUSES, REFUND_ID, PAYMENT_TYPES,
+  TRANSFER_ID, REFUND_ID,
 } = require('constants/sitesData');
 const {
   GuestWallet,
@@ -118,6 +119,9 @@ const parseTransfer = async (transaction, blockNumber, timestamp) => {
         blockNumber, payload, transaction, type: memoJson.id,
       });
   }
+  await ticketsProcessor({
+    blockNumber, transaction, payload, memoJson,
+  });
 };
 
 const parseGuestWithdraw = async ({ payload, transaction, blockNumber }) => {
