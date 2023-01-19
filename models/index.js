@@ -7,4 +7,6 @@ module.exports = {
   UserWobjects: require('./UserWobjectsModel'),
   CommentRef: require('./CommentRef'),
   GuestWallet: require('./GuestWalletModel'),
+  websitePayments: require('./websitesPaymentsModel'),
+  websiteRefunds: require('./websitesRefundsModel'),
 };
