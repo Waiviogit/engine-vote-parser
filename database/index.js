@@ -24,5 +24,7 @@ module.exports = {
     UserWobjects: require('./schemas/UserWobjectsSchema'),
     CommentRef: require('./schemas/CommentRefSchema'),
     GuestWallet: require('./schemas/GuestWalletSchema'),
+    WebsitePayments: require('./schemas/WebsitePaymentsSchema'),
+    WebsitesRefund: require('./schemas/WebsiteRefudSchema'),
   },
 };

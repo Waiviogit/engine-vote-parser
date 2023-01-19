@@ -23,6 +23,8 @@ exports.DEFAULT_TOKEN_PRICES = {
   WAIV: 0.0008014,
 };
 
+exports.CACHE_KEY_COINGECKO = 'coingecko_cache';
+
 exports.DATE_STRINGS_TO_SET_DATA = [
   '2021-09-30',
   '2021-10-01',
