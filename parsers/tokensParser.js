@@ -104,6 +104,9 @@ const parseTransfer = async (transaction, blockNumber, timestamp) => {
   if (transaction.sender === process.env.GUEST_HOT_ACC && payload.symbol !== TOKEN_WAIV.SYMBOL) {
     await parseGuestWithdraw({ payload, transaction, blockNumber });
   }
+  await ticketsProcessor({
+    blockNumber, transaction, payload, memoJson,
+  });
   if (!_.has(memoJson, 'id')) return;
   switch (memoJson.id) {
     case GUEST_TRANSFER_TYPE.TO_GUEST:
@@ -119,9 +122,6 @@ const parseTransfer = async (transaction, blockNumber, timestamp) => {
         blockNumber, payload, transaction, type: memoJson.id,
       });
   }
-  await ticketsProcessor({
-    blockNumber, transaction, payload, memoJson,
-  });
 };
 
 const parseGuestWithdraw = async ({ payload, transaction, blockNumber }) => {

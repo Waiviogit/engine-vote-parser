@@ -7,7 +7,7 @@ const hiveEngineVoteParser = require('./hiveEngineVoteParser');
 const bookParser = require('./bookParser');
 
 exports.engineSwitcher = async (transactions, blockNumber, timestamps) => {
-  //await poolsParser.parse({ transactions });
+  // await poolsParser.parse({ transactions });
 
   for (const transaction of transactions) {
     await parseTransaction({
@@ -23,7 +23,7 @@ exports.engineSwitcher = async (transactions, blockNumber, timestamps) => {
     blockNumber,
     timestamps,
   });
-  await bookParser.parse({ transactions });
+  // await bookParser.parse({ transactions });
 };
 
 const parseTransaction = ({
