@@ -35,7 +35,7 @@ module.exports = async ({
 };
 
 const validateTransfer = ({ payload }) => {
-  if (!_.includes(['test', 'staging'], process.env.NODE_ENV)) return;
+  if (!_.includes(['test', 'production'], process.env.NODE_ENV)) return;
   if (payload.symbol !== TOKEN_WAIV.SYMBOL) return;
   if (payload.to !== TICKETS_ACCOUNT) return;
   if (!parseFloat(payload.quantity)) return;
