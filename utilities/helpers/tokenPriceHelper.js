@@ -24,7 +24,7 @@ exports.getWaivPool = async () => {
 };
 
 exports.getPriceHiveUsd = async () => {
-  const { result: cache } = await redisGetter.getHashAll(CACHE_KEY_COINGECKO, lastBlockClient);
+  const cache = await redisGetter.getHashAll(CACHE_KEY_COINGECKO, lastBlockClient);
   if (cache) {
     return { usdCurrency: Number(cache.hive) };
   }
