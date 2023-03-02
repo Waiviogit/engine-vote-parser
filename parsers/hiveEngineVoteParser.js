@@ -6,7 +6,6 @@ const { REDIS_KEYS } = require('constants/parsersData');
 const {
   ENGINE_TOKENS, CACHE_POOL_KEY, ENGINE_EVENTS, POST_REWARD_EVENTS, COMMENTS_CONTRACT,
 } = require('constants/hiveEngine');
-const EngineAccountHistoryModel = require('models/EngineAccountHistoryModel');
 const moment = require('moment');
 const redisGetter = require('utilities/redis/redisGetter');
 const redisSetter = require('utilities/redis/redisSetter');
@@ -215,7 +214,6 @@ const addRsharesToPost = async ({ votes, posts }) => {
   const votesToRemoveFromRedis = [];
 
   for (const vote of votes) {
-    if (!vote.type) continue;
     const post = _.find(posts,
       (p) => (p.author === vote.author || p.author === vote.guest_author)
             && p.permlink === vote.permlink);
