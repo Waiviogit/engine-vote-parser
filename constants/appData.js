@@ -105,8 +105,8 @@ const HIVE_MIND_NODES = [
 ];
 
 const HIVE_ENGINE_NODES = [
-  // 'https://api.hive-engine.com/rpc', // Germany
-  // 'https://api2.hive-engine.com/rpc', // Finland
+  'https://api.hive-engine.com/rpc', // Germany
+  'https://api2.hive-engine.com/rpc', // Finland
   'https://herpc.dtools.dev',
   'https://us.engine.rishipanthee.com',
   'https://ha.herpc.dtools.dev',
