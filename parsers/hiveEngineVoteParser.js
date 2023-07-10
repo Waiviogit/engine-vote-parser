@@ -327,6 +327,20 @@ const calculateGeneralHiveExpertise = async (wobjectRshares) => {
   return hiveExpertise.toNumber();
 };
 
+const maxExpertiseUpdateData = ({ wobjectRshares, initialKey }) => {
+  const result = {
+    $max: {
+      [initialKey]: 0,
+    },
+  };
+
+  for (const resultKey in wobjectRshares) {
+    result.$max[`expertise${resultKey}`] = 0;
+  }
+
+  return result;
+};
+
 const updateExpertiseInDb = async ({
   currentVote, wobjectRshares, post, wObject, generalHiveExpertise,
 }) => {
@@ -359,6 +373,7 @@ const updateExpertiseInDb = async ({
   );
 
   // post author can have negative expertise
+
   await User.updateOne(
     { name: post.author },
     {
@@ -367,6 +382,12 @@ const updateExpertiseInDb = async ({
       }),
     },
   );
+  if (generalHiveExpertise < 0) {
+    await User.updateOne(
+      { name: post.author },
+      maxExpertiseUpdateData({ wobjectRshares, initialKey: 'wobjects_weight' }),
+    );
+  }
 
   await UserWobjects.updateOne(
     { user_name: post.author, author_permlink: wObject.author_permlink },
@@ -377,6 +398,12 @@ const updateExpertiseInDb = async ({
     },
     { upsert: true, setDefaultsOnInsert: true },
   );
+  if (generalHiveExpertise < 0) {
+    await UserWobjects.updateOne(
+      { user_name: post.author, author_permlink: wObject.author_permlink },
+      maxExpertiseUpdateData({ wobjectRshares, initialKey: 'weight' }),
+    );
+  }
 };
 
 const formExpertiseUpdateData = ({
