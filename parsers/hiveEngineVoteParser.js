@@ -18,6 +18,7 @@ const calculateEngineExpertise = require('utilities/helpers/calculateEngineExper
 const appHelper = require('utilities/helpers/appHelper');
 const { GUEST_WALLET_TYPE, GUEST_AVAILABLE_TOKEN } = require('constants/common');
 const { VOTE_TYPES } = require('../constants/parsersData');
+const { calculateHiveEngineVote } = require('../utilities/hiveEngine/operations');
 
 exports.parse = async ({ transactions, blockNumber, timestamps }) => {
   const { votes, rewards } = this.formatVotesAndRewards({ transactions, blockNumber, timestamps });
@@ -116,26 +117,68 @@ const getUserExpertiseInWobj = async (vote) => {
   return result?.weight || 1;
 };
 
+const processVoteOnObjectFields = async (vote) => {
+  const {
+    author, permlink, root_wobj: authorPermlink, symbol, voter, weight,
+  } = vote;
+  if (!Number(vote?.rshares)) {
+    const tokenParams = ENGINE_TOKENS.find((t) => t.SYMBOL === symbol);
+    const { rshares } = await calculateHiveEngineVote({
+      symbol,
+      account: voter,
+      weight,
+      poolId: tokenParams.POOL_ID,
+      dieselPoolId: tokenParams.MARKET_POOL_ID,
+    });
+    vote.rshares = rshares;
+  }
+
+  const userWobjectWeight = await getUserExpertiseInWobj(vote);
+  const weightOnField = (userWobjectWeight + vote.rshares * 0.25) * (weight / 10000);
+  const reject = weight % 2 !== 0;
+
+  const { field, error: fieldError } = await Wobj.getField(
+    author,
+    permlink,
+    authorPermlink,
+  );
+  if (fieldError) return;
+  if (!field) return;
+  const existingVote = field?.active_votes?.find((v) => v.voter === voter);
+  // if vote already exist increase or decrease on previous value
+  if (existingVote) {
+    const existingWeight = existingVote[`weight${symbol}`] ?? 1;
+    await Wobj.increaseFieldWeight({
+      authorPermlink,
+      author,
+      permlink,
+      weight: reject ? -existingWeight : existingWeight,
+    });
+  }
+  await Wobj.increaseFieldWeight({
+    authorPermlink,
+    author,
+    permlink,
+    weight: reject ? -weightOnField : weightOnField,
+  });
+  await Wobj.addVote({
+    field,
+    existingVote,
+    permlink,
+    author,
+    authorPermlink,
+    vote: {
+      voter,
+      [`weight${symbol}`]: reject ? -weightOnField : weightOnField,
+    },
+  });
+};
+
 const voteOnObjectFields = async ({ votes = [] }) => {
   if (!votes.length) return;
 
-  // todo Promise all
-  for (const vote of votes) {
-    if (!Number(vote?.rshares)) {
-      // todo vote rshares
-    }
-    const userWobjectWeight = await getUserExpertiseInWobj(vote);
-    const rSharesWeight = Math.round(Number(vote.rshares) * 1e-6);
-    const weightOnField = (userWobjectWeight + rSharesWeight * 0.25) * (vote.weight / 10000);
-
-    const { field, error: fieldError } = await Wobj.getField(
-      vote.author,
-      vote.permlink,
-      vote.root_wobj,
-    );
-    if (fieldError) return;
-    if (!field) return;
-  }
+  const votePromises = votes.map((vote) => processVoteOnObjectFields(vote));
+  await Promise.all(votePromises);
 };
 
 const checkGuestPostReward = async (rewards) => {
