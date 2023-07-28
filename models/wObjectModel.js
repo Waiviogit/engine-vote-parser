@@ -138,10 +138,7 @@ const addVote = async ({
       if (objField._id.toString() === field._id.toString()) {
         for (const objVote of objField.active_votes) {
           if (objVote._id.toString() === existingVote._id.toString()) {
-            objVote.voter = 'tyo';
-            objVote.percent = 70;
-            objVote.rshares_weight = 2243;
-            objVote.weight = 561;
+            Object.assign(objVote, vote);
             break;
           }
         }
