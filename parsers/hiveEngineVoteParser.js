@@ -134,7 +134,7 @@ const processVoteOnObjectFields = async (vote) => {
   }
 
   const userWobjectWeight = await getUserExpertiseInWobj(vote);
-  const weightOnField = (userWobjectWeight + vote.rshares * 0.25) * (weight / 10000);
+  const weightOnField = (userWobjectWeight + vote.rshares * 0.75) * (weight / 10000);
   const reject = weight % 2 !== 0;
 
   const { field, error: fieldError } = await Wobj.getField(
