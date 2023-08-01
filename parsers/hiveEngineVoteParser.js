@@ -153,6 +153,7 @@ const processVoteOnObjectFields = async (vote) => {
       author,
       permlink,
       weight: reject ? -existingWeight : existingWeight,
+      symbol,
     });
   }
   await Wobj.increaseFieldWeight({
