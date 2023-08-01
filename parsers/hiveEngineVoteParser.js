@@ -85,7 +85,7 @@ exports.formatVotesAndRewards = ({
     if (parseVoteCondition) {
       acc.votes.push({
         ...jsonHelper.parseJson(transaction.payload),
-        rshares: parseFloat(_.get(event, 'data.rshares')),
+        rshares: parseFloat(_.get(event, 'data.rshares', '0')),
         symbol: _.get(event, 'data.symbol'),
       });
     }
@@ -160,6 +160,7 @@ const processVoteOnObjectFields = async (vote) => {
     author,
     permlink,
     weight: reject ? -weightOnField : weightOnField,
+    symbol,
   });
 
   await User.increaseWobjectWeight({
