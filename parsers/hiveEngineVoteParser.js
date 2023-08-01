@@ -161,6 +161,17 @@ const processVoteOnObjectFields = async (vote) => {
     permlink,
     weight: reject ? -weightOnField : weightOnField,
   });
+
+  await User.increaseWobjectWeight({
+    name: voter,
+    author_permlink: authorPermlink,
+    weight: vote.rshares * 0.25 * (weight / 10000),
+  });
+  await User.increaseWobjectWeight({
+    name: field.creator,
+    author_permlink: authorPermlink,
+    weight: vote.rshares * 0.75 * (weight / 10000),
+  });
   await Wobj.addVote({
     field,
     existingVote,
