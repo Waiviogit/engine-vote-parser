@@ -3,4 +3,5 @@ module.exports = {
   commentContract: require('./commentContract'),
   blockchain: require('./blockchain'),
   marketPools: require('./marketPools'),
+  engineOperations: require('./operations'),
 };

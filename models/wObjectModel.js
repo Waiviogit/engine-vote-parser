@@ -58,15 +58,17 @@ const addSearchFields = async ({ authorPermlink, newWords }) => {
 };
 
 // data include: author, permlink, author_permlink, weight
-const increaseFieldWeight = async (data) => {
+const increaseFieldWeight = async ({
+  authorPermlink, author, permlink, symbol, weight,
+}) => {
   try {
     const result = await WObjectModel.updateOne({
-      author_permlink: data.author_permlink,
-      'fields.author': data.author,
-      'fields.permlink': data.permlink,
+      author_permlink: authorPermlink,
+      'fields.author': author,
+      'fields.permlink': permlink,
     }, {
       $inc: {
-        'fields.$.weight': data.weight,
+        [`fields.$.weight${symbol}`]: weight,
       },
     });
     return { result: result.nModified === 1 };
@@ -93,16 +95,60 @@ const removeVote = async (data) => {
   }
 };
 
-// data include: author, permlink, author_permlink, voter, weight
-const addVote = async (data) => {
+const getField = async (author, permlink, authorPermlink, match) => {
   try {
-    const result = await WObjectModel.updateOne({
-      author_permlink: data.author_permlink,
-      'fields.author': data.author,
-      'fields.permlink': data.permlink,
-    },
-    { $push: { 'fields.$.active_votes': { ...data.vote } } });
-    return { result: result.nModified === 1 };
+    const matchCase = match || { $match: { 'fields.author': author || /.*?/, 'fields.permlink': permlink } };
+    const [field] = await WObjectModel.aggregate([
+      { $match: { author_permlink: authorPermlink || /.*?/ } },
+      { $unwind: '$fields' },
+      matchCase,
+      { $replaceRoot: { newRoot: '$fields' } },
+    ]);
+
+    return { field };
+  } catch (error) {
+    return { error };
+  }
+};
+
+// data include: author, permlink, author_permlink, voter, weight
+const addVote = async ({
+  field, author, permlink, authorPermlink, vote, existingVote,
+}) => {
+  try {
+    if (!existingVote) {
+      const result = await WObjectModel.updateOne(
+        {
+          author_permlink: authorPermlink,
+          'fields.author': author,
+          'fields.permlink': permlink,
+        },
+        { $push: { 'fields.$.active_votes': vote } },
+      );
+      return { result: result.nModified === 1 };
+    }
+
+    const wobject = await WObjectModel.findOne(
+      {
+        author_permlink: authorPermlink,
+      },
+    );
+
+    for (const objField of wobject.fields) {
+      if (objField._id.toString() === field._id.toString()) {
+        for (const objVote of objField.active_votes) {
+          if (objVote._id.toString() === existingVote._id.toString()) {
+            Object.assign(objVote, vote);
+            break;
+          }
+        }
+        break;
+      }
+    }
+
+    await wobject.save();
+
+    return { result: true };
   } catch (error) {
     return { error };
   }
@@ -158,22 +204,6 @@ const getSomeFields = async (fieldName, authorPermlink, fieldFlag = false) => {
     const wobjects = await WObjectModel.aggregate(pipeline);
 
     return { wobjects };
-  } catch (error) {
-    return { error };
-  }
-};
-
-const getField = async (author, permlink, authorPermlink, match) => {
-  try {
-    const matchCase = match || { $match: { 'fields.author': author || /.*?/, 'fields.permlink': permlink } };
-    const [field] = await WObjectModel.aggregate([
-      { $match: { author_permlink: authorPermlink || /.*?/ } },
-      { $unwind: '$fields' },
-      matchCase,
-      { $replaceRoot: { newRoot: '$fields' } },
-    ]);
-
-    return { field };
   } catch (error) {
     return { error };
   }

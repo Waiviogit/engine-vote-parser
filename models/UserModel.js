@@ -56,8 +56,10 @@ const addUserFollow = async ({ follower, following, isUnfollow = false }) => {
       { name: following },
       { $inc: { followers_count: isUnfollow ? -1 : 1 } },
     );
-    await UserModel.updateOne({ name: follower },
-      { $inc: { users_following_count: isUnfollow ? -1 : 1 } });
+    await UserModel.updateOne(
+      { name: follower },
+      { $inc: { users_following_count: isUnfollow ? -1 : 1 } },
+    );
 
     if (!_.get(followingUpdResult, 'n')) return { result: false };
 
@@ -126,6 +128,7 @@ const increaseUserWobjectsWeight = async (data) => {
   try {
     const filter = {
       name: data.name,
+      author_permlink: data.author_permlink,
     };
     await UserModel.updateOne(filter, {
       $inc: {
@@ -234,4 +237,5 @@ module.exports = {
   updateOnNewPost,
   findOne,
   find,
+  increaseUserWobjectsWeight,
 };
