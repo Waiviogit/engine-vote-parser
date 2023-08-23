@@ -152,7 +152,7 @@ const processVoteOnObjectFields = async (vote) => {
       authorPermlink,
       author,
       permlink,
-      weight: reject ? -existingWeight : existingWeight,
+      weight: reject || weight === 0 ? -existingWeight : existingWeight,
       symbol,
     });
   }
