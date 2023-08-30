@@ -69,6 +69,13 @@ const loadNextBlock = async ({
   }
 };
 
+const shouldWait = async ({ refHiveBlockNumber }) => {
+  const lastVoteBlock = await redisGetter.getLastBlockNum('last_vote_block_num');
+  const diff = lastVoteBlock - refHiveBlockNumber;
+
+  return diff < 1;
+};
+
 // return true if block exist and parsed, else - false
 const loadBlock = async (blockNum, transactionsParserCallback) => {
   const block = await blockchain.getBlockInfo(blockNum, CURRENT_NODE);
@@ -79,6 +86,10 @@ const loadBlock = async (blockNum, transactionsParserCallback) => {
     return false;
   }
   if (!block) return false;
+
+  const wait = await shouldWait({ refHiveBlockNumber: block.refHiveBlockNumber });
+  if (wait) return false;
+
   if (!block.transactions || !block.transactions[0]) {
     console.error(`EMPTY BLOCK: ${blockNum}`);
     return true;
