@@ -23,6 +23,7 @@ exports.PAYMENT_TYPES = {
 };
 
 exports.TRANSFER_ID = 'websitesPayment';
+exports.TRANSFER_GUEST_ID = 'websitesPaymentGuest';
 exports.REFUND_ID = 'websitesRefund';
 
 exports.FEE = {

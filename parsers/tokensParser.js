@@ -5,7 +5,7 @@ const ticketsProcessor = require('utilities/vipTickets/ticketsProcessor');
 const { ENGINE_CONTRACT_ACTIONS, TOKEN_WAIV } = require('constants/hiveEngine');
 const { GUEST_TRANSFER_TYPE } = require('constants/common');
 const {
-  TRANSFER_ID, REFUND_ID,
+  TRANSFER_ID, REFUND_ID, TRANSFER_GUEST_ID,
 } = require('constants/sitesData');
 const {
   GuestWallet,
@@ -108,6 +108,7 @@ const parseTransfer = async (transaction, blockNumber, timestamp) => {
     blockNumber, transaction, payload, memoJson,
   });
   if (!_.has(memoJson, 'id')) return;
+
   switch (memoJson.id) {
     case GUEST_TRANSFER_TYPE.TO_GUEST:
     case GUEST_TRANSFER_TYPE.FROM_GUEST:
@@ -120,6 +121,17 @@ const parseTransfer = async (transaction, blockNumber, timestamp) => {
     case REFUND_ID:
       await processSitePayment({
         blockNumber, payload, transaction, type: memoJson.id,
+      });
+      break;
+    case TRANSFER_GUEST_ID:
+      await processSitePayment({
+        blockNumber,
+        payload,
+        transaction: {
+          ...transaction,
+          sender: memoJson.from,
+        },
+        type: TRANSFER_ID,
       });
   }
 };
