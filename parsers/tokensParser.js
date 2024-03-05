@@ -124,6 +124,16 @@ const parseTransfer = async (transaction, blockNumber, timestamp) => {
       });
       break;
     case TRANSFER_GUEST_ID:
+      await parseGuestTransfer({
+        transaction,
+        payload,
+        memo: {
+          ...memoJson,
+          id: GUEST_TRANSFER_TYPE.FROM_GUEST,
+        },
+        blockNumber,
+        timestamp,
+      });
       await processSitePayment({
         blockNumber,
         payload,
