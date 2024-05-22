@@ -49,7 +49,7 @@ exports.parseEngineVotes = async (votes) => {
   const { processedPosts } = await addRsharesToPost({ votes: votesWithAdditionalData, posts });
   await distributeHiveEngineExpertise({ votes: votesWithAdditionalData, posts: processedPosts });
   await voteOnObjectFields({
-    votes: votesWithAdditionalData?.filter((v) => v.type === VOTE_TYPES.APPEND_WOBJ),
+    votes: votesWithAdditionalData?.filter((v) => v.type === VOTE_TYPES.APPEND_WOBJ && v.weight > 0),
   });
 };
 
