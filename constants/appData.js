@@ -105,7 +105,7 @@ const HIVE_MIND_NODES = [
 ];
 
 const HIVE_ENGINE_NODES = [
-  'https://herpc.dtools.dev',//ok
+ // 'https://herpc.dtools.dev',//ok
   'https://engine.deathwing.me',//ok
   'https://api.primersion.com',
   'https://herpc.kanibot.com',
