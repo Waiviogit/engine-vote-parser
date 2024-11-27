@@ -44,7 +44,7 @@ const WObjectSchema = new Schema(
           weight: { type: Number },
           rshares_weight: { type: Number },
           percent: { type: Number },
-          weightWAIV: { type: Number },
+          block: { type: Number },
         }],
         default: [],
       },

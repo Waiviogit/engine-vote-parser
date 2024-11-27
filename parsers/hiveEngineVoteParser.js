@@ -1,5 +1,5 @@
 const {
-  Post, Wobj, User, UserWobjects, GuestWallet,
+  Post, Wobj, User, UserExpertiseModel, GuestWallet,
 } = require('models');
 const { commentRefGetter } = require('utilities/commentRefService');
 const { REDIS_KEYS } = require('constants/parsersData');
@@ -20,11 +20,13 @@ const { GUEST_WALLET_TYPE, GUEST_AVAILABLE_TOKEN } = require('constants/common')
 const { VOTE_TYPES } = require('../constants/parsersData');
 const { calculateHiveEngineVote } = require('../utilities/hiveEngine/operations');
 
-exports.parse = async ({ transactions, blockNumber, timestamps }) => {
-  const { votes, rewards } = this.formatVotesAndRewards({ transactions, blockNumber, timestamps });
+exports.parse = async ({
+  transactions, blockNumber, timestamp, refHiveBlockNumber,
+}) => {
+  const { votes, rewards } = this.formatVotesAndRewards({ transactions, blockNumber, timestamp });
 
   await this.processRewards(rewards);
-  await this.parseEngineVotes(votes);
+  await this.parseEngineVotes({ votes, refHiveBlockNumber });
 };
 
 exports.processRewards = async (rewards) => {
@@ -42,7 +44,7 @@ exports.processRewards = async (rewards) => {
   }
 };
 
-exports.parseEngineVotes = async (votes) => {
+exports.parseEngineVotes = async ({ votes, refHiveBlockNumber }) => {
   if (_.isEmpty(votes)) return;
   const votesWithAdditionalData = await votesFormat(votes);
   const { posts = [] } = await Post.getManyPosts(getConditionFromVotes(votesWithAdditionalData));
@@ -50,13 +52,14 @@ exports.parseEngineVotes = async (votes) => {
   await distributeHiveEngineExpertise({ votes: votesWithAdditionalData, posts: processedPosts });
   await voteOnObjectFields({
     votes: votesWithAdditionalData?.filter((v) => v.type === VOTE_TYPES.APPEND_WOBJ && v.weight >= 0),
+    refHiveBlockNumber,
   });
 };
 
 exports.formatVotesAndRewards = ({
   transactions,
   blockNumber,
-  timestamps,
+  timestamp,
 }) => _.reduce(transactions, (acc, transaction) => {
   const events = _.get(jsonHelper.parseJson(transaction.logs), 'events', []);
   if (_.isEmpty(events)
@@ -96,7 +99,7 @@ exports.formatVotesAndRewards = ({
         blockNumber,
         refHiveBlockNumber: transaction.refHiveBlockNumber,
         transactionId: transaction.transactionId,
-        timestamp: moment(timestamps).unix(),
+        timestamp: moment(timestamp).unix(),
       });
     }
   }
@@ -104,7 +107,7 @@ exports.formatVotesAndRewards = ({
 }, { votes: [], rewards: [] });
 
 const getUserExpertiseInWobj = async (vote) => {
-  const { result, error } = await UserWobjects.find({
+  const { result, error } = await UserExpertiseModel.find({
     condition: {
       author_permlink: vote.root_wobj,
       user_name: vote.voter,
@@ -117,12 +120,13 @@ const getUserExpertiseInWobj = async (vote) => {
   return result?.weight || 1;
 };
 
-const processVoteOnObjectFields = async (vote) => {
+const processVoteOnObjectFields = async ({ vote, refHiveBlockNumber }) => {
   const {
     author, permlink, root_wobj: authorPermlink, symbol, voter, weight,
   } = vote;
+
+  const tokenParams = ENGINE_TOKENS.find((t) => t.SYMBOL === symbol);
   if (!Number(vote?.rshares)) {
-    const tokenParams = ENGINE_TOKENS.find((t) => t.SYMBOL === symbol);
     const { rshares } = await calculateHiveEngineVote({
       symbol,
       account: voter,
@@ -134,7 +138,9 @@ const processVoteOnObjectFields = async (vote) => {
   }
 
   const userWobjectWeight = await getUserExpertiseInWobj(vote);
-  const weightOnField = (userWobjectWeight + vote.rshares * 0.75) * (weight / 10000);
+  const usdValue = await calculateEngineExpertise(vote.rshares, tokenParams.SYMBOL);
+
+  const weightOnField = (userWobjectWeight + usdValue * 0.5) * (weight / 10000);
   const reject = weight % 2 !== 0;
 
   const { field, error: fieldError } = await Wobj.getField(
@@ -165,14 +171,9 @@ const processVoteOnObjectFields = async (vote) => {
   });
 
   await User.increaseWobjectWeight({
-    name: voter,
-    author_permlink: authorPermlink,
-    weight: vote.rshares * 0.25 * (weight / 10000),
-  });
-  await User.increaseWobjectWeight({
     name: field.creator,
     author_permlink: authorPermlink,
-    weight: vote.rshares * 0.75 * (weight / 10000),
+    weight: usdValue * 0.5,
   });
   await Wobj.addVote({
     field,
@@ -182,15 +183,16 @@ const processVoteOnObjectFields = async (vote) => {
     authorPermlink,
     vote: {
       voter,
-      [`weight${symbol}`]: reject ? -weightOnField : weightOnField,
+      weight: reject ? -weightOnField : weightOnField,
+      block: refHiveBlockNumber,
     },
   });
 };
 
-const voteOnObjectFields = async ({ votes = [] }) => {
+const voteOnObjectFields = async ({ votes = [], refHiveBlockNumber }) => {
   if (!votes.length) return;
 
-  const votePromises = votes.map((vote) => processVoteOnObjectFields(vote));
+  const votePromises = votes.map((vote) => processVoteOnObjectFields({ vote, refHiveBlockNumber }));
   await Promise.all(votePromises);
 };
 
@@ -418,10 +420,10 @@ const distributeHiveEngineExpertise = async ({ votes, posts }) => {
       }, {});
       if (_.isEmpty(wobjectRshares)) continue;
 
-      const generalHiveExpertise = await calculateGeneralHiveExpertise(wobjectRshares);
+      const weightUsd = await calculateGeneralHiveExpertise(wobjectRshares);
 
       await updateExpertiseInDb({
-        currentVote, wobjectRshares, post, wObject, generalHiveExpertise,
+        currentVote, wobjectRshares, post, wObject, weightUsd,
       });
     }
   }
@@ -434,102 +436,35 @@ const calculateGeneralHiveExpertise = async (wobjectRshares) => {
   }
   return hiveExpertise.toNumber();
 };
-
-const maxExpertiseUpdateData = ({ wobjectRshares, initialKey }) => {
-  const result = {
-    $max: {
-      [initialKey]: 0,
-    },
-  };
-
-  for (const resultKey in wobjectRshares) {
-    result.$max[`expertise${resultKey}`] = 0;
-  }
-
-  return result;
-};
-
 const updateExpertiseInDb = async ({
-  currentVote, wobjectRshares, post, wObject, generalHiveExpertise,
+  post, wObject, weightUsd,
 }) => {
   await Wobj.update(
     { author_permlink: wObject.author_permlink },
-    {
-      $inc: formExpertiseUpdateData({
-        wobjectRshares, isAbs: true, divideBy: 1, initialKey: 'weight', initialValue: generalHiveExpertise,
-      }),
-    },
+    { $inc: { weight: weightUsd } },
   );
-
-  await User.updateOne(
-    { name: currentVote.voter },
-    {
-      $inc: formExpertiseUpdateData({
-        wobjectRshares,
-        isAbs: true,
-        divideBy: 2,
-        initialKey: 'wobjects_weight',
-        initialValue: generalHiveExpertise,
-      }),
-    },
-  );
-
-  await UserWobjects.updateOne(
-    { user_name: currentVote.voter, author_permlink: wObject.author_permlink },
-    {
-      $inc: formExpertiseUpdateData({
-        wobjectRshares, isAbs: true, divideBy: 2, initialKey: 'weight', initialValue: generalHiveExpertise,
-      }),
-    },
-    { upsert: true, setDefaultsOnInsert: true },
-  );
-
   // post author can have negative expertise
 
   await User.updateOne(
     { name: post.author },
     {
-      $inc: formExpertiseUpdateData({
-        wobjectRshares,
-        isAbs: false,
-        divideBy: 2,
-        initialKey: 'wobjects_weight',
-        initialValue: generalHiveExpertise,
-      }),
+      $inc: { wobjects_weight: weightUsd / 2 },
     },
   );
-  if (generalHiveExpertise < 0) {
-    await User.updateOne(
-      { name: post.author },
-      maxExpertiseUpdateData({ wobjectRshares, initialKey: 'wobjects_weight' }),
-    );
-  }
-
-  await UserWobjects.updateOne(
+  await UserExpertiseModel.updateOne(
     { user_name: post.author, author_permlink: wObject.author_permlink },
-    {
-      $inc: formExpertiseUpdateData({
-        wobjectRshares, isAbs: false, divideBy: 2, initialKey: 'weight', initialValue: generalHiveExpertise,
-      }),
-    },
+    { $inc: { weight: weightUsd / 2 } },
     { upsert: true, setDefaultsOnInsert: true },
   );
-  if (generalHiveExpertise < 0) {
-    await UserWobjects.updateOne(
+
+  if (weightUsd < 0) {
+    await User.updateOne(
+      { name: post.author },
+      { $max: { wobjects_weight: 0 } },
+    );
+    await UserExpertiseModel.updateOne(
       { user_name: post.author, author_permlink: wObject.author_permlink },
-      maxExpertiseUpdateData({ wobjectRshares, initialKey: 'weight' }),
+      { $max: { weight: 0 } },
     );
   }
 };
-
-const formExpertiseUpdateData = ({
-  wobjectRshares, divideBy, isAbs, initialKey, initialValue,
-}) => _.reduce(wobjectRshares, (accum, rshares, index) => {
-  const result = BigNumber(rshares).div(divideBy).toNumber();
-  accum[`expertise${index}`] = isAbs ? Math.abs(result) : result;
-  return accum;
-}, {
-  [initialKey]: isAbs
-    ? Math.abs(BigNumber(initialValue).div(divideBy).toNumber())
-    : BigNumber(initialValue).div(divideBy).toNumber(),
-});

@@ -4,7 +4,7 @@ const moment = require('moment');
 const { ENGINE_CONTRACT_ACTIONS } = require('constants/hiveEngine');
 const { EngineAccountHistory } = require('../models');
 
-exports.parse = async (transaction, blockNumber, timestamps) => {
+exports.parse = async (transaction, blockNumber, timestamp) => {
   if (transaction.action !== ENGINE_CONTRACT_ACTIONS.NEW_AIRDROP) return;
 
   const payload = parseJson(_.get(transaction, 'payload'));
@@ -25,7 +25,7 @@ exports.parse = async (transaction, blockNumber, timestamps) => {
       transactionId: transaction.transactionId,
       quantity: el[1],
       tokenState: payload.type,
-      timestamp: moment(timestamps).unix(),
+      timestamp: moment(timestamp).unix(),
       symbol: payload.symbol,
     };
     await EngineAccountHistory.create(data);

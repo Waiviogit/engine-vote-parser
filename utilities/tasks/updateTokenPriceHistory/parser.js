@@ -15,10 +15,10 @@ const {
 } = require('../../redis/redisGetter');
 const { saveDataInDB } = require('./helpers/saveDataInDBHelper');
 
-const tokenPriceSwitcher = async (transactions, blockNumber, timestamps) => {
-  const date = timestamps.split('T')[0];
+const tokenPriceSwitcher = async ({ transactions, blockNumber, timestamp }) => {
+  const date = timestamp.split('T')[0];
   console.log('blockNumber', blockNumber);
-  console.log('timestamps', timestamps);
+  console.log('timestamps', timestamp);
   const allTimestamps = await zrangebyscore({ key: 'all_timestamps' });
   if (!allTimestamps.length) await zadd({ key: 'all_timestamps', value: date });
   else if (!_.includes(allTimestamps, date)) {
@@ -42,10 +42,12 @@ const tokenPriceSwitcher = async (transactions, blockNumber, timestamps) => {
     await zadd({ key: 'all_timestamps', value: date });
   }
 
-  const marketTransactions = _.filter(transactions,
+  const marketTransactions = _.filter(
+    transactions,
     (transaction) => transaction.contract === ENGINE_CONTRACTS.MARKET
       && (transaction.action === MARKET_CONTRACT.BUY
-        || transaction.action === MARKET_CONTRACT.SELL));
+        || transaction.action === MARKET_CONTRACT.SELL),
+  );
   if (!marketTransactions.length) return;
 
   for (const transaction of marketTransactions) {
