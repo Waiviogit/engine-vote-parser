@@ -9,6 +9,7 @@ const BEE_HBD_HIVE = {
   startIncomeDifference: 0,
   tokenPrecision: 8,
   approachCoefficient: 0.99,
+  ourPool: false,
 };
 
 const CENT_HBD_HIVE = {
@@ -22,6 +23,7 @@ const CENT_HBD_HIVE = {
   startIncomeDifference: 0,
   tokenPrecision: 8,
   approachCoefficient: 0.99,
+  ourPool: false,
 };
 
 const BUSD_HBD_HIVE = {
@@ -35,6 +37,7 @@ const BUSD_HBD_HIVE = {
   startIncomeDifference: 0,
   tokenPrecision: 8,
   approachCoefficient: 0.99,
+  ourPool: false,
 };
 
 exports.PYRAMIDAL_BOTS = [
