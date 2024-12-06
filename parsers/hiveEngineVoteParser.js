@@ -141,6 +141,7 @@ const processVoteOnObjectFields = async ({ vote, refHiveBlockNumber }) => {
   const usdValue = await calculateEngineExpertise(vote.rshares, tokenParams.SYMBOL);
 
   const weightOnField = (userWobjectWeight + usdValue * 0.5) * (weight / 10000);
+  if (weightOnField === 0) return;
   const reject = weight % 2 !== 0;
 
   const { field, error: fieldError } = await Wobj.getField(
@@ -154,6 +155,7 @@ const processVoteOnObjectFields = async ({ vote, refHiveBlockNumber }) => {
   // if vote already exist increase or decrease on previous value
   if (existingVote) {
     const existingWeight = existingVote[`weight${symbol}`] ?? 1;
+
     await Wobj.increaseFieldWeight({
       authorPermlink,
       author,
@@ -162,19 +164,15 @@ const processVoteOnObjectFields = async ({ vote, refHiveBlockNumber }) => {
       symbol,
     });
   }
+
   await Wobj.increaseFieldWeight({
     authorPermlink,
     author,
     permlink,
-    weight: reject ? -weightOnField : weightOnField,
+    weight: weightOnField,
     symbol,
   });
 
-  await User.increaseWobjectWeight({
-    name: field.creator,
-    author_permlink: authorPermlink,
-    weight: usdValue * 0.5,
-  });
   await Wobj.addVote({
     field,
     existingVote,
@@ -187,6 +185,15 @@ const processVoteOnObjectFields = async ({ vote, refHiveBlockNumber }) => {
       block: refHiveBlockNumber,
     },
   });
+  if (!reject) {
+    const expertiseUsd = Number((usdValue * 0.5).toFixed(8));
+
+    await User.increaseWobjectWeight({
+      name: field.creator,
+      author_permlink: authorPermlink,
+      weight: expertiseUsd,
+    });
+  }
 };
 
 const voteOnObjectFields = async ({ votes = [], refHiveBlockNumber }) => {
@@ -439,21 +446,24 @@ const calculateGeneralHiveExpertise = async (wobjectRshares) => {
 const updateExpertiseInDb = async ({
   post, wObject, weightUsd,
 }) => {
+  const expertiseUsd = Number((weightUsd * 0.5).toFixed(8));
+  if (expertiseUsd === 0) return;
+
   await Wobj.update(
     { author_permlink: wObject.author_permlink },
-    { $inc: { weight: weightUsd } },
+    { $inc: { weight: expertiseUsd } },
   );
   // post author can have negative expertise
 
   await User.updateOne(
     { name: post.author },
     {
-      $inc: { wobjects_weight: weightUsd / 2 },
+      $inc: { wobjects_weight: expertiseUsd },
     },
   );
   await UserExpertiseModel.updateOne(
     { user_name: post.author, author_permlink: wObject.author_permlink },
-    { $inc: { weight: weightUsd / 2 } },
+    { $inc: { weight: expertiseUsd } },
     { upsert: true, setDefaultsOnInsert: true },
   );
 
