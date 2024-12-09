@@ -181,8 +181,7 @@ const processVoteOnObjectFields = async ({ vote, refHiveBlockNumber }) => {
     authorPermlink,
     vote: {
       voter,
-      weight: reject ? -weightOnField : weightOnField,
-      block: refHiveBlockNumber,
+      [`weight${symbol}`]: reject ? -weightOnField : weightOnField,
     },
   });
   if (!reject) {
