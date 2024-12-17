@@ -68,7 +68,7 @@ const increaseFieldWeight = async ({
       'fields.permlink': permlink,
     }, {
       $inc: {
-        weight,
+        'fields.$.weight': weight,
       },
     });
     return { result: result.nModified === 1 };
