@@ -58,3 +58,16 @@ exports.zremrangebyscore = async ({
 exports.expire = async ({
   key, seconds, client = lastBlockClient,
 }) => client.expireAsync(key, seconds);
+
+exports.setEx = async ({
+  key,
+  value,
+  ttlSeconds,
+  client = lastBlockClient,
+}) => {
+  try {
+    await client.setAsync(key, value, 'EX', ttlSeconds);
+  } catch (error) {
+    console.log(error.message);
+  }
+};

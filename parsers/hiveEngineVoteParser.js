@@ -19,6 +19,7 @@ const appHelper = require('utilities/helpers/appHelper');
 const { GUEST_WALLET_TYPE, GUEST_AVAILABLE_TOKEN } = require('constants/common');
 const { VOTE_TYPES } = require('../constants/parsersData');
 const { calculateHiveEngineVote } = require('../utilities/hiveEngine/operations');
+const { getWeightForFieldUpdate } = require('../utilities/helpers/rewardsHelper');
 
 exports.parse = async ({
   transactions, blockNumber, timestamp, refHiveBlockNumber,
@@ -139,8 +140,12 @@ const processVoteOnObjectFields = async ({ vote, refHiveBlockNumber }) => {
 
   const userWobjectWeight = await getUserExpertiseInWobj(vote);
   const usdValue = await calculateEngineExpertise(vote.rshares, tokenParams.SYMBOL);
+  // here we need transform usd value to hive rshares * 1e6
+  const expertiseInRshares = await getWeightForFieldUpdate(userWobjectWeight);
+  const voteInRshares = await getWeightForFieldUpdate(usdValue);
 
-  const weightOnField = (userWobjectWeight + usdValue * 0.5) * (weight / 10000);
+  const weightOnField = (expertiseInRshares + voteInRshares * 0.5) * (weight / 10000);
+
   if (weightOnField === 0) return;
   const reject = weight % 2 !== 0;
 
@@ -181,13 +186,12 @@ const processVoteOnObjectFields = async ({ vote, refHiveBlockNumber }) => {
     authorPermlink,
     vote: {
       voter,
-      weight: reject ? -weightOnField : weightOnField,
-      block: refHiveBlockNumber,
+      [`weight${symbol}`]: reject ? -weightOnField : weightOnField,
     },
   });
-  if (!reject) {
-    const expertiseUsd = Number((usdValue * 0.5).toFixed(8));
+  const expertiseUsd = Number((usdValue * 0.5 * (weight / 10000)).toFixed(8));
 
+  if (!reject && expertiseUsd !== 0) {
     await User.increaseWobjectWeight({
       name: field.creator,
       author_permlink: authorPermlink,
