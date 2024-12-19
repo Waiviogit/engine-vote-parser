@@ -94,9 +94,14 @@ const loadBlock = async (blockNum, transactionsParserCallback) => {
     console.error(`EMPTY BLOCK: ${blockNum}`);
     return true;
   }
-  console.time(`engine ${block.blockNumber}`);
-  await transactionsParserCallback(block.transactions, block.blockNumber, block.timestamp);
-  console.timeEnd(`engine ${block.blockNumber}`);
+  const {
+    transactions, blockNumber, timestamp, refHiveBlockNumber,
+  } = block;
+  console.time(`engine ${blockNumber}`);
+  await transactionsParserCallback({
+    transactions, blockNumber, timestamp, refHiveBlockNumber,
+  });
+  console.timeEnd(`engine ${blockNumber}`);
   return true;
 };
 

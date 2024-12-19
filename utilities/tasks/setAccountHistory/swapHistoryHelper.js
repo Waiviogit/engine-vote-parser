@@ -1,10 +1,10 @@
 const swapHistoryParser = require('parsers/swapHistoryParser');
 const { ENGINE_CONTRACTS } = require('constants/hiveEngine');
 
-exports.helper = async (transactions, blockNumber, timestamps) => {
+exports.helper = async (transactions, blockNumber, timestamp) => {
   for (const transaction of transactions) {
     if (transaction.contract !== ENGINE_CONTRACTS.MARKETPOOLS) continue;
-    await swapHistoryParser.parse(transaction, blockNumber, timestamps);
+    await swapHistoryParser.parse(transaction, blockNumber, timestamp);
   }
   const uptime = process.uptime();
 

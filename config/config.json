@@ -10,7 +10,8 @@
       "lastBlock": 2,
       "actionsQueue": 3,
       "expiredPosts": 8,
-      "tagCategories": 9
+      "tagCategories": 9,
+      "mainFeedsCache": 10
     },
     "currenciesDB": {
       "host": "localhost",
@@ -31,7 +32,8 @@
       "lastBlock": 2,
       "actionsQueue": 3,
       "expiredPosts": 8,
-      "tagCategories": 9
+      "tagCategories": 9,
+      "mainFeedsCache": 10
     },
     "currenciesDB": {
       "host": "localhost",
@@ -52,7 +54,8 @@
       "lastBlock": 2,
       "actionsQueue": 3,
       "expiredPosts": 8,
-      "tagCategories": 9
+      "tagCategories": 9,
+      "mainFeedsCache": 10
     },
     "currenciesDB": {
       "host": "localhost",
@@ -73,7 +76,8 @@
       "lastBlock": 7,
       "expiredPosts": 7,
       "tagCategories": 7,
-      "actionsQueue": 7
+      "actionsQueue": 7,
+      "mainFeedsCache": 7
     },
     "currenciesDB": {
       "host": "localhost",
