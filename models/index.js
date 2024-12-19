@@ -5,6 +5,7 @@ module.exports = {
   Post: require('./PostModel'),
   EngineAccountHistory: require('./EngineAccountHistoryModel'),
   UserWobjects: require('./UserWobjectsModel'),
+  UserExpertiseModel: require('./UserExpertiseModel'),
   CommentRef: require('./CommentRef'),
   GuestWallet: require('./GuestWalletModel'),
   websitePayments: require('./websitesPaymentsModel'),

@@ -28,6 +28,7 @@ module.exports = {
     App: require('./schemas/AppSchema'),
     EngineAccountHistory: require('./schemas/EngineAccountHistorySchema'),
     UserWobjects: require('./schemas/UserWobjectsSchema'),
+    UserExpertise: require('./schemas/UserExpertiseSchema'),
     CommentRef: require('./schemas/CommentRefSchema'),
     GuestWallet: require('./schemas/GuestWalletSchema'),
     WebsitePayments: require('./schemas/WebsitePaymentsSchema'),
