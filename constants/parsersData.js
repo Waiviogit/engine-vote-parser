@@ -83,6 +83,7 @@ exports.MEMO_ID = {
 
 exports.REDIS_KEYS = {
   PROCESSED_LIKES: 'processed_likes:engine',
+  CURRENT_PRICE_INFO: 'current_price_info',
 };
 
 exports.BALANCE_BEFORE_REBALANCING = 'balanceBeforeRebalancing';
