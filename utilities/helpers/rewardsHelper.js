@@ -1,16 +1,13 @@
-const { getCurrentPriceInfo } = require('utilities/hiveApi/hiveOperations');
-const { cacheWrapper } = require('./cacheHelper');
-
-const getCachedPriceInfo = cacheWrapper(getCurrentPriceInfo);
-const CACHE_PRICE_KEY = 'cached_price_info';
-const CACHE_PRICE_TTL = 60 * 5;
-const cacheParams = { key: CACHE_PRICE_KEY, ttl: CACHE_PRICE_TTL };
+const { REDIS_KEYS } = require('constants/parsersData');
+const { redis, redisGetter } = require('utilities/redis');
 
 const getRsharesFromUSD = async (usdAmount) => {
-  const { currentPrice: rate, rewardFund } = await getCachedPriceInfo()(cacheParams);
-  const { recent_claims: recentClaims, reward_balance: rewardBalance } = rewardFund;
-  const rewardBalanceNumber = parseFloat(rewardBalance.replace(' HIVE', ''));
-  return (usdAmount / (rewardBalanceNumber * rate)) * recentClaims;
+  const priceInfo = await redisGetter
+    .getHashAll(REDIS_KEYS.CURRENT_PRICE_INFO, redis.lastBlockClient);
+
+  const rewardBalanceNumber = parseFloat(priceInfo.reward_balance.replace(' HIVE', ''));
+  return (usdAmount / (rewardBalanceNumber * parseFloat(priceInfo.price)))
+      * parseFloat(priceInfo.recent_claims);
 };
 
 const getWeightForFieldUpdate = async (weight) => {
