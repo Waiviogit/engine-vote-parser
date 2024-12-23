@@ -451,7 +451,7 @@ const updateExpertiseInDb = async ({
   post, wObject, weightUsd,
 }) => {
   const expertiseUsd = Number((weightUsd * 0.5).toFixed(8));
-  if (expertiseUsd === 0) return;
+  if (expertiseUsd === 0 || expertiseUsd < 0) return;
 
   await Wobj.update(
     { author_permlink: wObject.author_permlink },
