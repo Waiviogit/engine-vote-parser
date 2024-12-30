@@ -105,10 +105,12 @@ const HIVE_MIND_NODES = [
 ];
 
 const HIVE_ENGINE_NODES = [
-  'https://engine.deathwing.me',
+  // 'https://engine.deathwing.me',
   'https://he.sourov.dev',
   'https://ha.herpc.dtools.dev',
-  'https://herpc.actifit.io',
+  'https://herpc.dtools.dev',
+  'https://api.hive-engine.com/rpc/',
+//  'https://herpc.actifit.io',
 ];
 
 const REFERRAL_TYPES = {
