@@ -3,7 +3,9 @@ const { parseJson } = require('utilities/helpers/jsonHelper');
 const processSitePayment = require('utilities/sites/processSitePayment');
 const ticketsProcessor = require('utilities/vipTickets/ticketsProcessor');
 const { ENGINE_CONTRACT_ACTIONS, TOKEN_WAIV } = require('constants/hiveEngine');
-const { GUEST_TRANSFER_TYPE } = require('constants/common');
+const {
+  GUEST_TRANSFER_TYPE, GREY_LIST_KEY, GUEST_WALLET_TYPE, GREY_LIST_JOB_KEY,
+} = require('constants/common');
 const {
   TRANSFER_ID, REFUND_ID, TRANSFER_GUEST_ID,
 } = require('constants/sitesData');
@@ -11,8 +13,9 @@ const {
   GuestWallet,
 } = require('models');
 const moment = require('moment');
+const redisSetter = require('utilities/redis/redisSetter');
+const redisGetter = require('utilities/redis/redisGetter');
 const { sendSocketNotification } = require('../utilities/notificationsApi/notificationsUtil');
-const { GUEST_WALLET_TYPE } = require('../constants/common');
 
 const getRequestData = (transaction, blockNumber) => {
   const payload = parseJson(_.get(transaction, 'payload'));
@@ -96,10 +99,31 @@ const makeMemoString = (data) => {
   return data;
 };
 
+const greyListCheck = async ({ symbol, to, sender }) => {
+  if (symbol !== TOKEN_WAIV.SYMBOL) return;
+  const receiverInGreyList = !!await redisGetter.sismember({
+    key: GREY_LIST_KEY,
+    member: to,
+  });
+
+  if (receiverInGreyList) {
+    await redisSetter.sadd(GREY_LIST_KEY, sender);
+    return;
+  }
+  await redisSetter.sadd(GREY_LIST_JOB_KEY, to);
+};
+
 const parseTransfer = async (transaction, blockNumber, timestamp) => {
   const payload = parseJson(_.get(transaction, 'payload'));
   const logs = parseJson(_.get(transaction, 'logs'));
   if (_.isEmpty(payload) || logs.errors) return;
+
+  await greyListCheck({
+    symbol: payload.symbol,
+    to: payload.to,
+    sender: transaction.sender,
+  });
+
   const memoJson = parseJson(payload.memo);
   if (transaction.sender === process.env.GUEST_HOT_ACC && payload.symbol !== TOKEN_WAIV.SYMBOL) {
     await parseGuestWithdraw({ payload, transaction, blockNumber });
