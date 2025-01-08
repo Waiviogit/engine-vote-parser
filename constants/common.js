@@ -84,6 +84,7 @@ exports.COMMENT_REF_TYPES = {
 exports.REDIS_KEY_VOTE_UPDATES = 'votesUpdate';
 exports.REDIS_KEY_CHILDREN_UPDATE = 'commentsCounterUpdate';
 exports.GREY_LIST_KEY = 'vote_grey_list';
+exports.GREY_LIST_JOB_KEY = 'vote_grey_list_job';
 
 exports.REDIS_KEY_DISTRIBUTE_HIVE_ENGINE_REWARD = 'distributeHiveEngineReward';
 exports.EXPIRE_DISTRIBUTE_HIVE_ENGINE_REWARD = 345600;
