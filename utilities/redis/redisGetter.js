@@ -20,3 +20,7 @@ exports.smembers = async (key, client = expiredPostsClient) => client.smembersAs
 exports.zrangebyscore = async ({
   key, min = 1, max = moment.utc().unix(), client = lastBlockClient,
 }) => client.zrangebyscoreAsync(key, min, max);
+
+exports.sismember = async ({
+  key, member, client = expiredPostsClient,
+}) => client.sismemberAsync(key, member);
