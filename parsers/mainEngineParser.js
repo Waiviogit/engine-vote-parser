@@ -4,6 +4,7 @@ const airdropHistoryParser = require('./airdropHistoryParser');
 const swapHistoryParser = require('./swapHistoryParser');
 const tokensParser = require('./tokensParser');
 const hiveEngineVoteParser = require('./hiveEngineVoteParser');
+const marketParser = require('./marketParser');
 const bookParser = require('./bookParser');
 
 exports.engineSwitcher = async ({
@@ -36,6 +37,7 @@ const parseTransaction = ({
     [ENGINE_CONTRACTS.AIRDROPS]: async () => airdropHistoryParser.parse(transaction, blockNumber, timestamp),
     [ENGINE_CONTRACTS.MARKETPOOLS]: async () => swapHistoryParser.parse(transaction, blockNumber, timestamp),
     [ENGINE_CONTRACTS.TOKENS]: async () => tokensParser.parse(transaction, blockNumber, timestamp),
+    [ENGINE_CONTRACTS.MARKET]: async () => marketParser.parse(transaction, blockNumber, timestamp),
     default: () => '',
   };
   return (handler[contract] || handler.default)();
