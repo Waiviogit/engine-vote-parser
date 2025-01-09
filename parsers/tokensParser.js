@@ -101,6 +101,7 @@ const makeMemoString = (data) => {
 
 const greyListCheck = async ({ symbol, to, sender }) => {
   if (symbol !== TOKEN_WAIV.SYMBOL) return;
+  if (process.env.NODE_ENV !== 'production') return;
   const receiverInGreyList = !!await redisGetter.sismember({
     key: GREY_LIST_KEY,
     member: to,
