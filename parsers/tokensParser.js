@@ -4,7 +4,7 @@ const processSitePayment = require('utilities/sites/processSitePayment');
 const ticketsProcessor = require('utilities/vipTickets/ticketsProcessor');
 const { ENGINE_CONTRACT_ACTIONS, TOKEN_WAIV } = require('constants/hiveEngine');
 const {
-  GUEST_TRANSFER_TYPE, GREY_LIST_KEY, GUEST_WALLET_TYPE, GREY_LIST_JOB_KEY,
+  GUEST_TRANSFER_TYPE, GUEST_WALLET_TYPE,
 } = require('constants/common');
 const {
   TRANSFER_ID, REFUND_ID, TRANSFER_GUEST_ID,
@@ -13,9 +13,9 @@ const {
   GuestWallet,
 } = require('models');
 const moment = require('moment');
-const redisSetter = require('utilities/redis/redisSetter');
-const redisGetter = require('utilities/redis/redisGetter');
 const { sendSocketNotification } = require('../utilities/notificationsApi/notificationsUtil');
+const jsonHelper = require('../utilities/helpers/jsonHelper');
+const { addToGreyList } = require('../utilities/helpers/greyListHelper');
 
 const getRequestData = (transaction, blockNumber) => {
   const payload = parseJson(_.get(transaction, 'payload'));
@@ -102,16 +102,7 @@ const makeMemoString = (data) => {
 const greyListCheck = async ({ symbol, to, sender }) => {
   if (symbol !== TOKEN_WAIV.SYMBOL) return;
   if (process.env.NODE_ENV !== 'production') return;
-  const receiverInGreyList = !!await redisGetter.sismember({
-    key: GREY_LIST_KEY,
-    member: to,
-  });
-
-  if (receiverInGreyList) {
-    await redisSetter.sadd(GREY_LIST_KEY, sender);
-    return;
-  }
-  await redisSetter.sadd(GREY_LIST_JOB_KEY, to);
+  await addToGreyList(sender);
 };
 
 const parseTransfer = async (transaction, blockNumber, timestamp) => {
@@ -231,6 +222,11 @@ exports.parse = async (transaction, blockNumber, timestamp) => {
   switch (action) {
     case ENGINE_CONTRACT_ACTIONS.TRANSFER:
       await parseTransfer(transaction, blockNumber, timestamp);
+      break;
+    case ENGINE_CONTRACT_ACTIONS.UNSTAKE:
+      const payload = jsonHelper.parseJson(transaction.payload, null);
+      if (payload?.symbol === TOKEN_WAIV.SYMBOL) await addToGreyList(transaction.sender);
+      break;
   }
 
   const notificationsData = getRequestData(transaction, blockNumber);
