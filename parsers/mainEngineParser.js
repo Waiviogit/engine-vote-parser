@@ -1,36 +1,14 @@
-const { ENGINE_CONTRACTS, ENGINE_CONTRACT_ACTIONS } = require('constants/hiveEngine');
+const { ENGINE_CONTRACTS } = require('constants/hiveEngine');
 const _ = require('lodash');
 const airdropHistoryParser = require('./airdropHistoryParser');
 const swapHistoryParser = require('./swapHistoryParser');
 const tokensParser = require('./tokensParser');
 const hiveEngineVoteParser = require('./hiveEngineVoteParser');
 const marketParser = require('./marketParser');
-const bookParser = require('./bookParser');
 
-exports.engineSwitcher = async ({
-  transactions, blockNumber, timestamp, refHiveBlockNumber,
-}) => {
-  // await poolsParser.parse({ transactions });
+const filterVotesCB = (vote) => vote.contract === ENGINE_CONTRACTS.COMMENTS;
 
-  for (const transaction of transactions) {
-    await parseTransaction({
-      contract: transaction.contract,
-      transaction,
-      blockNumber,
-      timestamp,
-    });
-  }
-
-  await hiveEngineVoteParser.parse({
-    transactions: _.filter(transactions, (vote) => filterVotesCB(vote)),
-    blockNumber,
-    timestamp,
-    refHiveBlockNumber,
-  });
-  // await bookParser.parse({ transactions });
-};
-
-const contractHandler = {
+const handler = {
   [ENGINE_CONTRACTS.AIRDROPS]: airdropHistoryParser.parse,
   [ENGINE_CONTRACTS.MARKETPOOLS]: swapHistoryParser.parse,
   [ENGINE_CONTRACTS.TOKENS]: tokensParser.parse,
@@ -39,10 +17,17 @@ const contractHandler = {
   },
 };
 
-const parseTransaction = async ({
-  contract, transaction, blockNumber, timestamp,
+exports.engineSwitcher = async ({
+  transactions, blockNumber, timestamp, refHiveBlockNumber,
 }) => {
-  await (contractHandler[contract] || contractHandler.default)(transaction, blockNumber, timestamp);
-};
+  for (const transaction of transactions) {
+    await (handler[transaction.contract] || handler.default)(transaction, blockNumber, timestamp);
+  }
 
-const filterVotesCB = (vote) => vote.contract === ENGINE_CONTRACTS.COMMENTS;
+  await hiveEngineVoteParser.parse({
+    transactions: _.filter(transactions, (vote) => filterVotesCB(vote)),
+    blockNumber,
+    timestamp,
+    refHiveBlockNumber,
+  });
+};
