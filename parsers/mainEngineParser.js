@@ -30,17 +30,19 @@ exports.engineSwitcher = async ({
   // await bookParser.parse({ transactions });
 };
 
-const parseTransaction = ({
+const contractHandler = {
+  [ENGINE_CONTRACTS.AIRDROPS]: airdropHistoryParser.parse,
+  [ENGINE_CONTRACTS.MARKETPOOLS]: swapHistoryParser.parse,
+  [ENGINE_CONTRACTS.TOKENS]: tokensParser.parse,
+  [ENGINE_CONTRACTS.MARKET]: marketParser.parse,
+  default: async () => {
+  },
+};
+
+const parseTransaction = async ({
   contract, transaction, blockNumber, timestamp,
 }) => {
-  const handler = {
-    [ENGINE_CONTRACTS.AIRDROPS]: async () => airdropHistoryParser.parse(transaction, blockNumber, timestamp),
-    [ENGINE_CONTRACTS.MARKETPOOLS]: async () => swapHistoryParser.parse(transaction, blockNumber, timestamp),
-    [ENGINE_CONTRACTS.TOKENS]: async () => tokensParser.parse(transaction, blockNumber, timestamp),
-    [ENGINE_CONTRACTS.MARKET]: async () => marketParser.parse(transaction, blockNumber, timestamp),
-    default: () => '',
-  };
-  return (handler[contract] || handler.default)();
+  await (contractHandler[contract] || contractHandler.default)(transaction, blockNumber, timestamp);
 };
 
 const filterVotesCB = (vote) => vote.contract === ENGINE_CONTRACTS.COMMENTS;

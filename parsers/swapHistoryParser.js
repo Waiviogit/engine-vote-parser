@@ -4,6 +4,8 @@ const { parseJson } = require('utilities/helpers/jsonHelper');
 const moment = require('moment');
 const { ENGINE_CONTRACT_ACTIONS } = require('constants/hiveEngine');
 const { BALANCE_BEFORE_REBALANCING } = require('../constants/parsersData');
+const { TOKEN_WAIV } = require('../constants/hiveEngine');
+const { addToGreyList } = require('../utilities/helpers/greyListHelper');
 
 exports.parse = async (transaction, blockNumber, timestamp) => {
   if (transaction.action !== ENGINE_CONTRACT_ACTIONS.SWAP_TOKENS) return;
@@ -16,6 +18,7 @@ exports.parse = async (transaction, blockNumber, timestamp) => {
 
   const symbolOut = _.get(symbols, 'data.symbolOut');
   const symbolIn = _.get(symbols, 'data.symbolIn');
+  if (symbolIn === TOKEN_WAIV.SYMBOL) await addToGreyList(transaction.sender);
 
   if (!swapTo || !swapFrom || !symbols) return;
 
