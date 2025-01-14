@@ -1,24 +1,27 @@
-const { ENGINE_CONTRACTS, ENGINE_CONTRACT_ACTIONS } = require('constants/hiveEngine');
+const { ENGINE_CONTRACTS } = require('constants/hiveEngine');
 const _ = require('lodash');
 const airdropHistoryParser = require('./airdropHistoryParser');
 const swapHistoryParser = require('./swapHistoryParser');
 const tokensParser = require('./tokensParser');
 const hiveEngineVoteParser = require('./hiveEngineVoteParser');
 const marketParser = require('./marketParser');
-const bookParser = require('./bookParser');
+
+const filterVotesCB = (vote) => vote.contract === ENGINE_CONTRACTS.COMMENTS;
+
+const handler = {
+  [ENGINE_CONTRACTS.AIRDROPS]: airdropHistoryParser.parse,
+  [ENGINE_CONTRACTS.MARKETPOOLS]: swapHistoryParser.parse,
+  [ENGINE_CONTRACTS.TOKENS]: tokensParser.parse,
+  [ENGINE_CONTRACTS.MARKET]: marketParser.parse,
+  default: async () => {
+  },
+};
 
 exports.engineSwitcher = async ({
   transactions, blockNumber, timestamp, refHiveBlockNumber,
 }) => {
-  // await poolsParser.parse({ transactions });
-
   for (const transaction of transactions) {
-    await parseTransaction({
-      contract: transaction.contract,
-      transaction,
-      blockNumber,
-      timestamp,
-    });
+    await (handler[transaction.contract] || handler.default)(transaction, blockNumber, timestamp);
   }
 
   await hiveEngineVoteParser.parse({
@@ -27,20 +30,4 @@ exports.engineSwitcher = async ({
     timestamp,
     refHiveBlockNumber,
   });
-  // await bookParser.parse({ transactions });
 };
-
-const parseTransaction = ({
-  contract, transaction, blockNumber, timestamp,
-}) => {
-  const handler = {
-    [ENGINE_CONTRACTS.AIRDROPS]: async () => airdropHistoryParser.parse(transaction, blockNumber, timestamp),
-    [ENGINE_CONTRACTS.MARKETPOOLS]: async () => swapHistoryParser.parse(transaction, blockNumber, timestamp),
-    [ENGINE_CONTRACTS.TOKENS]: async () => tokensParser.parse(transaction, blockNumber, timestamp),
-    [ENGINE_CONTRACTS.MARKET]: async () => marketParser.parse(transaction, blockNumber, timestamp),
-    default: () => '',
-  };
-  return (handler[contract] || handler.default)();
-};
-
-const filterVotesCB = (vote) => vote.contract === ENGINE_CONTRACTS.COMMENTS;
