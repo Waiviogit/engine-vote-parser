@@ -3,7 +3,7 @@ const _ = require('lodash');
 const { HIVE_ENGINE_NODES } = require('../../constants/appData');
 
 exports.engineQuery = async ({
-  hostUrl = 'https://herpc.dtools.dev',
+  hostUrl = 'https://api.primersion.com',
   method = 'find',
   params,
   endpoint = '/contracts',
