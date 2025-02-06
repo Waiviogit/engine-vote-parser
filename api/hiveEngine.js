@@ -4,6 +4,7 @@ const { HIVE_ENGINE_NODES } = require('constants/appData');
 const _ = require('lodash');
 
 let CURRENT_NODE = HIVE_ENGINE_NODES[0];
+let timesGetNull = 0;
 
 /**
  * Base method for run stream, for side tasks pass to the key parameter key for save block
@@ -62,7 +63,13 @@ const loadNextBlock = async ({
       startBlock: lastBlockNum + 1, key, transactionsParserCallback, finishBlock,
     });
   } else {
+    ++timesGetNull;
+
     console.log('request returned null', CURRENT_NODE);
+    if (timesGetNull > 2) {
+      timesGetNull = 0;
+      changeNodeUrl();
+    }
     await new Promise((resolve) => setTimeout(resolve, 2000));
     await loadNextBlock({
       startBlock: lastBlockNum, key, transactionsParserCallback, finishBlock,
