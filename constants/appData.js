@@ -109,8 +109,8 @@ const HIVE_ENGINE_NODES = [
   // 'https://he.sourov.dev',
   'https://api.primersion.com',
   // 'https://ha.herpc.dtools.dev',
-  // 'https://herpc.dtools.dev',
-  // 'https://api.hive-engine.com/rpc/',
+  'https://herpc.dtools.dev',
+  'https://api.hive-engine.com/rpc/',
   'https://herpc.actifit.io',
   'https://herpc.kanibot.com',
 ];
