@@ -62,6 +62,7 @@ const loadNextBlock = async ({
       startBlock: lastBlockNum + 1, key, transactionsParserCallback, finishBlock,
     });
   } else {
+    console.log('request returned null', CURRENT_NODE);
     await new Promise((resolve) => setTimeout(resolve, 2000));
     await loadNextBlock({
       startBlock: lastBlockNum, key, transactionsParserCallback, finishBlock,
