@@ -113,6 +113,7 @@ const HIVE_ENGINE_NODES = [
   'https://api.hive-engine.com/rpc/',
   'https://herpc.actifit.io',
   'https://herpc.kanibot.com',
+  'https://api2.hive-engine.com/rpc/',
 ];
 
 const REFERRAL_TYPES = {
