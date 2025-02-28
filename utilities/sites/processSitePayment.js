@@ -60,6 +60,7 @@ const getAccountBalance = async (account) => {
   _.map(payments, (payment) => {
     switch (payment.type) {
       case PAYMENT_TYPES.TRANSFER:
+      case PAYMENT_TYPES.CREDIT:
         payment.balance = payable + payment.amount;
         payable = payment.balance;
         break;
