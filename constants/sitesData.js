@@ -32,12 +32,6 @@ exports.FEE = {
   account: 'waivio.web',
 };
 
-exports.PAYMENT_TYPES = {
-  TRANSFER: 'transfer',
-  WRITE_OFF: 'writeOff',
-  REFUND: 'refund',
-};
-
 exports.REFUND_TYPES = {
   WEBSITE_REFUND: 'website_refund',
 };
