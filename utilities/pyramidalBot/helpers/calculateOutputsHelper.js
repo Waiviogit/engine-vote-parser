@@ -12,8 +12,9 @@ exports.calculateOutputs = ({
     pool: _.find(poolsWithToken, (pool) => pool.tokenPair.includes(poolToBuy.tokenPair)),
     slippage: SLIPPAGE,
     from: true,
-    tradeFeeMul,
-    precision: poolToBuy.poolPrecision,
+    tradeFeeMul: bot.ourPool ? 1 : tradeFeeMul,
+    precisionOut: bot.tokenPrecision,
+    precisionIn: poolToBuy.stableTokenPrecision,
   });
   const sellOutput = poolSwapHelper.getSwapOutput({
     symbol: bot.tokenSymbol,
@@ -21,8 +22,9 @@ exports.calculateOutputs = ({
     pool: _.find(poolsWithToken, (pool) => pool.tokenPair.includes(poolToSell.tokenPair)),
     slippage: SLIPPAGE,
     from: true,
-    tradeFeeMul,
-    precision: poolToSell.poolPrecision,
+    tradeFeeMul: bot.ourPool ? 1 : tradeFeeMul,
+    precisionOut: poolToSell.stableTokenPrecision,
+    precisionIn: bot.tokenPrecision,
   });
   const equalizeOutput = poolSwapHelper.getSwapOutput({
     symbol: poolToSell.stableTokenSymbol,
@@ -31,7 +33,8 @@ exports.calculateOutputs = ({
     slippage: SLIPPAGE,
     from: true,
     tradeFeeMul,
-    precision: stablePool.precision,
+    precisionOut: poolToBuy.stableTokenPrecision,
+    precisionIn: poolToSell.stableTokenPrecision,
   });
 
   return { buyOutput, sellOutput, equalizeOutput };
