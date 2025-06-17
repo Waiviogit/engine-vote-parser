@@ -20,6 +20,7 @@ const { GUEST_WALLET_TYPE, GUEST_AVAILABLE_TOKEN } = require('constants/common')
 const { VOTE_TYPES } = require('../constants/parsersData');
 const { calculateHiveEngineVote } = require('../utilities/hiveEngine/operations');
 const { getWeightForFieldUpdate } = require('../utilities/helpers/rewardsHelper');
+const { FIELDS_NAMES } = require('../constants/wobjectsData');
 
 exports.parse = async ({
   transactions, blockNumber, timestamp, refHiveBlockNumber,
@@ -121,16 +122,16 @@ const getUserExpertiseInWobj = async (vote) => {
   return result?.weight || 1;
 };
 
-const processVoteOnObjectFields = async ({ vote, refHiveBlockNumber }) => {
-  const {
-    author, permlink, root_wobj: authorPermlink, symbol, voter, weight,
-  } = vote;
-
-  const tokenParams = ENGINE_TOKENS.find((t) => t.SYMBOL === symbol);
+const addWeightAndExpertiseOnVote = async (vote, field) => {
+  const { weight } = await User.checkForObjectShares({
+    name: vote.voter,
+    author_permlink: vote.root_wobj,
+  });
+  const tokenParams = ENGINE_TOKENS.find((t) => t.SYMBOL === vote.symbol);
   if (!Number(vote?.rshares)) {
     const { rshares } = await calculateHiveEngineVote({
-      symbol,
-      account: voter,
+      symbol: vote.symbol,
+      account: vote.voter,
       weight,
       poolId: tokenParams.POOL_ID,
       dieselPoolId: tokenParams.MARKET_POOL_ID,
@@ -146,65 +147,109 @@ const processVoteOnObjectFields = async ({ vote, refHiveBlockNumber }) => {
 
   const weightOnField = (expertiseInRshares + voteInRshares * 0.5) * (weight / 10000);
 
-  if (weightOnField === 0) return;
-  const reject = weight % 2 !== 0;
+  const existedVote = _.find(field.active_votes, (v) => v.voter === vote.voter);
 
-  const { field, error: fieldError } = await Wobj.getField(
-    author,
-    permlink,
-    authorPermlink,
-  );
-  if (fieldError) return;
-  if (!field) return;
-  const existingVote = field?.active_votes?.find((v) => v.voter === voter);
-  // if vote already exist increase or decrease on previous value
-  if (existingVote) {
-    const existingWeight = existingVote[`weight${symbol}`] ?? 1;
-
-    await Wobj.increaseFieldWeight({
-      authorPermlink,
-      author,
-      permlink,
-      weight: reject || weight === 0 ? -existingWeight : existingWeight,
-      symbol,
-    });
-  }
-
-  await Wobj.increaseFieldWeight({
-    authorPermlink,
-    author,
-    permlink,
-    weight: weightOnField,
-    symbol,
-  });
-
-  await Wobj.addVote({
-    field,
-    existingVote,
-    permlink,
-    author,
-    authorPermlink,
-    vote: {
-      voter,
-      [`weight${symbol}`]: reject ? -weightOnField : weightOnField,
-    },
-  });
-  const expertiseUsd = Number((usdValue * 0.5 * (weight / 10000)).toFixed(8));
-
-  if (!reject && expertiseUsd !== 0) {
-    await User.increaseWobjectWeight({
-      name: field.creator,
-      author_permlink: authorPermlink,
-      weight: expertiseUsd,
-    });
-  }
+  return {
+    ...existedVote,
+    expertiseUSD: usdValue,
+    [`weight${tokenParams.SYMBOL}`]: weightOnField,
+  };
 };
 
 const voteOnObjectFields = async ({ votes = [], refHiveBlockNumber }) => {
   if (!votes.length) return;
+  const { users: blacklistUsers = [] } = await appHelper.getBlackListUsers();
+  const shouldProcessVote = (vote, field) => {
+    if (field.name === FIELDS_NAMES.AUTHORITY && field.creator !== vote.voter) return false;
+    const voterInVotes = !!_.find(field.active_votes, (el) => el.voter === vote.voter);
+    const hasTokenParams = ENGINE_TOKENS.find((t) => t.SYMBOL === vote.symbol);
 
-  const votePromises = votes.map((vote) => processVoteOnObjectFields({ vote, refHiveBlockNumber }));
-  await Promise.all(votePromises);
+    return !blacklistUsers.includes(vote.voter)
+        && vote.percent > 0
+        && voterInVotes
+        && hasTokenParams;
+  };
+  const getLastVotesByVoter = (votesArr, field) => {
+    const lastVoteByVoter = new Map();
+    for (const v of votesArr) {
+      if (!shouldProcessVote(v, field)) continue;
+      lastVoteByVoter.set(v.voter, v);
+    }
+    return Array.from(lastVoteByVoter.values());
+  };
+
+  const processRootWobjGroup = async (rootWobj, groupVotes) => {
+    const updateData = {};
+    const arrayFilters = [];
+    const votesByObj = groupVotes.map((el) => ({
+      ...el,
+      groupKey: `${el.author}_${el.permlink}`,
+    }));
+    const groupedByField = _.groupBy(votesByObj, 'groupKey');
+
+    for (const groupKey of Object.keys(groupedByField)) {
+      const [author, permlink] = groupKey.split('_');
+      const { field } = await Wobj.getField(author, permlink, rootWobj);
+      if (!field) continue;
+
+      const updatesOnField = groupedByField[groupKey];
+
+      // Only keep the last vote per voter
+      const lastVotes = getLastVotesByVoter(updatesOnField, field);
+      if (!lastVotes.length) continue;
+
+      // Process votes in parallel
+      const processedVotes = await Promise.all(
+        lastVotes.map(async (v) => addWeightAndExpertiseOnVote(v, field)),
+      );
+      const voters = processedVotes.map((v) => v.voter);
+
+      // Remove old votes from same voters
+      const filteredVotes = field.active_votes.filter((v) => !voters.includes(v.voter));
+      // Add new votes
+      const newVotes = [
+        ...filteredVotes,
+        ...processedVotes,
+      ].map((v) => ({
+        voter: v.voter,
+        percent: v.percent,
+        rshares_weight: v.rshares_weight,
+        weight: v.weight,
+        weightWAIV: v.weightWAIV,
+      }));
+
+      const fieldWeight = newVotes.reduce((acc, el) => acc + el.weightWAIV, 0);
+      const expertiseUSD = processedVotes.reduce(
+        (acc, el) => acc + el.expertiseUSD,
+        0,
+      );
+
+      updateData[`fields.$[${permlink}].weightWAIV`] = fieldWeight;
+      updateData[`fields.$[${permlink}].active_votes`] = newVotes;
+      arrayFilters.push({ [`${permlink}.permlink`]: permlink });
+
+      // Update user expertise
+      await User.increaseWobjectWeight({
+        name: field.creator,
+        author_permlink: rootWobj,
+        weight: expertiseUSD * 0.5,
+      });
+    }
+
+    // Update DB for this object
+    await Wobj.updateOneWithArrayFilters({
+      authorPermlink: rootWobj,
+      updateData,
+      arrayFilters,
+    });
+  };
+
+  // Group by root_wobj and process all groups in parallel
+  const groupedByObject = _.groupBy(votes, 'root_wobj');
+  await Promise.all(
+    Object.entries(groupedByObject)
+      .map(([rootWobj, groupVotes]) => processRootWobjGroup(rootWobj, groupVotes)),
+  );
 };
 
 const checkGuestPostReward = async (rewards) => {
