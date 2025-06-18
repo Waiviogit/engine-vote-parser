@@ -145,7 +145,7 @@ const addWeightAndExpertiseOnVote = async (vote, field) => {
   const expertiseInRshares = await getWeightForFieldUpdate(userWobjectWeight);
   const voteInRshares = await getWeightForFieldUpdate(usdValue);
 
-  const weightOnField = (expertiseInRshares + voteInRshares * 0.5) * (weight / 10000);
+  const weightOnField = (expertiseInRshares + voteInRshares * 0.5) * (vote.weight / 10000);
 
   const existedVote = _.find(field.active_votes, (v) => v.voter === vote.voter);
 
@@ -165,7 +165,7 @@ const voteOnObjectFields = async ({ votes = [], refHiveBlockNumber }) => {
     const hasTokenParams = ENGINE_TOKENS.find((t) => t.SYMBOL === vote.symbol);
 
     return !blacklistUsers.includes(vote.voter)
-        && vote.percent > 0
+        && vote.weight > 0
         && voterInVotes
         && hasTokenParams;
   };
