@@ -95,8 +95,8 @@ const loadBlock = async (blockNum, transactionsParserCallback) => {
   }
   if (!block) return false;
 
-  const wait = await shouldWait({ refHiveBlockNumber: block.refHiveBlockNumber });
-  if (wait) return false;
+  // const wait = await shouldWait({ refHiveBlockNumber: block.refHiveBlockNumber });
+  // if (wait) return false;
 
   if (!block.transactions || !block.transactions[0]) {
     console.error(`EMPTY BLOCK: ${blockNum}`);
