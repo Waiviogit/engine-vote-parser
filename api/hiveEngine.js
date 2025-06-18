@@ -81,7 +81,7 @@ const shouldWait = async ({ refHiveBlockNumber }) => {
   const lastVoteBlock = await redisGetter.getLastBlockNum('last_vote_block_num');
   const diff = lastVoteBlock - refHiveBlockNumber;
 
-  return diff < 1;
+  return diff < 3;
 };
 
 // return true if block exist and parsed, else - false
