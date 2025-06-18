@@ -152,7 +152,7 @@ const addWeightAndExpertiseOnVote = async (vote, field) => {
   return {
     ...existedVote,
     expertiseUSD: usdValue,
-    [`weight${tokenParams.SYMBOL}`]: weightOnField,
+    [`weight${tokenParams.SYMBOL}`]: weightOnField || 0,
   };
 };
 
@@ -196,7 +196,6 @@ const voteOnObjectFields = async ({ votes = [], refHiveBlockNumber }) => {
 
       // Only keep the last vote per voter
       const lastVotes = getLastVotesByVoter(updatesOnField, field);
-      if (!lastVotes.length) continue;
 
       // Process votes in parallel
       const processedVotes = await Promise.all(
@@ -224,16 +223,19 @@ const voteOnObjectFields = async ({ votes = [], refHiveBlockNumber }) => {
         0,
       );
 
-      updateData[`fields.$[${permlink}].weightWAIV`] = fieldWeight;
-      updateData[`fields.$[${permlink}].active_votes`] = newVotes;
-      arrayFilters.push({ [`${permlink}.permlink`]: permlink });
+      const nameForArrayFilter = formatFieldName(permlink);
 
-      // Update user expertise
-      await User.increaseWobjectWeight({
-        name: field.creator,
-        author_permlink: rootWobj,
-        weight: expertiseUSD * 0.5,
-      });
+      updateData[`fields.$[${nameForArrayFilter}].weightWAIV`] = fieldWeight;
+      updateData[`fields.$[${nameForArrayFilter}].active_votes`] = newVotes;
+      arrayFilters.push({ [`${nameForArrayFilter}.permlink`]: permlink });
+
+      if (expertiseUSD > 0) {
+        await User.increaseWobjectWeight({
+          name: field.creator,
+          author_permlink: rootWobj,
+          weight: expertiseUSD * 0.5,
+        });
+      }
     }
 
     // Update DB for this object
@@ -250,6 +252,18 @@ const voteOnObjectFields = async ({ votes = [], refHiveBlockNumber }) => {
     Object.entries(groupedByObject)
       .map(([rootWobj, groupVotes]) => processRootWobjGroup(rootWobj, groupVotes)),
   );
+};
+
+const formatFieldName = (str) => {
+  // Remove all characters that are not a-z, 0-9 (alphanumeric)
+  let cleaned = str.replace(/[^a-z0-9]/gi, '');
+  // Ensure first character is a lowercase letter
+  if (!/^[a-z]/.test(cleaned)) {
+    cleaned = `a${cleaned}`; // prepend 'a' if first char is not a lowercase letter
+  }
+  // Make sure all letters are lowercase
+  cleaned = cleaned.toLowerCase();
+  return cleaned;
 };
 
 const checkGuestPostReward = async (rewards) => {
