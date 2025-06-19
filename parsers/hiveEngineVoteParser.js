@@ -17,9 +17,6 @@ const userValidator = require('validator/userValidator');
 const calculateEngineExpertise = require('utilities/helpers/calculateEngineExpertise');
 const appHelper = require('utilities/helpers/appHelper');
 const { GUEST_WALLET_TYPE, GUEST_AVAILABLE_TOKEN } = require('constants/common');
-const { VOTE_TYPES } = require('../constants/parsersData');
-const { calculateHiveEngineVote } = require('../utilities/hiveEngine/operations');
-const { getWeightForFieldUpdate } = require('../utilities/helpers/rewardsHelper');
 
 exports.parse = async ({
   transactions, blockNumber, timestamp, refHiveBlockNumber,
@@ -51,10 +48,6 @@ exports.parseEngineVotes = async ({ votes, refHiveBlockNumber }) => {
   const { posts = [] } = await Post.getManyPosts(getConditionFromVotes(votesWithAdditionalData));
   const { processedPosts } = await addRsharesToPost({ votes: votesWithAdditionalData, posts });
   await distributeHiveEngineExpertise({ votes: votesWithAdditionalData, posts: processedPosts });
-  await voteOnObjectFields({
-    votes: votesWithAdditionalData?.filter((v) => v.type === VOTE_TYPES.APPEND_WOBJ && v.weight >= 0),
-    refHiveBlockNumber,
-  });
 };
 
 exports.formatVotesAndRewards = ({
@@ -106,106 +99,6 @@ exports.formatVotesAndRewards = ({
   }
   return acc;
 }, { votes: [], rewards: [] });
-
-const getUserExpertiseInWobj = async (vote) => {
-  const { result, error } = await UserExpertiseModel.find({
-    condition: {
-      author_permlink: vote.root_wobj,
-      user_name: vote.voter,
-    },
-  });
-
-  if (error) return 1;
-  if (!result) return 1;
-
-  return result?.weight || 1;
-};
-
-const processVoteOnObjectFields = async ({ vote, refHiveBlockNumber }) => {
-  const {
-    author, permlink, root_wobj: authorPermlink, symbol, voter, weight,
-  } = vote;
-
-  const tokenParams = ENGINE_TOKENS.find((t) => t.SYMBOL === symbol);
-  if (!Number(vote?.rshares)) {
-    const { rshares } = await calculateHiveEngineVote({
-      symbol,
-      account: voter,
-      weight,
-      poolId: tokenParams.POOL_ID,
-      dieselPoolId: tokenParams.MARKET_POOL_ID,
-    });
-    vote.rshares = rshares;
-  }
-
-  const userWobjectWeight = await getUserExpertiseInWobj(vote);
-  const usdValue = await calculateEngineExpertise(vote.rshares, tokenParams.SYMBOL);
-  // here we need transform usd value to hive rshares * 1e6
-  const expertiseInRshares = await getWeightForFieldUpdate(userWobjectWeight);
-  const voteInRshares = await getWeightForFieldUpdate(usdValue);
-
-  const weightOnField = (expertiseInRshares + voteInRshares * 0.5) * (weight / 10000);
-
-  if (weightOnField === 0) return;
-  const reject = weight % 2 !== 0;
-
-  const { field, error: fieldError } = await Wobj.getField(
-    author,
-    permlink,
-    authorPermlink,
-  );
-  if (fieldError) return;
-  if (!field) return;
-  const existingVote = field?.active_votes?.find((v) => v.voter === voter);
-  // if vote already exist increase or decrease on previous value
-  if (existingVote) {
-    const existingWeight = existingVote[`weight${symbol}`] ?? 1;
-
-    await Wobj.increaseFieldWeight({
-      authorPermlink,
-      author,
-      permlink,
-      weight: reject || weight === 0 ? -existingWeight : existingWeight,
-      symbol,
-    });
-  }
-
-  await Wobj.increaseFieldWeight({
-    authorPermlink,
-    author,
-    permlink,
-    weight: weightOnField,
-    symbol,
-  });
-
-  await Wobj.addVote({
-    field,
-    existingVote,
-    permlink,
-    author,
-    authorPermlink,
-    vote: {
-      voter,
-      [`weight${symbol}`]: reject ? -weightOnField : weightOnField,
-    },
-  });
-  const expertiseUsd = Number((usdValue * 0.5 * (weight / 10000)).toFixed(8));
-
-  if (!reject && expertiseUsd !== 0) {
-    await User.increaseWobjectWeight({
-      name: field.creator,
-      author_permlink: authorPermlink,
-      weight: expertiseUsd,
-    });
-  }
-};
-
-const voteOnObjectFields = async ({ votes = [], refHiveBlockNumber }) => {
-  if (!votes.length) return;
-
-  const votePromises = votes.map((vote) => processVoteOnObjectFields({ vote, refHiveBlockNumber }));
-  await Promise.all(votePromises);
-};
 
 const checkGuestPostReward = async (rewards) => {
   const beneficiaryRewards = _.filter(
