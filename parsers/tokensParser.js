@@ -9,9 +9,7 @@ const {
 const {
   TRANSFER_ID, REFUND_ID, TRANSFER_GUEST_ID,
 } = require('constants/sitesData');
-const {
-  GuestWallet,
-} = require('models');
+const { GuestWallet } = require('models');
 const moment = require('moment');
 const { sendSocketNotification } = require('../utilities/notificationsApi/notificationsUtil');
 const jsonHelper = require('../utilities/helpers/jsonHelper');
