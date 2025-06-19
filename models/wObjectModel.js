@@ -282,26 +282,6 @@ const find = async ({
   }
 };
 
-const updateOneWithArrayFilters = async ({
-  authorPermlink, updateData, arrayFilters,
-}) => {
-  try {
-    const result = await WObjectModel.updateOne(
-      {
-        author_permlink: authorPermlink,
-      },
-      updateData,
-      {
-        arrayFilters,
-      },
-    );
-
-    return { result };
-  } catch (error) {
-    return { error };
-  }
-};
-
 module.exports = {
   find,
   getOne,
@@ -320,5 +300,4 @@ module.exports = {
   pushNewPost,
   updateMany,
   getMany,
-  updateOneWithArrayFilters,
 };
