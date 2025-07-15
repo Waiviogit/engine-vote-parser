@@ -12,6 +12,7 @@ const handler = {
   [ENGINE_CONTRACTS.AIRDROPS]: airdropHistoryParser.parse,
   [ENGINE_CONTRACTS.MARKETPOOLS]: swapHistoryParser.parse,
   [ENGINE_CONTRACTS.TOKENS]: tokensParser.parse,
+  [ENGINE_CONTRACTS.HIVEPEGGED]: tokensParser.parse,
   [ENGINE_CONTRACTS.MARKET]: marketParser.parse,
   default: async () => {
   },
