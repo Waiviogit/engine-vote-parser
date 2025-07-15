@@ -71,3 +71,5 @@ exports.setEx = async ({
     console.log(error.message);
   }
 };
+
+exports.del = async ({ key, client = expiredPostsClient }) => client.delAsync(key);
