@@ -17,6 +17,7 @@ exports.ENGINE_CONTRACTS = {
   TOKENS: 'tokens',
   COMMENTS: 'comments',
   MARKET: 'market',
+  HIVEPEGGED: 'hivepegged',
 };
 
 exports.ENGINE_CONTRACT_ACTIONS = {
@@ -29,6 +30,7 @@ exports.ENGINE_CONTRACT_ACTIONS = {
   UNSTAKE: 'unstake',
   VOTE: 'vote',
   CANCEL_UNSTAKE: 'cancelUnstake',
+  WITHDRAW: 'withdraw',
 };
 
 exports.ENGINE_EVENTS = {
