@@ -14,6 +14,7 @@ const moment = require('moment');
 const { sendSocketNotification } = require('../utilities/notificationsApi/notificationsUtil');
 const jsonHelper = require('../utilities/helpers/jsonHelper');
 const { addToGreyList } = require('../utilities/helpers/greyListHelper');
+const { redisSetter, redis } = require('../utilities/redis');
 
 const getRequestData = (transaction, blockNumber) => {
   const payload = parseJson(_.get(transaction, 'payload'));
@@ -103,10 +104,23 @@ const greyListCheck = async ({ symbol, to, sender }) => {
   await addToGreyList(sender);
 };
 
+const WITHDRAW_LOCK_KEY = 'guest_withdraw_lock:';
+const delWithdrawLock = async (account) => {
+  await redisSetter.del({
+    key: `${WITHDRAW_LOCK_KEY}${account}`,
+    client: redis.expiredPostsClient,
+  });
+};
+
 const parseTransfer = async (transaction, blockNumber, timestamp) => {
   const payload = parseJson(_.get(transaction, 'payload'));
   const logs = parseJson(_.get(transaction, 'logs'));
-  if (_.isEmpty(payload) || logs.errors) return;
+  if (_.isEmpty(payload) || logs.errors) {
+    if (payload.account && transaction.sender === process.env.GUEST_HOT_ACC) {
+      await delWithdrawLock(payload.account);
+    }
+    return;
+  }
 
   await greyListCheck({
     symbol: payload.symbol,
@@ -185,6 +199,7 @@ const parseGuestWithdraw = async ({ payload, transaction, blockNumber }) => {
     to: address,
     from: account,
   });
+  await delWithdrawLock(account);
 };
 
 const parseGuestTransfer = async ({
