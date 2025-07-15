@@ -235,8 +235,7 @@ exports.parse = async (transaction, blockNumber, timestamp) => {
   switch (action) {
     case ENGINE_CONTRACT_ACTIONS.WITHDRAW: {
       const payload = parseJson(_.get(transaction, 'payload'));
-      const logs = parseJson(_.get(transaction, 'logs'));
-      if (logs.errors && payload.account && transaction.sender === process.env.GUEST_HOT_ACC) {
+      if (payload.account && transaction.sender === process.env.GUEST_HOT_ACC) {
         await delWithdrawLock(payload.account);
       }
     }
