@@ -228,6 +228,7 @@ const parseGuestTransfer = async ({
     from,
     to,
   });
+  await delWithdrawLock(account);
 };
 
 exports.parse = async (transaction, blockNumber, timestamp) => {
