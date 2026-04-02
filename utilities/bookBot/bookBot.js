@@ -590,7 +590,8 @@ const calcProfitPrice = ({
   const slippage = 0.005;
   if (type === MARKET_CONTRACT.BUY) {
     const result = poolSwapHelper.getSwapOutput({
-      precision: HIVE_PEGGED_PRECISION,
+      precisionOut: HIVE_PEGGED_PRECISION,
+      precisionIn: tokenPrecision,
       symbol: bookBot.symbol,
       amountIn: quantity,
       tradeFeeMul,
@@ -607,7 +608,8 @@ const calcProfitPrice = ({
 
   if (type === MARKET_CONTRACT.SELL) {
     const result = poolSwapHelper.getSwapOutput({
-      precision: tokenPrecision,
+      precisionOut: tokenPrecision,
+      precisionIn: HIVE_PEGGED_PRECISION,
       symbol: bookBot.symbol,
       amountIn: quantity,
       from: false,

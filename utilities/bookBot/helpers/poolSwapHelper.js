@@ -72,7 +72,7 @@ exports.getSwapParams = ({
 };
 
 exports.getSwapOutput = ({
-  symbol, amountIn, pool, slippage, from, tradeFeeMul, precision,
+  symbol, amountIn, pool, slippage, from, tradeFeeMul, precisionOut, precisionIn,
 }) => {
   if (!pool) return {};
   let liquidityIn;
@@ -107,17 +107,17 @@ exports.getSwapOutput = ({
       .div(tokenExchangedOn);
 
   const newBalances = {
-    tokenToExchange: tokenToExchangeNewBalance.toFixed(precision, BigNumber.ROUND_DOWN),
-    tokenExchangedOn: tokenExchangedOnNewBalance.toFixed(precision, BigNumber.ROUND_DOWN),
+    tokenToExchange: tokenToExchangeNewBalance.toFixed(precisionIn, BigNumber.ROUND_DOWN),
+    tokenExchangedOn: tokenExchangedOnNewBalance.toFixed(precisionOut, BigNumber.ROUND_DOWN),
   };
 
   const newPrices = {
     tokenToExchange: tokenToExchangeNewBalance
       .div(tokenExchangedOnNewBalance)
-      .toFixed(precision, BigNumber.ROUND_DOWN),
+      .toFixed(precisionIn, BigNumber.ROUND_DOWN),
     tokenExchangedOn: tokenExchangedOnNewBalance
       .div(tokenToExchangeNewBalance)
-      .toFixed(precision, BigNumber.ROUND_DOWN),
+      .toFixed(precisionOut, BigNumber.ROUND_DOWN),
   };
 
   const tokenSymbol = from
@@ -140,7 +140,7 @@ exports.getSwapOutput = ({
   const slippageAmount = from ? amountOut.times(slippage) : BigNumber(amountIn).times(slippage);
 
   const fee = calcFee({
-    tokenAmount, liquidityIn, liquidityOut, precision, tradeFeeMul,
+    tokenAmount, liquidityIn, liquidityOut, precision: pool.precision, tradeFeeMul,
   });
   const minAmountOut = from
     ? amountOut.minus(slippageAmount)
@@ -148,13 +148,13 @@ exports.getSwapOutput = ({
 
   let amountOutToFixed;
   if (from) {
-    amountOutToFixed = amountOut.minus(fee).toFixed(precision, BigNumber.ROUND_DOWN);
+    amountOutToFixed = amountOut.minus(fee).toFixed(precisionOut, BigNumber.ROUND_DOWN);
   } else {
     const feeAmount = calcFee({
       tokenAmount: amountIn,
       liquidityIn: tokenToExchangeNewBalance.toFixed(),
       liquidityOut: tokenExchangedOnNewBalance.toFixed(),
-      precision,
+      precision: pool.precision,
       tradeFeeMul,
     });
     const tradeFee = BigNumber(feeAmount).times(0.025);
@@ -169,13 +169,13 @@ exports.getSwapOutput = ({
 
   const priceImpactFeeForMinAmount = BigNumber(priceImpact).div(100).times(fee);
   const minAmountOutToFixed = minAmountOut.minus(fee).minus(priceImpactFeeForMinAmount)
-    .toFixed(precision, BigNumber.ROUND_DOWN);
+    .toFixed(precisionOut, BigNumber.ROUND_DOWN);
 
   const json = operationForJson({
     minAmountOut: minAmountOutToFixed,
     tokenPair,
     tokenSymbol,
-    tokenAmount: BigNumber(tokenAmount).toFixed(precision, BigNumber.ROUND_DOWN),
+    tokenAmount: BigNumber(tokenAmount).toFixed(precisionIn, BigNumber.ROUND_DOWN),
   });
 
   return {
